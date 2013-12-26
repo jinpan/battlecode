@@ -3,14 +3,12 @@ from os.path import abspath
 from os.path import join
 from os.path import dirname
 
-from djcelery import setup_loader
-
-setup_loader()
-
 ROOT = abspath(dirname(__file__))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+
+LOGIN_URL = 'login'
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -91,6 +89,17 @@ STATICFILES_FINDERS = (
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+    'django.core.context_processors.debug',
+    'django.core.context_processors.i18n',
+    'django.core.context_processors.media',
+    'django.core.context_processors.request',
+    'django.core.context_processors.static',
+    'django.core.context_processors.tz',
+)
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'int1bl!o4&s#38$-#04tn#p3&7jjwcd4n42b7oz99)+c6+c$v0'
 
@@ -132,8 +141,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
 
+    'debug_toolbar',
     'django_extensions',
-    'djcelery',
     'south',
 
     'core',

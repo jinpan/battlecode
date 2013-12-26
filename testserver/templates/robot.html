@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ days_left|default:0 }} days left until the 2014 finals. Let's get building.</h1>
+<hr>
+
+<h2><a href="/admin/core/robot/{{robot.id}}">{{ robot }}</a></h2>
+<a href="/admin/core/robot/add/?creator={{request.user.id}}&line={{line.id}}">Add a successor</a>
+
+<h3>Simulated Results</h3>
+
+<div id='robot-results'>
+    {% for simulation_set in simulation_sets %}
+    <h4>{{ simulation_set.robot_a }} vs {{ simulation_set.robot_b|default:'basicplayer' }}</h4>
+    <p>Won {{ simulation_set.robot_a_win_maps.count }}/{{ simulation_set.total_matches }};
+        Lost {{ simulation_set.robot_a_lose_maps.count }}/{{ simulation_set.total_matches }}</p>
+    <p>Maps won on</p>
+    <ul>
+        {% for map in simulation_set.robot_a_win_maps.all %}
+        <li>{{ map }}</li>
+        {% endfor %}
+    </ul>
+    <p>Maps lost on</p>
+    <ul>
+        {% for map in simulation_set.robot_a_lose_maps.all %}
+        <li>{{ map }}</li>
+        {% endfor %}
+    </ul>
+    <p>Maps tied on</p>
+    <ul>
+        {% for map in simulation_set.robot_a_tie_maps.all %}
+        <li>{{ map }}</li>
+        {% endfor %}
+    </ul>
+    <hr>
+    {% endfor %}
+</div>
+
+
+{% endblock %}
+

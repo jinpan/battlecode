@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ days_left|default:0 }} days left until the 2014 finals. Let's get building.</h1>
+<hr>
+<a href="{% url 'add-line' %}">Add a new robot line</a>
+<h2>Current Robot Lines</h2>
+
+<table border='1'>
+    <thead>
+        <tr>
+            <th>Iteration</th>
+            {% for line in robot_lines %}
+            <th>{{ line }} <a href="/admin/core/robot/add/?creator={{request.user.id}}&line={{line.id}}">(+)</a></th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in robots %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            {% for robot in row %}
+            <td>
+                {% if robot %}
+                <a href="{% url 'robot' robot_id=robot.id %}">{{ robot }}</a>
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+
+</table>
+
+{% endblock %}
+

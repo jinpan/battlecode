@@ -1,0 +1,8 @@
+#robot-results > ul {
+    list-style: none;
+}
+
+#robot-results > ul > li {
+    display: inline;
+    padding-right: 10px;
+}

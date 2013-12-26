@@ -1,0 +1,3 @@
+class SimulationRaceConditionException(Exception):
+    pass
+
