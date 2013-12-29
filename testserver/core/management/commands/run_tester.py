@@ -28,10 +28,11 @@ class SaverThread(threading.Thread):
 
 class SpawnerThread(threading.Thread):
     
-    def __init__(self, workers_semaphore, results, sleep_interval=DEFAULT_SLEEP_INTERVAL):
+    def __init__(self, workers_semaphore, results, retry=False, sleep_interval=DEFAULT_SLEEP_INTERVAL):
         super(SpawnerThread, self).__init__()
         self.workers_semaphore = workers_semaphore
         self.results = results
+        self.retry = retry
         self.sleep_interval = sleep_interval
 
     
@@ -39,11 +40,11 @@ class SpawnerThread(threading.Thread):
         while True:
             self.workers_semaphore.acquire()
             while True:
-                simulation = Simulation.objects.get_next_simulation()
+                simulation = Simulation.objects.get_next_simulation(retry=self.retry)
                 if simulation:
                     break
                 else:
-                    sleep(sleep_interval)
+                    sleep(self.sleep_interval)
 
             args = (simulation.pk, simulation.map_file.name,
                     simulation.get_files(simulation.robot_a), simulation.get_files(simulation.robot_b),
@@ -87,12 +88,16 @@ class Command(BaseCommand):
             data[key] = val
 
         num_processes = int(data.get('cores', cpu_count() - 1))
-        workers_semaphore = Semaphore(num_processes)
+        retry = (data['retry'].lower() == 'true')
 
+        workers_semaphore = Semaphore(num_processes)
         results = Queue()
 
         saver = SaverThread(results)
-        spawner = SpawnerThread(workers_semaphore, results)
+        if retry:
+            spawner = SpawnerThread(workers_semaphore, results, retry=True)
+        else:
+            spawner = SpawnerThread(workers_semaphore, results)
 
         saver.start()
         spawner.start()

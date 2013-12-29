@@ -170,8 +170,11 @@ class SimulationManager(models.Manager):
     
 
     @transaction.atomic
-    def get_next_simulation(self):
-        potential = self.select_for_update().filter(status=constants.STATUS.OPEN).order_by('-priority')[:1]
+    def get_next_simulation(self, retry=False):
+        if retry:
+            potential = self.select_for_update().filter(status__in=(constants.STATUS.PENDING, constants.STATUS.OPEN)).order_by('-priority')[:1]
+        else:
+            potential = self.select_for_update().filter(status=constants.STATUS.OPEN).order_by('-priority')[:1]
         if potential.count():
             simulation = potential[0]
             simulation.status = constants.STATUS.PENDING
