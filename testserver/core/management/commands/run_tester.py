@@ -88,7 +88,7 @@ class Command(BaseCommand):
             data[key] = val
 
         num_processes = int(data.get('cores', cpu_count() - 1))
-        retry = (data['retry'].lower() == 'true')
+        retry = (data.get('retry', 'false').lower() == 'true')
 
         workers_semaphore = Semaphore(num_processes)
         results = Queue()
