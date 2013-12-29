@@ -14,7 +14,10 @@ from django.template.loader import render_to_string
 from testserver.core import constants
 
 
-def parse_result(result):
+def parse_result(result, sim_file):
+    '''
+    Takes in the stdout and compressed sim_file contents
+    '''
     result_pattern = r'^\s+\[java\] \[server]\s+(a_\d+|b_\d+|basicplayer) \((A|B)\) wins$'
     tie_pattern = r'^\s+\[java\] Reason: The winning team won on tiebreakers.$'
     round_pattern = r'\s+\[java\] Round: (\d+)'
@@ -95,7 +98,7 @@ def run_simulation(simulation_id, map_file,
     process.stderr.close()
 
     # cleanup
-    with gopen(results_name) as f:
+    with open(results_name) as f:
         result_file = f.read()
 
     call(['rm', conf_name, build_name, results_name])

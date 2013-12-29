@@ -17,14 +17,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'core', ['File'])
 
-        # Adding model 'RobotLine'
-        db.create_table(u'core_robotline', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=100, db_index=True)),
-            ('alive', self.gf('django.db.models.fields.BooleanField')(default=True, db_index=True)),
-        ))
-        db.send_create_signal(u'core', ['RobotLine'])
-
         # Adding model 'Map'
         db.create_table(u'core_map', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
@@ -52,6 +44,14 @@ class Migration(SchemaMigration):
         ))
         db.create_unique(m2m_table_name, ['from_robot_id', 'to_robot_id'])
 
+        # Adding model 'RobotLine'
+        db.create_table(u'core_robotline', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=100)),
+            ('alive', self.gf('django.db.models.fields.BooleanField')(default=True, db_index=True)),
+        ))
+        db.send_create_signal(u'core', ['RobotLine'])
+
         # Adding model 'Simulation'
         db.create_table(u'core_simulation', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
@@ -60,7 +60,6 @@ class Migration(SchemaMigration):
             ('map_file', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Map'])),
             ('priority', self.gf('django.db.models.fields.FloatField')(default=0)),
             ('result', self.gf('django.db.models.fields.TextField')(db_index=True, null=True, blank=True)),
-            ('sim_file', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('error', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('status', self.gf('django.db.models.fields.CharField')(default='1', max_length=1)),
             ('winner', self.gf('django.db.models.fields.CharField')(max_length=1, null=True, blank=True)),
@@ -71,12 +70,21 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'core', ['Simulation'])
 
+        # Adding model 'SimulationFile'
+        db.create_table(u'core_simulationfile', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('simulation', self.gf('django.db.models.fields.related.OneToOneField')(to=orm['core.Simulation'], unique=True)),
+            ('data', self.gf('django.db.models.fields.BinaryField')()),
+        ))
+        db.send_create_signal(u'core', ['SimulationFile'])
+
         # Adding model 'SimulationSet'
         db.create_table(u'core_simulationset', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('robot_a', self.gf('django.db.models.fields.related.ForeignKey')(related_name='simulationset_a', to=orm['core.Robot'])),
             ('robot_b', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='simulationset_b', null=True, to=orm['core.Robot'])),
-            ('complete', self.gf('django.db.models.fields.BooleanField')(db_index=True)),
+            ('updated_time', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('complete', self.gf('django.db.models.fields.BooleanField')(default=False, db_index=True)),
         ))
         db.send_create_signal(u'core', ['SimulationSet'])
 
@@ -112,9 +120,6 @@ class Migration(SchemaMigration):
         # Deleting model 'File'
         db.delete_table(u'core_file')
 
-        # Deleting model 'RobotLine'
-        db.delete_table(u'core_robotline')
-
         # Deleting model 'Map'
         db.delete_table(u'core_map')
 
@@ -124,8 +129,14 @@ class Migration(SchemaMigration):
         # Removing M2M table for field simulated_opponents on 'Robot'
         db.delete_table(db.shorten_name(u'core_robot_simulated_opponents'))
 
+        # Deleting model 'RobotLine'
+        db.delete_table(u'core_robotline')
+
         # Deleting model 'Simulation'
         db.delete_table(u'core_simulation')
+
+        # Deleting model 'SimulationFile'
+        db.delete_table(u'core_simulationfile')
 
         # Deleting model 'SimulationSet'
         db.delete_table(u'core_simulationset')
@@ -203,7 +214,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'RobotLine'},
             'alive': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'db_index': 'True'})
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
         },
         u'core.simulation': {
             'Meta': {'object_name': 'Simulation'},
@@ -217,20 +228,26 @@ class Migration(SchemaMigration):
             'robot_a': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'simulation_a'", 'to': u"orm['core.Robot']"}),
             'robot_b': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'simulation_b'", 'null': 'True', 'to': u"orm['core.Robot']"}),
             'rounds': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'sim_file': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'status': ('django.db.models.fields.CharField', [], {'default': "'1'", 'max_length': '1'}),
             'tie': ('django.db.models.fields.NullBooleanField', [], {'default': 'None', 'null': 'True', 'db_index': 'True', 'blank': 'True'}),
             'winner': ('django.db.models.fields.CharField', [], {'max_length': '1', 'null': 'True', 'blank': 'True'})
         },
+        u'core.simulationfile': {
+            'Meta': {'object_name': 'SimulationFile'},
+            'data': ('django.db.models.fields.BinaryField', [], {}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'simulation': ('django.db.models.fields.related.OneToOneField', [], {'to': u"orm['core.Simulation']", 'unique': 'True'})
+        },
         u'core.simulationset': {
             'Meta': {'object_name': 'SimulationSet'},
-            'complete': ('django.db.models.fields.BooleanField', [], {'db_index': 'True'}),
+            'complete': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'robot_a': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'simulationset_a'", 'to': u"orm['core.Robot']"}),
             'robot_a_lose_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_lose_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
             'robot_a_tie_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_tie_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
             'robot_a_win_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_win_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
-            'robot_b': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'simulationset_b'", 'null': 'True', 'to': u"orm['core.Robot']"})
+            'robot_b': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'simulationset_b'", 'null': 'True', 'to': u"orm['core.Robot']"}),
+            'updated_time': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         }
     }
 

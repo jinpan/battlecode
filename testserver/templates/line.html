@@ -3,34 +3,41 @@
 {% block content %}
 <h1>{{ days_left|default:0 }} days left until the 2014 finals. Let's get building.</h1>
 <hr>
-<a href="{% url 'add-line' %}">Add a new robot line</a>
-<h2>Current Robot Lines</h2>
+<h2><a href="/admin/core/robotline/{{line.id}}">{{ line }}</a></h2>
 
-<table border='1'>
-    <thead>
-        <tr>
-            <th>Iteration</th>
-            {% for line in robot_lines %}
-            <th>{{ line }} <a href="/admin/core/robot/add/?creator={{request.user.id}}&line={{line.id}}">(+)</a></th>
-            {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in robots %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            {% for robot in row %}
-            <td>
-                {% if robot %}
-                <a href="{% url 'robot' robot_id=robot.id %}">{{ robot }}</a>
-                {% endif %}
-            </td>
-            {% endfor %}
-        </tr>
+<a href="/admin/core/robot/add/?creator={{request.user.id}}&line={{line.id}}">Add a descendant</a>
+
+<h3>Robots in this line:</h3>
+
+<div id='robot-results'>
+    {% for robot_simulation in robot_simulations %}
+    <h4><a href="{% url 'robot' robot_simulation.0.pk %}">{{robot_simulation.0}}</a></h4>
+    <p>Results vs basic player:</p>
+    <p>Won {{robot_simulation.1.robot_a_win_maps.count}}/{{robot_simulation.1.total_matches}}</p>
+    <p>Lost {{robot_simulation.1.robot_a_lose_maps.count}}/{{robot_simulation.1.total_matches}}</p>
+
+    <p>Maps won on</p>
+    <ul>
+        {% for map in robot_simulation.1.robot_a_win_maps.all %}
+        <li>{{map}}</li>
         {% endfor %}
-    </tbody>
+    </ul>
 
-</table>
+    <p>Maps lost on</p>
+    <ul>
+        {% for map in robot_simulation.1.robot_a_lose_maps.all %}
+        <li>{{map}}</li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+
+    <p>Maps tied on</p>
+    <ul>
+        {% for map in robot_simulation.1.robot_a_tie_maps.all %}
+        <li>{{map}}</li>
+        {% endfor %}
+    </ul>
+</div>
 
 {% endblock %}
 

@@ -13,7 +13,7 @@ def home(request):
     lines = RobotLine.objects.all()
 
     line_dict = {}
-    for robot in Robot.objects.all():
+    for robot in Robot.objects.filter(line__alive=True):
         line_dict[robot.line] = line_dict.get(robot.line, []) + [robot]
     length = max(map(len, line_dict.itervalues()))
 
@@ -28,16 +28,29 @@ def home(request):
 
 @login_required
 def line(request, line_id):
-    return HttpResponse('To be implemented')
+    line = RobotLine.objects.get(pk=line_id)
+    robots = Robot.objects.filter(line=line).order_by('line_num')
+    simulation_sets = [SimulationSet.objects.get_or_create(robot_a=robot) for robot in robots]
+
+    context = {
+        'line': line,
+        'robot_simulations': zip(robots, simulation_sets),
+    }
+
+    return render(request, 'line.html', context)
 
 
 @login_required
 def robot(request, robot_id):
     this_robot = Robot.objects.get(pk=robot_id)
 
-    simulation_sets = [SimulationSet.objects.get_or_create(robot_a=this_robot, robot_b=None)]
+    simulation_sets = [SimulationSet.objects.get_or_create(robot_a=this_robot)]
     for opponent in this_robot.simulated_opponents.all():
-        simulation_sets.append(SimulationSet.objects.get_or_create(robot_a=this_robot, robot_b=opponent))
+        if this_robot.pk > opponent.pk:
+            simulation_sets.append(SimulationSet.objects.get_or_create(robot_a=this_robot, robot_b=opponent))
+        elif this_robot.pk < opponent.pk:
+            simulation_sets.append(SimulationSet.objects.get_or_create(robot_a=opponent, robot_b=this_robot))
+
 
     context = {'robot': this_robot, 'simulation_sets': simulation_sets}
     return render(request, 'robot.html', context)

@@ -23,5 +23,5 @@ RESULT_CHOICES = (
 )
 
 
-sleep_interval = 0.25
+DEFAULT_SLEEP_INTERVAL = 0.25
 

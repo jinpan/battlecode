@@ -37,14 +37,6 @@ class File(models.Model):
         return '%s [%s]' % (self.name, self.robot.line.name)
 
 
-class RobotLine(models.Model):
-    name = models.CharField(max_length=100, db_index=True)
-    alive = models.BooleanField(default=True, db_index=True)
-
-    def __unicode__(self):
-        return self.name
-
-
 class MapManager(models.Manager):
 
     def initialize(self):
@@ -92,8 +84,8 @@ class Robot(models.Model):
             # TODO: binary search?  Linear search time may be dwarfed by database transaction time though.
             for idx, robot in enumerate(Robot.objects.filter(line=self.line).order_by('create_time')):
                 self.line_num = idx + 1
-                self.save()
-                self.simulate()
+            super(Robot, self).save(*args, **kwargs)  # so simulate only gets called once
+            self.simulate()
 
 
     def get_predecessor(self):
@@ -110,30 +102,6 @@ class Robot(models.Model):
             return potential[0]
         else:
             return None
-
-
-    def get_match_result(self, other_robot):
-        '''
-        Returns three lists: maps it won on, lost on, tied on
-        '''
-        results = [[], [], []]
-        for simulation in Simulation.objects.filter(robot_a=self, robot_b=other_robot,
-                                                    status=constants.STATUS.CLOSED).prefetch_related('map_file'):
-            mapping = {
-                constants.RESULT.ROBOT_A: 0,
-                constants.RESULT.ROBOT_B: 1,
-                constants.RESULT.TIE: 2,
-            }
-            results[mapping[simulation.winner]].append(simulation.map_file)
-        for simulation in Simulation.objects.filter(robot_a=other_robot, robot_b=self,
-                                                    status=constants.STATUS.CLOSED).prefetch_related('map_file'):
-            mapping = {
-                constants.RESULT.ROBOT_A: 1,
-                constants.RESULT.ROBOT_B: 0,
-                constants.RESuLT.TIE: 2,
-            }
-            results[mapping[simulation.winner]].append(simulation.map_file)
-        return results
 
 
     def get_worthy_opponents(self):
@@ -153,6 +121,14 @@ class Robot(models.Model):
             Simulation.objects.create_simulations(self, opponent)
 
 
+class RobotLine(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    alive = models.BooleanField(default=True, db_index=True)
+
+    def __unicode__(self):
+        return self.name
+
+
 class SimulationManager(models.Manager):
 
     def create_simulations(self, robot_a, robot_b):
@@ -164,6 +140,33 @@ class SimulationManager(models.Manager):
             robot_a.save()
             robot_b.simulated_opponents.add(robot_a)
             robot_b.save()
+
+
+    def get_results(self, robot_a, robot_b, since=None):
+        '''
+        Returns three lists: maps it won on, lost on, tied on
+        Should only take in two different robots
+        '''
+        if robot_b:
+            assert robot_a.pk > robot_b.pk
+
+        results = [[], [], []]
+        mapping = {
+            constants.RESULT.ROBOT_A: 0,
+            constants.RESULT.ROBOT_B: 1,
+            constants.RESULT.TIE: 2,
+        }
+        query = {
+            'robot_a': robot_a,
+            'robot_b': robot_b,
+            'status': constants.STATUS.CLOSED,
+        }
+        if since:
+            query['finish_time__gte'] = since
+
+        for simulation in self.select_related().filter(**query):
+            results[mapping[simulation.winner]].append(simulation.map_file)
+        return results
     
 
     @transaction.atomic
@@ -178,18 +181,10 @@ class SimulationManager(models.Manager):
             return None
  
 
-    def worker(self, sleep_interval):
-        while True:
-            simulation = self.get_next_simulation()
-            if simulation:
-                return simulation.run()
-            else:
-                sleep(sleep_interval)
-
-
 class Simulation(models.Model):
     '''
     Class for running simulations.  Robot_a should be the new robot, and robot_b should be an existing one.
+    Robot_a should have a higher id than robot_b.
     '''
 
     robot_a = models.ForeignKey('Robot', related_name='simulation_a')
@@ -198,7 +193,6 @@ class Simulation(models.Model):
 
     priority = models.FloatField(default=0)
     result = models.TextField(null=True, blank=True, db_index=True)
-    sim_file = models.TextField(null=True, blank=True)
     error = models.TextField(null=True, blank=True)
 
     status = models.CharField(max_length=1,
@@ -258,7 +252,8 @@ class Simulation(models.Model):
             else:
                 prior = 0.5
 
-        prior_ranking = -19600. * prior ** 2 + 19600. * prior  # (70 ** 2) * 4* ((x-0.5)^2 + 0.25)
+        # prior_ranking's should be at least 1
+        prior_ranking = -19600. * prior ** 2 + 19600. * prior + 1  # (70 ** 2) * 4* ((x-0.5)^2 + 0.25) + 1
 
         return prior_ranking / self.map_file.size
 
@@ -273,55 +268,68 @@ class Simulation(models.Model):
             return []
 
 
-    def run(self):
-        result, sim_file, error = run_simulation(self.pk, self.map_file.name,
-                                                 self.get_files(self.robot_a),
-                                                 self.get_files(self.robot_b))
+    def save_result(self, result, winner, tie, rounds, error, sim_data):
 
         self.status = constants.STATUS.CLOSED
         self.result = result
-        winner, tie, rounds = parse_result(result)
         self.winner = winner
         self.tie = tie
         self.rounds = rounds
-        self.sim_file = sim_file
         self.error = error
         self.finish_time = timezone.now()
 
         self.save()
 
+        sim_file = SimulationFile(simulation=self, data=sim_data)
+        sim_file.save()
+
+
+    def run(self):
+        result, sim_data, error = run_simulation(self.pk, self.map_file.name,
+                                                 self.get_files(self.robot_a),
+                                                 self.get_files(self.robot_b))
+        winner, tie, rounds = parse_result(result)
+        self.save_result(result, winner, tie, rounds, error, sim_data)
+
+
+class SimulationFile(models.Model):
+
+    simulation = models.OneToOneField('Simulation')
+    data = models.BinaryField()
+
 
 class SimulationSetManager(models.Manager):
 
-    def get_or_create(self, robot_a, robot_b):
-        result = list(chain(self.filter(robot_a=robot_a, robot_b=robot_b),
-                            self.filter(robot_a=robot_b, robot_b=robot_a)))
-        if result:
-            if result[0].complete:
-                return result[0]
-            else:
-                result[0].delete()
+    def get_or_create(self, robot_a, robot_b=None):
+        if robot_b:
+            assert robot_a.pk > robot_b.pk
 
-        simulations_a = Simulation.objects.filter(robot_a=robot_a, robot_b=robot_b, status=constants.STATUS.CLOSED)
-        simulations_b = Simulation.objects.filter(robot_a=robot_b, robot_b=robot_a, status=constants.STATUS.CLOSED)
+        result = None
+        prefetch = ('robot_a_win_maps', 'robot_a_lose_maps', 'robot_a_tie_maps')
 
-        complete = ((simulations_a.count() + simulations_b.count()) >= Map.objects.all().count())
-        result = SimulationSet(robot_a=robot_a, robot_b=robot_b, complete=complete)
-        result.save()
-        for simulation in simulations_a:
-            if simulation.winner == constants.RESULT.ROBOT_A:
-                result.robot_a_win_maps.add(simulation.map_file)
-            elif simulation.winner == constants.RESULT.ROBOT_B:
-                result.robot_a_lose_maps.add(simulation.map_file)
+        try:
+            result = self.select_related().prefetch_related(*prefetch).get(robot_a=robot_a, robot_b=robot_b)
+            if result.complete:
+                return result
             else:
-                result.robot_a_tie_maps.add(simulation.map_file)
-        for simulation in simulations_b:
-            if simulation.winner == constants.RESULT.ROBOT_A:
-                result.robot_a_lose_maps.add(simulation.map_file)
-            elif simulation.winner == constants.RESULT.ROBOT_B:
-                result.robot_a_win_maps.add(simulation.map_file)
-            else:
-                result.robot_a_tie_maps.add(simulation.map_file)
+                update = True
+        except SimulationSet.DoesNotExist:
+            update = False
+            result = SimulationSet(robot_a=robot_a, robot_b=robot_b)
+            result.save()
+
+        if update:
+            wins, losses, ties = Simulation.objects.get_results(robot_a, robot_b, since=result.updated_time)
+        else:
+            wins, losses, ties = Simulation.objects.get_results(robot_a, robot_b)
+
+        result.updated_time = timezone.now()
+
+        result.robot_a_win_maps.add(*wins)
+        result.robot_a_lose_maps.add(*losses)
+        result.robot_a_tie_maps.add(*ties)
+
+        result.complete = (result.total_matches >= Map.objects.count())
         result.save()
 
         return result
@@ -339,7 +347,9 @@ class SimulationSet(models.Model):
     robot_a_lose_maps = models.ManyToManyField('Map', related_name='robot_a_lose_maps')
     robot_a_tie_maps = models.ManyToManyField('Map', related_name='robot_a_tie_maps')
 
-    complete = models.BooleanField(db_index=True)
+    updated_time = models.DateTimeField(auto_now=True)
+
+    complete = models.BooleanField(db_index=True, default=False)
 
     objects = SimulationSetManager()
 
@@ -347,22 +357,9 @@ class SimulationSet(models.Model):
         return '%s vs %s' % (self.robot_a or constants.DEFAULT_AI,
                              self.robot_b or constants.DEFAULT_AI)
 
-    @property
-    def robot_b_win_maps(self):
-        return self.robot_a_lose_maps
-
 
     @property
-    def robot_b_lose_maps(self):
-        return self.robot_a_win_maps
-
-
-    @property
-    def robot_b_tie_maps(self):
-        return self.robot_a_tie_maps
-
-
-    @property
+    @transaction.atomic
     def total_matches(self):
         return self.robot_a_win_maps.count() + self.robot_a_lose_maps.count() + self.robot_a_tie_maps.count()
 

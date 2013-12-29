@@ -27,7 +27,7 @@ class RobotAdmin(admin.ModelAdmin):
 
 
 class SimulationAdmin(admin.ModelAdmin):
-    list_display = ('robot_a', 'robot_b', 'map_file',
+    list_display = ('pk', 'robot_a', 'robot_b', 'map_file',
                     'priority', 'status', 'winner', 'rounds')
 
     list_filter = ('status', 'winner', 'robot_a', 'robot_b',
