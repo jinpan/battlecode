@@ -8,17 +8,18 @@
 <a href="/admin/core/robot/add/?creator={{request.user.id}}&line={{line.id}}">Add a successor</a>
 
 <h3>Simulated Results</h3>
+<hr>
 
 <div id='robot-results'>
     {% for simulation_set in simulation_sets %}
     {% if robot == simulation_set.robot_a %}
         <h4>
-            <a href="{% url 'robot' simulation_set.robot_a.pk %}">{{ simulation_set.robot_a }}</a>
+        <a href="{% url 'robot' simulation_set.robot_a.pk %}">{{ simulation_set.robot_a }}</a> <span class='team a-team'>(A / RED)</span>
             vs
             {% if simulation_set.robot_b %}
-            <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a>
+        <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a> <span class='team b-team'>(B / BLUE)</span>
             {% else %}
-            basicplayer
+            basicplayer <span class='team b-team'>(B / BLUE)</span>
             {% endif %}
         </h4>
         <p>Won {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }};
@@ -26,50 +27,53 @@
         <p>Maps won on</p>
         <ul>
             {% for simulation in simulation_set.robot_a_win_simulations.all %}
-            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
+            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps lost on</p>
         <ul>
             {% for simulation in simulation_set.robot_a_lose_simulations.all %}
-            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
+            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
-    {% else %}
+    {% elif robot == simulation_set.robot_b %}
         <h4>
-            <a href="/admin/core/robot/{{simulation_set.robot_a.pk}}">{{ simulation_set.robot_a }}</a>
+        <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a> <span class='team b-team'>(B / BLUE)</span>
             vs
-            {% if simulation_set.robot_b %}
-            <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a>
-            {% else %}
-            basicplayer
-            {% endif %}
+        <a href="/admin/core/robot/{{simulation_set.robot_a.pk}}">{{ simulation_set.robot_a }}</a> <span class='team a-team'>(A / RED)</span>
         </h4>
         <p>Won {{ simulation_set.robot_a_lose_simulations.count }}/{{ simulation_set.total_matches }};
             Lost {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }}</p>
         <p>Maps won on</p>
         <ul>
             {% for simulation in simulation_set.robot_a_lose_simulations.all %}
-            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
+            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps lost on</p>
         <ul>
             {% for simulation in simulation_set.robot_a_win_simulations.all %}
-            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
+            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps tied on</p>
     {% endif %}
     <ul>
         {% for simulation in simulation_set.robot_a_tie_simulations.all %}
-            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
+            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
         {% endfor %}
     </ul>
     <hr>
     {% endfor %}
 </div>
 
+<script type='text/javascript'>
+
+    $('a.result').click(function(){
+        this.className += ' visited';
+    });
+
+</script>
 
 {% endblock %}
 

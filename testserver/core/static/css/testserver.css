@@ -1,8 +1,38 @@
+a.visited{
+    color: #551A8B;
+}
+
+
+#robot-results {
+    width: 100%;
+}
+
+
 #robot-results > ul {
     list-style: none;
+    display: inline;
+    padding-left: 0;
 }
+
 
 #robot-results > ul > li {
     display: inline;
-    padding-right: 10px;
+    padding-right: 1em;
 }
+
+
+.team {
+    font-family: sans-serif;
+    font-weight: normal;
+}
+
+
+.a-team {
+    color: #E75859;
+}
+
+
+.b-team {
+    color: #1AB8F3;
+}
+
