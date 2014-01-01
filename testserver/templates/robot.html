@@ -12,42 +12,58 @@
 <div id='robot-results'>
     {% for simulation_set in simulation_sets %}
     {% if robot == simulation_set.robot_a %}
-        <h4>{{ simulation_set.robot_a }} vs {{ simulation_set.robot_b|default:'basicplayer' }}</h4>
-        <p>Won {{ simulation_set.robot_a_win_maps.count }}/{{ simulation_set.total_matches }};
-            Lost {{ simulation_set.robot_a_lose_maps.count }}/{{ simulation_set.total_matches }}</p>
+        <h4>
+            <a href="{% url 'robot' simulation_set.robot_a.pk %}">{{ simulation_set.robot_a }}</a>
+            vs
+            {% if simulation_set.robot_b %}
+            <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a>
+            {% else %}
+            basicplayer
+            {% endif %}
+        </h4>
+        <p>Won {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }};
+            Lost {{ simulation_set.robot_a_lose_simulations.count }}/{{ simulation_set.total_matches }}</p>
         <p>Maps won on</p>
         <ul>
-            {% for map in simulation_set.robot_a_win_maps.all %}
-            <li>{{ map }}</li>
+            {% for simulation in simulation_set.robot_a_win_simulations.all %}
+            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps lost on</p>
         <ul>
-            {% for map in simulation_set.robot_a_lose_maps.all %}
-            <li>{{ map }}</li>
+            {% for simulation in simulation_set.robot_a_lose_simulations.all %}
+            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
     {% else %}
-        <h4>{{ simulation_set.robot_b }} vs {{ simulation_set.robot_a|default:'basicplayer' }}</h4>
-        <p>Won {{ simulation_set.robot_a_lose_maps.count }}/{{ simulation_set.total_matches }};
-            Lost {{ simulation_set.robot_a_win_maps.count }}/{{ simulation_set.total_matches }}</p>
+        <h4>
+            <a href="/admin/core/robot/{{simulation_set.robot_a.pk}}">{{ simulation_set.robot_a }}</a>
+            vs
+            {% if simulation_set.robot_b %}
+            <a href="/admin/core/robot/{{simulation_set.robot_b.pk}}">{{ simulation_set.robot_b }}</a>
+            {% else %}
+            basicplayer
+            {% endif %}
+        </h4>
+        <p>Won {{ simulation_set.robot_a_lose_simulations.count }}/{{ simulation_set.total_matches }};
+            Lost {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }}</p>
         <p>Maps won on</p>
         <ul>
-            {% for map in simulation_set.robot_a_lose_maps.all %}
-            <li>{{ map }}</li>
+            {% for simulation in simulation_set.robot_a_lose_simulations.all %}
+            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps lost on</p>
         <ul>
-            {% for map in simulation_set.robot_a_win_maps.all %}
-            <li>{{ map }}</li>
+            {% for simulation in simulation_set.robot_a_win_simulations.all %}
+            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
             {% endfor %}
         </ul>
         <p>Maps tied on</p>
     {% endif %}
     <ul>
-        {% for map in simulation_set.robot_a_tie_maps.all %}
-        <li>{{ map }}</li>
+        {% for simulation in simulation_set.robot_a_tie_simulations.all %}
+            <li><a href="{% url 'simulation-file' simulation.simulationfile.pk%}">{{ simulation.map_file }}</a></li>
         {% endfor %}
     </ul>
     <hr>

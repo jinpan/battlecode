@@ -7,6 +7,7 @@ urlpatterns = patterns('core.views',
 
     url(r'^line/(?P<line_id>\d+)/$', 'line', name='line'),
     url(r'^robot/(?P<robot_id>\d+)/$', 'robot', name='robot'),
+    url(r'^simulation-file/(?P<simulationfile_id>\d+)/$', 'simulation_file', name='simulation-file'),
 
     url(r'^login/$', auth_views.login, name='login',
         kwargs={'template_name': 'login.html'}),

@@ -4,6 +4,7 @@ class STATUS:
     OPEN = '1'
     PENDING = '2'
     CLOSED = '3'
+    FAILED = '4'
 
 class RESULT:
     ROBOT_A = 'A'
@@ -14,6 +15,7 @@ STATUS_CHOICES = (
     (STATUS.OPEN, 'OPEN'),
     (STATUS.PENDING, 'PENDING'),
     (STATUS.CLOSED, 'CLOSED'), 
+    (STATUS.FAILED, 'FAILED'), 
 )
 
 RESULT_CHOICES = (
@@ -24,4 +26,5 @@ RESULT_CHOICES = (
 
 
 DEFAULT_SLEEP_INTERVAL = 0.25
+NUM_MAPS = 53
 

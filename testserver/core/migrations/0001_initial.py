@@ -28,10 +28,12 @@ class Migration(SchemaMigration):
         # Adding model 'Robot'
         db.create_table(u'core_robot', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('active', self.gf('django.db.models.fields.BooleanField')(default=True, db_index=True)),
+            ('create_time', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, db_index=True, blank=True)),
             ('creator', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
             ('line', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.RobotLine'])),
             ('line_num', self.gf('django.db.models.fields.IntegerField')(null=True, db_index=True)),
-            ('create_time', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, db_index=True, blank=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
         ))
         db.send_create_signal(u'core', ['Robot'])
 
@@ -67,6 +69,7 @@ class Migration(SchemaMigration):
             ('rounds', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
             ('create_time', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, db_index=True, blank=True)),
             ('finish_time', self.gf('django.db.models.fields.DateTimeField')(db_index=True, null=True, blank=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=200)),
         ))
         db.send_create_signal(u'core', ['Simulation'])
 
@@ -81,6 +84,7 @@ class Migration(SchemaMigration):
         # Adding model 'SimulationSet'
         db.create_table(u'core_simulationset', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=100)),
             ('robot_a', self.gf('django.db.models.fields.related.ForeignKey')(related_name='simulationset_a', to=orm['core.Robot'])),
             ('robot_b', self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='simulationset_b', null=True, to=orm['core.Robot'])),
             ('updated_time', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
@@ -88,32 +92,32 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'core', ['SimulationSet'])
 
-        # Adding M2M table for field robot_a_win_maps on 'SimulationSet'
-        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_win_maps')
+        # Adding M2M table for field robot_a_win_simulations on 'SimulationSet'
+        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_win_simulations')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
             ('simulationset', models.ForeignKey(orm[u'core.simulationset'], null=False)),
-            ('map', models.ForeignKey(orm[u'core.map'], null=False))
+            ('simulation', models.ForeignKey(orm[u'core.simulation'], null=False))
         ))
-        db.create_unique(m2m_table_name, ['simulationset_id', 'map_id'])
+        db.create_unique(m2m_table_name, ['simulationset_id', 'simulation_id'])
 
-        # Adding M2M table for field robot_a_lose_maps on 'SimulationSet'
-        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_lose_maps')
+        # Adding M2M table for field robot_a_lose_simulations on 'SimulationSet'
+        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_lose_simulations')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
             ('simulationset', models.ForeignKey(orm[u'core.simulationset'], null=False)),
-            ('map', models.ForeignKey(orm[u'core.map'], null=False))
+            ('simulation', models.ForeignKey(orm[u'core.simulation'], null=False))
         ))
-        db.create_unique(m2m_table_name, ['simulationset_id', 'map_id'])
+        db.create_unique(m2m_table_name, ['simulationset_id', 'simulation_id'])
 
-        # Adding M2M table for field robot_a_tie_maps on 'SimulationSet'
-        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_tie_maps')
+        # Adding M2M table for field robot_a_tie_simulations on 'SimulationSet'
+        m2m_table_name = db.shorten_name(u'core_simulationset_robot_a_tie_simulations')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
             ('simulationset', models.ForeignKey(orm[u'core.simulationset'], null=False)),
-            ('map', models.ForeignKey(orm[u'core.map'], null=False))
+            ('simulation', models.ForeignKey(orm[u'core.simulation'], null=False))
         ))
-        db.create_unique(m2m_table_name, ['simulationset_id', 'map_id'])
+        db.create_unique(m2m_table_name, ['simulationset_id', 'simulation_id'])
 
 
     def backwards(self, orm):
@@ -141,14 +145,14 @@ class Migration(SchemaMigration):
         # Deleting model 'SimulationSet'
         db.delete_table(u'core_simulationset')
 
-        # Removing M2M table for field robot_a_win_maps on 'SimulationSet'
-        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_win_maps'))
+        # Removing M2M table for field robot_a_win_simulations on 'SimulationSet'
+        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_win_simulations'))
 
-        # Removing M2M table for field robot_a_lose_maps on 'SimulationSet'
-        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_lose_maps'))
+        # Removing M2M table for field robot_a_lose_simulations on 'SimulationSet'
+        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_lose_simulations'))
 
-        # Removing M2M table for field robot_a_tie_maps on 'SimulationSet'
-        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_tie_maps'))
+        # Removing M2M table for field robot_a_tie_simulations on 'SimulationSet'
+        db.delete_table(db.shorten_name(u'core_simulationset_robot_a_tie_simulations'))
 
 
     models = {
@@ -196,18 +200,20 @@ class Migration(SchemaMigration):
             'robot': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Robot']"})
         },
         u'core.map': {
-            'Meta': {'object_name': 'Map'},
+            'Meta': {'ordering': "['name']", 'object_name': 'Map'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'}),
             'size': ('django.db.models.fields.IntegerField', [], {'default': '35', 'db_index': 'True'})
         },
         u'core.robot': {
             'Meta': {'object_name': 'Robot'},
+            'active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'create_time': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'db_index': 'True', 'blank': 'True'}),
             'creator': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'line': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.RobotLine']"}),
             'line_num': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'db_index': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
             'simulated_opponents': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['core.Robot']", 'symmetrical': 'False'})
         },
         u'core.robotline': {
@@ -217,12 +223,13 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
         },
         u'core.simulation': {
-            'Meta': {'object_name': 'Simulation'},
+            'Meta': {'ordering': "['map_file__name']", 'object_name': 'Simulation'},
             'create_time': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'db_index': 'True', 'blank': 'True'}),
             'error': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'finish_time': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True', 'null': 'True', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'map_file': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Map']"}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'priority': ('django.db.models.fields.FloatField', [], {'default': '0'}),
             'result': ('django.db.models.fields.TextField', [], {'db_index': 'True', 'null': 'True', 'blank': 'True'}),
             'robot_a': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'simulation_a'", 'to': u"orm['core.Robot']"}),
@@ -242,10 +249,11 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'SimulationSet'},
             'complete': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'robot_a': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'simulationset_a'", 'to': u"orm['core.Robot']"}),
-            'robot_a_lose_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_lose_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
-            'robot_a_tie_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_tie_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
-            'robot_a_win_maps': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_win_maps'", 'symmetrical': 'False', 'to': u"orm['core.Map']"}),
+            'robot_a_lose_simulations': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_lose_simulations'", 'symmetrical': 'False', 'to': u"orm['core.Simulation']"}),
+            'robot_a_tie_simulations': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_tie_simulations'", 'symmetrical': 'False', 'to': u"orm['core.Simulation']"}),
+            'robot_a_win_simulations': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'robot_a_win_simulations'", 'symmetrical': 'False', 'to': u"orm['core.Simulation']"}),
             'robot_b': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'simulationset_b'", 'null': 'True', 'to': u"orm['core.Robot']"}),
             'updated_time': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         }

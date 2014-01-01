@@ -25,16 +25,16 @@ class File(models.Model):
 
     robot = models.ForeignKey('Robot')
 
+    def __unicode__(self):
+        return '%s [%s]' % (self.name, self.robot.line.name)
+
+
     def save(self, *args, **kwargs):
 
         if not self.name.endswith('.java'):
             self.name += '.java'
 
         super(File, self).save(*args, **kwargs)
-
-
-    def __unicode__(self):
-        return '%s [%s]' % (self.name, self.robot.line.name)
 
 
 class MapManager(models.Manager):
@@ -61,46 +61,53 @@ class Map(models.Model):
 
     objects = MapManager()
 
+    class Meta:
+        ordering = ['name']
+
+
     def __unicode__(self):
         return self.name
 
 
 class Robot(models.Model):
+    active = models.BooleanField(default=True, db_index=True)
+    create_time = models.DateTimeField(auto_now_add=True, db_index=True)
     creator = models.ForeignKey(User)
     line = models.ForeignKey('RobotLine')
     line_num = models.IntegerField(null=True, db_index=True)
-    create_time = models.DateTimeField(auto_now_add=True, db_index=True)
+    name = models.CharField(max_length=100, blank=True)
 
     simulated_opponents = models.ManyToManyField('Robot')
 
     def __unicode__(self):
-        return '%s_%d' % (self.line.name, self.line_num)
-
+        return self.name
 
     def save(self, *args, **kwargs):
+
         super(Robot, self).save(*args, **kwargs)
 
         if not self.line_num:
             # TODO: binary search?  Linear search time may be dwarfed by database transaction time though.
             for idx, robot in enumerate(Robot.objects.filter(line=self.line).order_by('create_time')):
                 self.line_num = idx + 1
+            self.name = '%s_%d' % (self.line.name, self.line_num)
             super(Robot, self).save(*args, **kwargs)  # so simulate only gets called once
             self.simulate()
 
 
     def get_predecessor(self):
-        potential = Robot.objects.filter(line_num__lt=self.line_num).order_by('-create_time')[:1]
-        if potential.count():
+        potential = Robot.objects.filter(line_num__lt=self.line_num, active=True).order_by('-create_time')[:1]
+        try:
             return potential[0]
-        else:
+        except IndexError:
             return None
 
     
     def get_successor(self):
-        potential = Robot.objects.filter(line_num__gt=self.line_num).order_by('create_time')[:1]
-        if potential.count():
+        potential = Robot.objects.filter(line_num__gt=self.line_num, active=True).order_by('create_time')[:1]
+        try:
             return potential[0]
-        else:
+        except IndexError:
             return None
 
 
@@ -111,8 +118,8 @@ class Robot(models.Model):
         predecessor = self.get_predecessor()
         if predecessor:
             yield predecessor
-        for line in RobotLine.objects.exclude(name=self.line.name):
-            yield Robot.objects.filter(line=line).order_by('-line_num')[0]
+        for robot in Robot.objects.exclude(line__name=self.line.name).filter(active=True):
+            yield robot
         yield None
 
 
@@ -135,6 +142,7 @@ class SimulationManager(models.Manager):
         simulations = [Simulation(robot_a=robot_a, robot_b=robot_b, map_file=map_file)
                        for map_file in Map.objects.all()]
         self.bulk_create(simulations)
+
         if robot_b:
             robot_a.simulated_opponents.add(robot_b)
             robot_a.save()
@@ -144,7 +152,7 @@ class SimulationManager(models.Manager):
 
     def get_results(self, robot_a, robot_b, since=None):
         '''
-        Returns three lists: maps it won on, lost on, tied on
+        Returns three lists: simulations it won on, lost on, tied on
         Should only take in two different robots
         '''
         if robot_b:
@@ -156,31 +164,31 @@ class SimulationManager(models.Manager):
             constants.RESULT.ROBOT_B: 1,
             constants.RESULT.TIE: 2,
         }
-        query = {
+        query_kwargs = {
             'robot_a': robot_a,
             'robot_b': robot_b,
             'status': constants.STATUS.CLOSED,
         }
         if since:
-            query['finish_time__gte'] = since
+            query_kwargs['finish_time__gte'] = since
 
-        for simulation in self.select_related().filter(**query):
-            results[mapping[simulation.winner]].append(simulation.map_file)
+        for simulation in self.select_related().filter(**query_kwargs):
+            results[mapping[simulation.winner]].append(simulation)
         return results
     
 
     @transaction.atomic
     def get_next_simulation(self, retry=False):
         if retry:
-            potential = self.select_for_update().filter(status__in=(constants.STATUS.PENDING, constants.STATUS.OPEN)).order_by('-priority')[:1]
+            potential = self.select_for_update().filter(status__in=(constants.STATUS.FAILED, constants.STATUS.OPEN)).order_by('-priority')[:1]
         else:
             potential = self.select_for_update().filter(status=constants.STATUS.OPEN).order_by('-priority')[:1]
-        if potential.count():
+        try:
             simulation = potential[0]
             simulation.status = constants.STATUS.PENDING
             simulation.save()
             return simulation
-        else:
+        except IndexError:
             return None
  
 
@@ -210,19 +218,28 @@ class Simulation(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, db_index=True)
     finish_time = models.DateTimeField(null=True, blank=True, db_index=True)
 
+    name = models.CharField(max_length=200)
+
     objects = SimulationManager()
+
+
+    class Meta:
+        ordering = ['map_file__name']
+
 
     def __init__(self, *args, **kwargs):
         super(Simulation, self).__init__(*args, **kwargs)
 
         if not self.priority:
             self.priority = self.calculate_priority()
+        if not self.name:
+            self.name = '%s vs %s on %s' % (self.robot_a,
+                                            self.robot_b or constants.DEFAULT_AI,
+                                            self.map_file.name)
     
 
     def __unicode__(self):
-        return '%s vs %s on %s' % (self.robot_a or constants.DEFAULT_AI,
-                                   self.robot_b or constants.DEFAULT_AI,
-                                   self.map_file.name)
+        return self.name
     
 
     def calculate_priority(self):
@@ -287,6 +304,12 @@ class Simulation(models.Model):
         sim_file.save()
 
 
+    def set_error(self):
+        self.status = constants.STATUS.FAILED
+        self.priority = -1
+        self.save()
+
+
     def run(self):
         result, sim_data, error = run_simulation(self.pk, self.map_file.name,
                                                  self.get_files(self.robot_a),
@@ -300,6 +323,10 @@ class SimulationFile(models.Model):
     simulation = models.OneToOneField('Simulation')
     data = models.BinaryField()
 
+    
+    def __unicode__(self):
+        return u'result_%d.rms' % (self.pk, )
+
 
 class SimulationSetManager(models.Manager):
 
@@ -308,10 +335,15 @@ class SimulationSetManager(models.Manager):
             assert robot_a.pk > robot_b.pk
 
         result = None
-        prefetch = ('robot_a_win_maps', 'robot_a_lose_maps', 'robot_a_tie_maps')
+        prefetch = (
+            'robot_a_win_simulations', 'robot_a_win_simulations__map_file', 'robot_a_win_simulations__simulationfile',
+            'robot_a_lose_simulations', 'robot_a_lose_simulations__map_file', 'robot_a_lose_simulations__simulationfile',
+            'robot_a_tie_simulations', 'robot_a_tie_simulations__map_file', 'robot_a_tie_simulations__simulation_file',
+        )
+        select = ('robot_a', 'robot_b')
 
         try:
-            result = self.select_related().prefetch_related(*prefetch).get(robot_a=robot_a, robot_b=robot_b)
+            result = self.select_related(*select).prefetch_related(*prefetch).get(robot_a=robot_a, robot_b=robot_b)
             if result.complete:
                 return result
             else:
@@ -328,11 +360,11 @@ class SimulationSetManager(models.Manager):
 
         result.updated_time = timezone.now()
 
-        result.robot_a_win_maps.add(*wins)
-        result.robot_a_lose_maps.add(*losses)
-        result.robot_a_tie_maps.add(*ties)
+        result.robot_a_win_simulations.add(*wins)
+        result.robot_a_lose_simulations.add(*losses)
+        result.robot_a_tie_simulations.add(*ties)
 
-        result.complete = (result.total_matches >= Map.objects.count())
+        result.complete = (result.total_matches >= constants.NUM_MAPS)
         result.save()
 
         return result
@@ -342,13 +374,14 @@ class SimulationSet(models.Model):
     '''
     Denormalized table for storing aggregated simulations
     '''
+    name = models.CharField(max_length=100)
 
     robot_a = models.ForeignKey('Robot', related_name='simulationset_a')
     robot_b = models.ForeignKey('Robot', related_name='simulationset_b', null=True, blank=True)
 
-    robot_a_win_maps = models.ManyToManyField('Map', related_name='robot_a_win_maps')
-    robot_a_lose_maps = models.ManyToManyField('Map', related_name='robot_a_lose_maps')
-    robot_a_tie_maps = models.ManyToManyField('Map', related_name='robot_a_tie_maps')
+    robot_a_win_simulations = models.ManyToManyField('Simulation', related_name='robot_a_win_simulations')
+    robot_a_lose_simulations = models.ManyToManyField('Simulation', related_name='robot_a_lose_simulations')
+    robot_a_tie_simulations = models.ManyToManyField('simulation', related_name='robot_a_tie_simulations')
 
     updated_time = models.DateTimeField(auto_now=True)
 
@@ -357,12 +390,20 @@ class SimulationSet(models.Model):
     objects = SimulationSetManager()
 
     def __unicode__(self):
-        return '%s vs %s' % (self.robot_a or constants.DEFAULT_AI,
-                             self.robot_b or constants.DEFAULT_AI)
+        return self.name
+
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = '%s vs %s' % (self.robot_a, self.robot_b or constants.DEFAULT_AI)
+
+        super(SimulationSet, self).save(*args, **kwargs)
 
 
     @property
-    @transaction.atomic
     def total_matches(self):
-        return self.robot_a_win_maps.count() + self.robot_a_lose_maps.count() + self.robot_a_tie_maps.count()
+        if self.complete:
+            return constants.NUM_MAPS
+        else:
+            return self.robot_a_win_simulations.count() + self.robot_a_lose_simulations.count() + self.robot_a_tie_simulations.count()
 

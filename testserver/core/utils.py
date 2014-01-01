@@ -1,6 +1,5 @@
 from calendar import timegm
 from datetime import datetime
-from gzip import open as gopen
 from os import chdir
 from os.path import join
 from re import match
@@ -23,7 +22,6 @@ def parse_result(result, sim_file):
     round_pattern = r'\s+\[java\] Round: (\d+)'
 
     tie = False
-    print result
     for line in result.split('\n'):
         if match(round_pattern, line):
             re_result = match(round_pattern, line)
@@ -38,11 +36,11 @@ def parse_result(result, sim_file):
 
 
 def run_simulation(simulation_id, map_file,
-                   robot_a_files,
-                   robot_b_files=[]):
-
+                   robot_a_files, robot_b_files=[],
+                   cleanup_only=False):
 
     def download(package, files):
+        
         if package == constants.DEFAULT_AI:
             return
         call(['mkdir', join('teams', package)])
@@ -57,22 +55,48 @@ def run_simulation(simulation_id, map_file,
             with open(join('teams', package, name), 'w') as f:
                 f.write(content)
 
+
     def remove(package):
+
         if package == constants.DEFAULT_AI:
             return
         call(['rm', '-r', join('teams', package)])
         call(['rm', '-r', join('bin', package)])
 
-    chdir(settings.BATTLECODE_ROOT)
+
+    def setup(robot_a, robot_a_files, robot_b, robot_b_files,
+              build_name, conf_name, conf_fields):
+
+        download(robot_a, robot_a_files)
+        download(robot_b, robot_b_files)
+
+        with open(conf_name, 'w') as f:
+            f.write(render_to_string('headless.conf', conf_fields))
+
+        with open(build_name, 'w') as f:
+            f.write(render_to_string('build.xml', conf_fields))
+
+
+    def run(build_name, results_name):
+        process = Popen(['ant', '-buildfile', build_name, 'file'], stdout=PIPE, stderr=PIPE)
+        result, error = process.communicate()
+        process.stdout.close()
+        process.stderr.close()
+
+        with open(results_name) as f:
+            result_file = f.read()
+
+        return result, result_file, error
+
+
+    def cleanup(robot_a, robot_b, build_name, conf_name, results_name):
+        remove(robot_a)
+        remove(robot_b)
+        call(['rm', build_name, conf_name, results_name])
+
 
     robot_a = 'a_%d' % simulation_id
     robot_b = 'b_%d' % simulation_id if robot_b_files else constants.DEFAULT_AI
-
-    # download robots
-    download(robot_a, robot_a_files)
-    download(robot_b, robot_b_files)
-
-    # generate bc.conf and build.xml
 
     conf_name = 'bc_%d.conf' % simulation_id
     build_name = 'build_%d.xml' % simulation_id
@@ -85,25 +109,15 @@ def run_simulation(simulation_id, map_file,
         'conf_name': conf_name,
     }
 
-    with open(conf_name, 'w') as f:
-        f.write(render_to_string('headless.conf', conf_fields))
+    chdir(settings.BATTLECODE_ROOT)
+    
+    if cleanup_only:
+        cleanup(robot_a, robot_b, build_name, conf_name, results_name)
+        return
+    else:
+        setup(robot_a, robot_a_files, robot_b, robot_b_files, build_name, conf_name, conf_fields)
+        result, result_file, error = run(build_name, results_name)
+        cleanup(robot_a, robot_b, build_name, conf_name, results_name)
 
-    with open(build_name, 'w') as f:
-        f.write(render_to_string('build.xml', conf_fields))
-
-    # run the simulation
-    process = Popen(['ant', '-buildfile', build_name, 'file'], stdout=PIPE, stderr=PIPE)
-    result, error = process.communicate()
-    process.stdout.close()
-    process.stderr.close()
-
-    # cleanup
-    with open(results_name) as f:
-        result_file = f.read()
-
-    call(['rm', conf_name, build_name, results_name])
-    remove(robot_a)
-    remove(robot_b)
-
-    return result, result_file, error
+        return result, result_file, error
 
