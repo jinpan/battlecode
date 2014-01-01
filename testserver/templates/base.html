@@ -9,12 +9,17 @@
     <body>
         {% if request.user.is_authenticated %}
         <a href="{% url 'home' %}">(007) BattleCode Test Server</a> | {{ request.user.get_full_name }} | <a href="{% url 'logout' %}">logout</a>
-            <hr>
-            
+        <hr>
+        {% endif %}
+        
+        {% if request.user.username == 'vickie' %}
+        <iframe width="560" height="315"
+            src="//www.youtube.com/embed/QytI6D-x-zw" frameborder="0"
+        allowfullscreen></iframe>
+        {% elif request.user.username == 'jin' %}
         <iframe width="560" height="315"
             src="//www.youtube.com/embed/gMX8ZRKVcN0" frameborder="0"
         allowfullscreen></iframe>
-
         {% endif %}
 
         {% block content %}{% endblock %}
