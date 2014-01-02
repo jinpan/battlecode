@@ -20,7 +20,7 @@ def home(request):
     lines = RobotLine.objects.all()
 
     line_dict = {}
-    for robot in Robot.objects.filter(line__alive=True):
+    for robot in Robot.objects.filter(line__alive=True).order_by('pk'):
         line_dict[robot.line] = line_dict.get(robot.line, []) + [robot]
     length = max(map(len, line_dict.itervalues())) if line_dict else 0
 
