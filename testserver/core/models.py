@@ -96,7 +96,7 @@ class Robot(models.Model):
 
 
     def get_predecessor(self):
-        potential = Robot.objects.filter(line_num__lt=self.line_num, active=True).order_by('-create_time')[:1]
+        potential = Robot.objects.filter(line=self.line, line_num__lt=self.line_num, active=True).order_by('-create_time')[:1]
         try:
             return potential[0]
         except IndexError:
@@ -104,7 +104,7 @@ class Robot(models.Model):
 
     
     def get_successor(self):
-        potential = Robot.objects.filter(line_num__gt=self.line_num, active=True).order_by('create_time')[:1]
+        potential = Robot.objects.filter(line=self.line, line_num__gt=self.line_num, active=True).order_by('create_time')[:1]
         try:
             return potential[0]
         except IndexError:
