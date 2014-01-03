@@ -24,18 +24,22 @@
         </h4>
         <p>Won {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }};
             Lost {{ simulation_set.robot_a_lose_simulations.count }}/{{ simulation_set.total_matches }}</p>
-        <p>Maps won on</p>
-        <ul>
-            {% for simulation in simulation_set.robot_a_win_simulations.all %}
-            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
-            {% endfor %}
-        </ul>
-        <p>Maps lost on</p>
-        <ul>
-            {% for simulation in simulation_set.robot_a_lose_simulations.all %}
-            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
-            {% endfor %}
-        </ul>
+        <details>
+            <summary>Maps won on</summary>
+            <ul>
+                {% for simulation in simulation_set.robot_a_win_simulations.all %}
+                <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
+                {% endfor %}
+            </ul>
+        </details>
+        <details>
+            <summary>Maps lost on</summary>
+            <ul>
+                {% for simulation in simulation_set.robot_a_lose_simulations.all %}
+                <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
+                {% endfor %}
+            </ul>
+        </details>
     {% elif robot == simulation_set.robot_b %}
         <h4>
         <a href="{% url 'robot' simulation_set.robot_b.pk %}">{{ simulation_set.robot_b }}</a> <span class='team b-team'>(B / BLUE)</span>
@@ -44,25 +48,23 @@
         </h4>
         <p>Won {{ simulation_set.robot_a_lose_simulations.count }}/{{ simulation_set.total_matches }};
             Lost {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }}</p>
-        <p>Maps won on</p>
-        <ul>
-            {% for simulation in simulation_set.robot_a_lose_simulations.all %}
-            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
-            {% endfor %}
-        </ul>
-        <p>Maps lost on</p>
-        <ul>
-            {% for simulation in simulation_set.robot_a_win_simulations.all %}
-            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
-            {% endfor %}
-        </ul>
-        <p>Maps tied on</p>
+        <details>
+            <summary>Maps won on</summary>
+            <ul>
+                {% for simulation in simulation_set.robot_a_lose_simulations.all %}
+                <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
+                {% endfor %}
+            </ul>
+        </details>
+        <details>
+            <summary>Maps lost on</summary>
+            <ul>
+                {% for simulation in simulation_set.robot_a_win_simulations.all %}
+                <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
+                {% endfor %}
+            </ul>
+        </details>
     {% endif %}
-    <ul>
-        {% for simulation in simulation_set.robot_a_tie_simulations.all %}
-            <li><a class='result' href="{% url 'simulation-file' simulation.simulationfile.pk %}">{{ simulation.map_file }}</a></li>
-        {% endfor %}
-    </ul>
     <hr>
     {% endfor %}
 </div>
