@@ -1,5 +1,6 @@
 package jinpan;
 
+import jinpan.BaseRobot.State;
 import battlecode.common.MapLocation;
 
 public class Action {

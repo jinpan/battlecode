@@ -44,7 +44,7 @@ public class PASTRPlayer extends BaseRobot{
 	}
 	
 	public void step() throws GameActionException{
-		if (isPASTRable(rc.getLocation())){
+		if (isPASTRable(rc.getLocation()) && rc.isActive()){
 			rc.construct(RobotType.PASTR);
 		} else{
 			Direction dir= Direction.NORTH;
@@ -55,7 +55,7 @@ public class PASTRPlayer extends BaseRobot{
 					counter++;
 				}
 			}
-			if (rc.canMove(dir)){
+			if (rc.canMove(dir) && rc.isActive()){
 				rc.move(dir);
 			}
 		}

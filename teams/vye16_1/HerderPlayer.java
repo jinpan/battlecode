@@ -29,9 +29,9 @@ public class HerderPlayer extends BaseRobot {
 	public void attach() throws GameActionException{
 		MapLocation[] pastrs= rc.sensePastrLocations(myTeam);
 		for (MapLocation pastr: pastrs){
-			int read= rc.readBroadcast(10000*pastr.x+ pastr.y);
+			int read= rc.readBroadcast(100*pastr.x+ pastr.y);
 			if (read==0){
-				rc.broadcast(10000*pastr.x+pastr.y, 9999);
+				rc.broadcast(100*pastr.x+pastr.y, 9999);
 				myPASTR= pastr;
 				isAttached= true;
 				herdingState=1;
@@ -85,7 +85,7 @@ public class HerderPlayer extends BaseRobot {
 			}
 			counter++;
 		}
-		if (rc.canMove(dir)){
+		if (rc.canMove(dir) && rc.isActive()){
 			rc.move(dir);
 		}
 	}
