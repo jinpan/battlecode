@@ -14,23 +14,23 @@ import java.util.Arrays;
 @SuppressWarnings("unused")
 public class PASTRPlayer extends BaseRobot{
 	
-	//protected MapLocation destination;
-	public int distThresh= 16;
+	public int distThresh= 64;
+	public boolean farFromHQ=false;
 
 	public PASTRPlayer(RobotController myRC){
 		super(myRC);
 		this.myState= State.PASTR;
-		//this.getDestination();
 	}
 	
-	/*protected void getDestination(){
-		
-	}*/
+	boolean isFar(){
+		return rc.getLocation().distanceSquaredTo(rc.senseHQLocation())> distThresh;
+	}
 	
-	boolean isPASTRable(MapLocation loc){
+	boolean isPASTRable(){
+		MapLocation loc= rc.getLocation();
 		MapLocation[] pastrs= rc.sensePastrLocations(myTeam);
 		boolean good= true;
-		if (loc.distanceSquaredTo(rc.senseHQLocation())< distThresh){
+		if (!isFar()){
 			good= false;
 		}
 		if (good==true){
@@ -44,18 +44,31 @@ public class PASTRPlayer extends BaseRobot{
 	}
 	
 	public void step() throws GameActionException{
-		if (isPASTRable(rc.getLocation())){
+		if (isPASTRable()){
 			rc.construct(RobotType.PASTR);
 		} else{
-			Direction dir= Direction.NORTH;
-			if (!rc.canMove(dir)) {
-				int counter=0;
-				while (!rc.canMove(dir)&&counter<8){
-					dir.rotateLeft();
-					counter++;
-				}
+			Direction dir;
+			if (isFar()){
+				dir= dirs[(int)(ID*Math.random()) % 8];
+			} else {
+				dir= rc.getLocation().directionTo(rc.senseHQLocation()).opposite();
 			}
-			if (rc.canMove(dir)){
+			if (!rc.canMove(dir)){
+				int counter=0;
+				//float rand= random();
+				//if (rand<0.5){
+					while (!rc.canMove(dir) && counter<8){
+						dir.rotateRight();
+						counter++;
+					}
+				/*} else{
+					while (!rc.canMove(dir) && counter<8){
+						dir.rotateLeft();
+						counter++;
+					}
+				}*/
+			}
+			if (rc.canMove(dir)&& rc.isActive()){
 				rc.move(dir);
 			}
 		}

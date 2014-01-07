@@ -44,7 +44,9 @@ public abstract class BaseRobot {
     }
     
     public void transition() throws GameActionException {
-        this.step();
+        if(rc.isActive()){
+        	this.step();
+        }
         rc.yield();
     }
     
