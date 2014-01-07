@@ -19,7 +19,7 @@
             {% if simulation_set.robot_b %}
         <a href="{% url 'robot' simulation_set.robot_b.pk %}">{{ simulation_set.robot_b }}</a> <span class='team b-team'>(B / BLUE)</span>
             {% else %}
-            basicplayer <span class='team b-team'>(B / BLUE)</span>
+            examplefuncsplayer <span class='team b-team'>(B / BLUE)</span>
             {% endif %}
         </h4>
         <p>Won {{ simulation_set.robot_a_win_simulations.count }}/{{ simulation_set.total_matches }};
