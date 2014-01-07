@@ -1,4 +1,4 @@
-DEFAULT_AI = 'basicplayer'
+DEFAULT_AI = 'examplefuncsplayer'
 
 class STATUS:
     OPEN = '1'

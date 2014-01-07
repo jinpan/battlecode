@@ -248,6 +248,9 @@ class Simulation(models.Model):
         elif self.robot_a.line == self.robot_b.line:  # same line
             prior = 0.5
         else:
+            prior = 0.4
+            # the below is pretty slow; used only for prioritizing the order of tests
+            '''
             prior_results = []
             ancestors = Robot.objects.filter(line=self.robot_a.line).exclude(pk=self.robot_a.pk).order_by('line_num')
             for ancestor in ancestors:
@@ -271,6 +274,7 @@ class Simulation(models.Model):
                 prior = sum((result * weight) for result, weight in zip(prior_results, weights)) / float(sum(weights))
             else:
                 prior = 0.5
+            '''
 
         # prior_ranking's should be at least 1
         prior_ranking = -19600. * prior ** 2 + 19600. * prior + 1  # (70 ** 2) * 4* ((x-0.5)^2 + 0.25) + 1

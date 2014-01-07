@@ -11,5 +11,5 @@ def update_settings(settings):
             'PORT': '5432',
         }
     }
-    settings['BATTLECODE_ROOT'] = '/home/jin/Battlecode2013/'
+    settings['BATTLECODE_ROOT'] = '/home/jin/Battlecode2014/'
 
