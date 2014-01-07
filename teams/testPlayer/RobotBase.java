@@ -35,4 +35,15 @@ public class RobotBase {
 		}
 		return counter;
 	}
+	
+	Direction adjustDir(Direction curdir){
+		Direction dir = curdir;
+		if(!rc.canMove(dir)){
+			int i = 0;
+			while(!rc.canMove(dir) && i < 8){
+				dir = dir.rotateLeft();
+			}
+		}
+		return dir;
+	}
 }

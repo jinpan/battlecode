@@ -21,6 +21,9 @@ public class RobotPlayer {
 					soldierPlayer thisRobot = new soldierPlayer(rc);
 					thisRobot.run();
 				}
+			} else if(rc.getType() == RobotType.PASTR){
+				while(true)
+					rc.yield();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
