@@ -1,5 +1,6 @@
 package jinpan;
 
+import jinpan.BaseRobot.State;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.GameObject;
