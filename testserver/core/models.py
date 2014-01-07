@@ -203,7 +203,7 @@ class Simulation(models.Model):
     map_file = models.ForeignKey('Map')
 
     priority = models.FloatField(default=0)
-    result = models.TextField(null=True, blank=True, db_index=True)
+    result = models.TextField(null=True, blank=True)
     error = models.TextField(null=True, blank=True)
 
     status = models.CharField(max_length=1,

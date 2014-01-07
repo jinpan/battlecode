@@ -8,14 +8,14 @@ a.visited{
 }
 
 
-#robot-results > ul {
+#robot-results > details > ul {
     list-style: none;
     display: inline;
     padding-left: 0;
 }
 
 
-#robot-results > ul > li {
+#robot-results > details > ul > li {
     display: inline;
     padding-right: 1em;
 }
