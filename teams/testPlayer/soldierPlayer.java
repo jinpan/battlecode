@@ -4,9 +4,9 @@ import battlecode.common.*;
 
 public class soldierPlayer extends RobotBase{
 	int turncounter = 0, pastrCounter = 0; //number of turns following pastrBot, number of turns to go towards pastr
-	//int[] moveLog = new int[50];
 	boolean pastrFollowing = true, towardPastr = true;
 	boolean hasHitWall = false;
+	Direction curdir = Direction.NORTH;
 	MapLocation pastrLoc;
 	
 	public soldierPlayer(RobotController rc) throws GameActionException{
@@ -31,19 +31,20 @@ public class soldierPlayer extends RobotBase{
 			}
 		} else {
 			MapLocation[] pastrs = rc.sensePastrLocations(rc.getTeam());
-			Direction curdir, pDir;
+			Direction pDir;
 			pDir = Direction.NORTH;
 			if(pastrs.length != 0){
-				pastrLoc = pastrs[pastrs.length - 1];
+				pastrLoc = pastrs[(int)(Math.random() * pastrs.length - 1)];
 				pDir = rc.getLocation().directionTo(pastrLoc);
 			}
 			
-			MapLocation[] nearby = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 6);
+			//detect if we should turn into PASTR instead
+			MapLocation[] nearby = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 6); 
 			int cowtot = 0;
 			for(MapLocation i : nearby){
 				cowtot += rc.senseCowsAtLocation(i);
 			}
-			if(cowtot > 5000 && rc.isActive()){
+			if(cowtot > 3000 && rc.isActive()){
 				boolean tooClose = false;
 				for(MapLocation i : pastrs){
 					if(rc.getLocation().distanceSquaredTo(i) < 12)
@@ -54,16 +55,10 @@ public class soldierPlayer extends RobotBase{
 			}
 			
 			if(towardPastr){
-				hasHitWall = false;
-				pastrCounter--;
-				if(pastrCounter <= 0){
-					towardPastr = false; 
-				}
-				
+
 				if(pastrs.length == 0){ //if not built yet, shuffle around
 					curdir = directions[(int)(Math.random()*8)];
-				} else { //when done, move towards it
-					curdir = pDir;
+				} else { //when done, go to the nearest one
 					if(!rc.canMove(curdir)){
 						int i = 0;
 						while(!rc.canMove(curdir) && i < 8){
@@ -71,13 +66,28 @@ public class soldierPlayer extends RobotBase{
 						}
 					}
 				}
-			} else {
-				pastrCounter++;
-				if((pastrCounter > 30 && hasHitWall) || pastrCounter > 120){
-					towardPastr = true;
+				
+				pastrCounter--;
+				
+				boolean nextToPASTR = false;
+				for(MapLocation i : pastrs){
+					if(rc.getLocation().distanceSquaredTo(i) < 3)
+						nextToPASTR = true;
+				}
+				if(pastrCounter <= 0 || nextToPASTR){
+					pastrCounter = 0;
+					hasHitWall = false;
+					towardPastr = false; 
+					curdir = getGoodDir();
 				}
 				
-				curdir = pDir.opposite();
+			} else {
+				pastrCounter++;
+				if((pastrCounter > 30 && hasHitWall) || pastrCounter > 80){
+					towardPastr = true;
+					curdir = pDir;
+				}
+				
 				if(!rc.canMove(curdir)){
 					hasHitWall = true;
 					int i = 0;
@@ -99,5 +109,17 @@ public class soldierPlayer extends RobotBase{
 		rc.yield();
 	}
 	
-	
+	Direction getGoodDir() throws GameActionException{
+		int mini = 9999;
+		int goodd = 0;
+		int offset = 10000;
+		for(int i = offset; i < offset+8; i++){
+			if(rc.readBroadcast(i+offset) < mini){
+				mini = rc.readBroadcast(i+offset);
+				goodd = i-offset;
+			}
+		}
+		rc.broadcast(goodd+offset, Clock.getRoundNum());
+		return directions[goodd];
+	}
 }
