@@ -18,6 +18,7 @@ public class HQPlayer extends BaseRobot {
 	MapLocation[] myCorners; //these are the places we want to set up PASTRs
 	
 	int numRobots;
+	int numPASTR = 3;
 
     public HQPlayer(RobotController myRC) throws GameActionException {
         super(myRC);
@@ -38,7 +39,7 @@ public class HQPlayer extends BaseRobot {
         }
         */
         
-        this.myCorners = new MapLocation[4];
+        this.myCorners = new MapLocation[numPASTR];
         
         int allocated = 0;
         
@@ -56,16 +57,18 @@ public class HQPlayer extends BaseRobot {
         		eTerrain = myRC.senseTerrainTile(eLoc);
         	}
         	
+        	eLoc = eLoc.add(d.opposite(), 2);
+        	
         	if(stepsToWall > 20){ //if it's far enough away, put it in our list
         		this.myCorners[allocated] = eLoc;
         		allocated++;
         	}
         	
-        	if(allocated > 3)
+        	if(allocated > numPASTR-1)
         		break;
         }
         
-        while(allocated < 4){ //fill in unoccupied slots
+        while(allocated < numPASTR){ //fill in unoccupied slots
         	this.myCorners[allocated] = myHQLoc.add(dirs[(int)(Math.random()*8)], 15);
         	allocated++;
         }
@@ -104,13 +107,9 @@ public class HQPlayer extends BaseRobot {
         	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
         	state = StateMessage.decode(this.myRC.readBroadcast(channel));
         	if (state.myState == BaseRobot.State.DEFAULT){
-        		/*
-        		int idx = (int) (this.random() * this.myCorners.length); //make it try to build at a random good pasture location
-        		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[idx]);
-        		*/
-        		
+
         		ActionMessage action;
-        		action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order%4]);
+        		action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order%numPASTR]);
 
         		channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
         		this.myRC.broadcast(channel, action.encode());

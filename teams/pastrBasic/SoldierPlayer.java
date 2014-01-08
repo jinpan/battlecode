@@ -55,8 +55,10 @@ public class SoldierPlayer extends BaseRobot {
     		//actual defense code would go here when it's coded; i'm being lazy
     		
     		if(this.myRC.getLocation().distanceSquaredTo(theLocation) < 5){
-    			if(this.actionQueue.size() > 1) //if told to do something else...
-    				this.actionQueue.removeFirst();
+    			if(this.actionQueue.size() > 1){
+    				this.actionQueue.clear();
+    			}
+    				//this.actionQueue.removeFirst();
     		}
     		
     	}
@@ -125,12 +127,13 @@ public class SoldierPlayer extends BaseRobot {
     		Direction dir = this.directionTo(action.targetLocation);
     		if (dir != null)
     			this.myRC.sneak(dir);
-    		
+    		/*
     		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
-    			this.actionQueue.remove(0);
+    			this.actionQueue.removeFirst();
     			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
     			this.actionQueue.addFirst(newAction);
     		}
+    		*/
     		
     	}
     }

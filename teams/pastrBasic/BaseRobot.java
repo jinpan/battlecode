@@ -109,7 +109,7 @@ public abstract class BaseRobot {
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
-			if(this.actionQueue.size() == 0 || action.isEqual(this.actionQueue.getFirst())){
+			if(this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getFirst())){
 				if (action.myState.name().contains("HIGH")){
 					this.actionQueue.addFirst(action);
 				}
@@ -138,7 +138,8 @@ public abstract class BaseRobot {
     }
     
     protected void teardown() throws GameActionException {
-    	if (this.startState != this.myState){
+    	//if (this.startState != this.myState){
+    	if(true){
 	        StateMessage message = new StateMessage(this.myState);
 	        this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
     	}

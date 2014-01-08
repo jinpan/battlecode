@@ -70,7 +70,7 @@ public class ActionMessage implements Message {
         int y_pos = message % 0x100; message >>= 8;
         int x_pos = message % 0x100; message >>= 8;
         int target_id = message % 0x1000; message >>= 12;
-        int state = message % 0x10; assert(state == message);
+        int state = message % 0x12; assert(state == message);
         
         MapLocation loc = new MapLocation(x_pos, y_pos);
 
