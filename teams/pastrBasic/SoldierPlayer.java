@@ -127,13 +127,13 @@ public class SoldierPlayer extends BaseRobot {
     		Direction dir = this.directionTo(action.targetLocation);
     		if (dir != null)
     			this.myRC.sneak(dir);
-    		/*
+    		
     		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
     			this.actionQueue.removeFirst();
     			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
     			this.actionQueue.addFirst(newAction);
     		}
-    		*/
+    		
     		
     	}
     }

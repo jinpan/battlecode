@@ -72,7 +72,6 @@ public class ActionMessage implements Message {
         int state = message % 0x10; assert(state == message);
         
         MapLocation loc = new MapLocation(x_pos, y_pos);
-
         BaseRobot.State myState;
         switch (state) {
         	case 0x0: myState = BaseRobot.State.DEFAULT; break;
@@ -84,8 +83,8 @@ public class ActionMessage implements Message {
         	case 0x6: myState = BaseRobot.State.DEFENSEHIGH; break;
         	case 0x7: myState = BaseRobot.State.PASTUREHIGH; break;
         	case 0x8: myState = BaseRobot.State.SCOUTHIGH; break;
-        	case 0x9: myState = BaseRobot.State.GATHERIN; break;
-        	case 0xA: myState = BaseRobot.State.GATHEROUT; break;
+        	case -7: myState = BaseRobot.State.GATHERIN; break;
+        	case -6: myState = BaseRobot.State.GATHEROUT; break;
         	
         	default: myState = BaseRobot.State.DEFAULT; break;
         }
