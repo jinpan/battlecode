@@ -37,7 +37,7 @@ public class PastrPlayer extends BaseRobot{
         	StateMessage thestate = StateMessage.decode(this.myRC.readBroadcast(outchannel));
     		this.myRC.setIndicatorString(1, thestate.myState.toString());
         	
-    		if (thestate.myState == BaseRobot.State.DEFENSE || thestate.myState == BaseRobot.State.DEFAULT){
+    		if (thestate.myState == BaseRobot.State.DEFENSE){
     			this.myRC.setIndicatorString(2, "here");
         		ActionMessage action;
         		MapLocation dest = myRC.getLocation().add(dirs[(int)(Math.random()*8)], 10);

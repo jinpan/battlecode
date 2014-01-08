@@ -56,7 +56,7 @@ public class SoldierPlayer extends BaseRobot {
     		
     		if(this.myRC.getLocation().distanceSquaredTo(theLocation) < 5){
     			if(this.actionQueue.size() > 1){
-    				this.actionQueue.clear();
+    				this.actionQueue.removeFirst();
     			}
     				//this.actionQueue.removeFirst();
     		}
@@ -140,7 +140,8 @@ public class SoldierPlayer extends BaseRobot {
     
     protected void default_step() throws GameActionException {
         // I'm gonna just chill and try not to get in anyone's way
-        
+        if(this.actionQueue.size() > 0)
+        	this.actionQueue.remove(0);
     }
     
     protected Direction directionTo(MapLocation loc) throws GameActionException {
