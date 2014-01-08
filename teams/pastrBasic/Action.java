@@ -14,5 +14,9 @@ public class Action {
 		this.targetLocation = target;
 		this.targetID = targetID;
 	}
+	
+	public boolean isEqual(Action other){
+		return (other.myState == myState && other.targetLocation == targetLocation && other.targetID == targetID);
+	}
 
 }

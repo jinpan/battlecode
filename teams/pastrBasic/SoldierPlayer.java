@@ -12,6 +12,7 @@ import battlecode.common.RobotType;
 public class SoldierPlayer extends BaseRobot {
     
 	MapLocation targetLoc;
+	int ourPastrID;
 
     public SoldierPlayer(RobotController myRC) throws GameActionException {
         super(myRC);
@@ -44,16 +45,18 @@ public class SoldierPlayer extends BaseRobot {
     protected void defense_step() throws GameActionException {
     	if(this.myRC.isActive()){
     		Action action = this.actionQueue.getFirst();
+    		MapLocation theLocation = action.targetLocation;
+    		targetLoc = theLocation;
     		
-    		Direction dir = this.directionTo(action.targetLocation);
+    		Direction dir = this.directionTo(theLocation);
     		if (dir != null)
     			this.myRC.move(dir);
     		
     		//actual defense code would go here when it's coded; i'm being lazy
     		
-    		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
+    		if(this.myRC.getLocation().distanceSquaredTo(theLocation) < 5){
     			if(this.actionQueue.size() > 1) //if told to do something else...
-    				this.actionQueue.remove(0);
+    				this.actionQueue.removeFirst();
     		}
     		
     	}
@@ -73,8 +76,9 @@ public class SoldierPlayer extends BaseRobot {
 	    	if (this.myRC.canSenseSquare(action.targetLocation)){
 		    	GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation);
 		    	if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
-		    		Action newAction = new Action(BaseRobot.State.DEFENSE, action.targetLocation, squattingRobot.getID());
-		    		this.actionQueue.remove(0);
+		    		ourPastrID = squattingRobot.getID(); //gets and stores the PASTR id
+		    		Action newAction = new Action(BaseRobot.State.DEFENSE, action.targetLocation, ourPastrID);
+		    		this.actionQueue.clear();
 		    		this.actionQueue.addFirst(newAction);
 		    		return;
 		    	}
@@ -124,6 +128,8 @@ public class SoldierPlayer extends BaseRobot {
     		
     		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
     			this.actionQueue.remove(0);
+    			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
+    			this.actionQueue.addFirst(newAction);
     		}
     		
     	}

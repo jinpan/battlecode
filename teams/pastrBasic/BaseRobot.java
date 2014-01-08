@@ -6,6 +6,7 @@ import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
+import battlecode.common.RobotType;
 import battlecode.common.Team;
 import battlecode.common.GameConstants;
 
@@ -50,6 +51,8 @@ public abstract class BaseRobot {
         this.myRC = myRC;
         
         this.construct_core();
+        if(myRC.getType() != RobotType.PASTR)
+        	this.establish_order();
     }
     
     public BaseRobot(RobotController myRC, State myState) throws GameActionException {
@@ -57,6 +60,8 @@ public abstract class BaseRobot {
         this.myState = myState;
         
         this.construct_core();
+        if(myRC.getType() != RobotType.PASTR)
+        	this.establish_order();
     }
     
     protected void construct_core() throws GameActionException {        
@@ -67,11 +72,16 @@ public abstract class BaseRobot {
         this.enemyHQLoc = this.myRC.senseEnemyHQLocation();
         this.ID = this.myRC.getRobot().getID();
         this.actionQueue = new LinkedList<Action>();
-        
+
+        this.myRC.setIndicatorString(0, String.valueOf(this.ID));
+    }
+    
+    protected void establish_order() throws GameActionException{
         this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
         this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);
-
         this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
+        
+        this.myRC.setIndicatorString(1, String.valueOf(this.order));
     }
 
     public void run(){
@@ -99,19 +109,25 @@ public abstract class BaseRobot {
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
-			if (action.myState.name().contains("HIGH")){
-				this.actionQueue.addFirst(action);
+			if(this.actionQueue.size() == 0 || action.isEqual(this.actionQueue.getFirst())){
+				if (action.myState.name().contains("HIGH")){
+					this.actionQueue.addFirst(action);
+				}
+				else {
+					this.actionQueue.addLast(action);
+				}
 			}
-			else {
-				this.actionQueue.addLast(action);
-			}
+			//remove this action from the broadcast thing
+			myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	
+    	myRC.setIndicatorString(2, Integer.toString(actionQueue.size()));
     	if (this.actionQueue.size() > 0){
     		this.myState = this.actionQueue.getFirst().myState;
     	}
 		
 		this.startState = this.myState;
+		this.myRC.setIndicatorString(0, this.myState.toString());
     }
     
     /*

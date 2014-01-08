@@ -3,6 +3,7 @@ package pastrBasic;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.GameConstants;
@@ -37,7 +38,7 @@ public class HQPlayer extends BaseRobot {
         }
         */
         
-        this.myCorners = new MapLocation[5];
+        this.myCorners = new MapLocation[4];
         
         int allocated = 0;
         
@@ -60,11 +61,11 @@ public class HQPlayer extends BaseRobot {
         		allocated++;
         	}
         	
-        	if(allocated > 4)
+        	if(allocated > 3)
         		break;
         }
         
-        while(allocated < 5){ //fill in unoccupied slots
+        while(allocated < 4){ //fill in unoccupied slots
         	this.myCorners[allocated] = myHQLoc.add(dirs[(int)(Math.random()*8)], 15);
         	allocated++;
         }
@@ -78,6 +79,8 @@ public class HQPlayer extends BaseRobot {
             ++this.numRobots;
         }
         
+        int now = Clock.getBytecodesLeft();
+        
         // TODO: preserve state so we don't recompute all of idToOrder each step
         HashMap<Integer, Integer> idToOrder = new HashMap<Integer, Integer>();
         int channel, id;
@@ -87,24 +90,27 @@ public class HQPlayer extends BaseRobot {
         	idToOrder.put(id,  i);
         }
         
+        now -= Clock.getBytecodesLeft();
+        this.myRC.setIndicatorString(0, Integer.toString(now));
+        
         int order;
         StateMessage state;
         
-        for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)){ //for every nearby robot
+        for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class, 4)){ //for every nearby robot
         	if (idToOrder.get(robot.getID()) == null){
         		continue;
         	}
         	order = idToOrder.get(robot.getID());
         	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
         	state = StateMessage.decode(this.myRC.readBroadcast(channel));
-        	if (state.myState == BaseRobot.State.DEFAULT){ //...that's still in the default state, so hasn't been given a job
+        	if (state.myState == BaseRobot.State.DEFAULT){
         		/*
         		int idx = (int) (this.random() * this.myCorners.length); //make it try to build at a random good pasture location
         		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[idx]);
         		*/
         		
         		ActionMessage action;
-        		action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order%5]);
+        		action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order%4]);
 
         		channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
         		this.myRC.broadcast(channel, action.encode());

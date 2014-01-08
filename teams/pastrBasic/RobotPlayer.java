@@ -13,6 +13,7 @@ public class RobotPlayer {
 	        switch(rc.getType()){
 	            case HQ: myRobot = new HQPlayer(rc); break;
 	            case SOLDIER: myRobot = new SoldierPlayer(rc); break;
+	            case PASTR: myRobot = new PastrPlayer(rc); break;
 	        default:
 	            myRobot = new DefaultPlayer(rc); break;
 	        }
