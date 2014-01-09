@@ -21,9 +21,8 @@ public class StateMessage implements Message {
         	case DEFENSEHIGH: state = 0x6; break;
         	case PASTUREHIGH: state = 0x7; break;
         	case SCOUTHIGH: state = 0x8; break;
-        	
         	case GATHERIN: state = 0x9; break;
-        	case GATHEROUT: state = 0x10; break;
+        	case GATHEROUT: state = 0xA; break;
         	
         	default: state = 0x0;
         }
@@ -46,9 +45,8 @@ public class StateMessage implements Message {
         	case 0x6: myState = BaseRobot.State.DEFENSEHIGH; break;
         	case 0x7: myState = BaseRobot.State.PASTUREHIGH; break;
         	case 0x8: myState = BaseRobot.State.SCOUTHIGH; break;
-        	
         	case 0x9: myState = BaseRobot.State.GATHERIN; break;
-        	case 0x10: myState = BaseRobot.State.GATHEROUT; break;
+        	case 0xA: myState = BaseRobot.State.GATHEROUT; break;
         	
         	default: myState = BaseRobot.State.DEFAULT; break;
         }

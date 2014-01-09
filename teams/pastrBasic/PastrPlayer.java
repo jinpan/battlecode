@@ -33,7 +33,11 @@ public class PastrPlayer extends BaseRobot{
     		if(!myOrders.contains(id))
     			myOrders.add(id);
     		
-    		if (myState == BaseRobot.State.DEFENSE){
+        	int outchannel = BaseRobot.get_outbox_channel(robotOrder, BaseRobot.OUTBOX_STATE_CHANNEL);
+        	StateMessage thestate = StateMessage.decode(this.myRC.readBroadcast(outchannel));
+    		this.myRC.setIndicatorString(1, thestate.myState.toString());
+        	
+    		if (thestate.myState == BaseRobot.State.DEFENSE){
         		ActionMessage action;
         		MapLocation dest = myRC.getLocation().add(dirs[(int)(Math.random()*8)], 10);
         		
@@ -42,10 +46,11 @@ public class PastrPlayer extends BaseRobot{
     		}
     		
     	}
-    	
+    	/*
     	myRC.setIndicatorString(0, Integer.toString(nearbyHerders.length));
     	if(nearbyHerders.length > 0){
     		myRC.setIndicatorString(1, Integer.toString(robotOrder));
     	}
+    	*/
     }
 }
