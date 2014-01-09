@@ -15,7 +15,7 @@ public abstract class BaseRobot {
     public enum State {
         DEFAULT, ATTACK, DEFENSE, PASTURE, SCOUT,
         ATTACKHIGH, DEFENSEHIGH, PASTUREHIGH, SCOUTHIGH, 
-        GATHERIN, GATHEROUT
+        GATHEROUT
     };
     
     protected RobotController myRC;
@@ -33,13 +33,15 @@ public abstract class BaseRobot {
     public static final int OUTBOX_BASE = 1000;
     public static final int OUTBOX_SIZE = 10;
     
+    public static final int IDBOX_BASE = 10000; //store this robot's order in the array
+    
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 18;
-	protected static final int RALLY_DISTANCE = 15;
+    protected static final int MAX_PASTURES = 18; //from Vickie's attacking code
+	protected static final int RALLY_DISTANCE = 15; //Vickie's attacking code
     
 	protected int inbox;
     protected boolean underAttack;
@@ -49,7 +51,6 @@ public abstract class BaseRobot {
     public static final Direction[] dirs = {
         Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
         Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
-    
     
     public BaseRobot(RobotController myRC) throws GameActionException {
         this.myRC = myRC;
@@ -84,6 +85,7 @@ public abstract class BaseRobot {
         this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
         this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);
         this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
+        this.myRC.broadcast(IDBOX_BASE + this.ID, this.order);
         
         this.myRC.setIndicatorString(1, String.valueOf(this.order));
     }
@@ -113,7 +115,7 @@ public abstract class BaseRobot {
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
-			if(this.actionQueue.size() == 0 || action.isEqual(this.actionQueue.getFirst())){
+			if(this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getLast())){ //don't duplicate an action we just received
 				if (action.myState.name().contains("HIGH")){
 					this.actionQueue.addFirst(action);
 				}
@@ -121,7 +123,7 @@ public abstract class BaseRobot {
 					this.actionQueue.addLast(action);
 				}
 			}
-			//reset inbox to 0
+			//remove this action once we read it
 			myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	
@@ -142,10 +144,10 @@ public abstract class BaseRobot {
     }
     
     protected void teardown() throws GameActionException {
-    	if (this.startState != this.myState){
+    	//if (this.startState != this.myState){
 	        StateMessage message = new StateMessage(this.myState);
 	        this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
-    	}
+    	//}
     }
     
     protected void yield() throws GameActionException {
@@ -186,7 +188,11 @@ public abstract class BaseRobot {
     }
     
     protected float random(){
-        float random_float =  (float) (this.myRC.getRobot().getID() * Math.random());
+        float random_float =  (float) (this.ID * Math.random());
         return random_float - (int) random_float;
+    }
+    
+    int idToOrder(int ID) throws GameActionException{
+    	return this.myRC.readBroadcast(IDBOX_BASE + ID);
     }
 }

@@ -1,15 +1,7 @@
 package pastrBasic;
 
-import com.sun.corba.se.spi.orbutil.fsm.Action;
-
-import pastrBasic.BaseRobot.State;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.GameObject;
-import battlecode.common.MapLocation;
-import battlecode.common.Robot;
-import battlecode.common.RobotController;
-import battlecode.common.RobotType;
+import pastrBasic.Action;
+import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
     
@@ -36,8 +28,6 @@ public class SoldierPlayer extends BaseRobot {
             case PASTUREHIGH: this.pasture_step(); return;
             case SCOUT: this.scout_step(); return;
             case SCOUTHIGH: this.scout_step(); return;
-            
-            case GATHERIN: this.gatherin_step(); return;
             case GATHEROUT: this.gatherout_step(); return;
             
             default: this.default_step(); return;
@@ -46,6 +36,7 @@ public class SoldierPlayer extends BaseRobot {
     
     protected void attack_step() throws GameActionException {
         // I have a target and I'm gonna destroy it! Target may move though .. problems 
+    	/*
     	Action action= this.actionQueue.getFirst();
     	GameObject onSquare= this.myRC.senseObjectAtLocation(action.targetLocation);
     	if (onSquare!= null && this.myRC.senseRobotInfo(onSquare).type==RobotType.PASTR){
@@ -64,6 +55,7 @@ public class SoldierPlayer extends BaseRobot {
     	} else {
     		this.myRC.move(directionTo(targetLoc));
     	}
+    	*/
     }
     
     protected void defense_step() throws GameActionException {
@@ -71,20 +63,15 @@ public class SoldierPlayer extends BaseRobot {
     		Action action = this.actionQueue.getFirst();
     		targetLoc = action.targetLocation;
     		
-    		Direction dir = this.directionTo(theLocation);
+    		Direction dir = this.directionTo(targetLoc);
     		if (dir != null)
     			this.myRC.move(dir);
     		
-    		//actual defense code would go here when it's coded; i'm being lazy
+    		//flesh out later
     		
-    		if(this.myRC.getLocation().distanceSquaredTo(theLocation) < 5){
-    			if(this.actionQueue.size() > 1) //if told to do something else...
-    				this.actionQueue.removeFirst();
-    		}
-    		
+    		if(this.myRC.getLocation().distanceSquaredTo(targetLoc) < 5 && this.actionQueue.size() > 1)
+    			this.actionQueue.removeFirst();
     	}
-    	
-    	
     }
     
     protected void pasture_step() throws GameActionException {
@@ -100,7 +87,7 @@ public class SoldierPlayer extends BaseRobot {
 		    	GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation);
 		    	if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
 		    		ourPastrID = squattingRobot.getID(); //gets and stores the PASTR id
-		    		pastureloc= action.targetLocation;
+		    		pastureloc = action.targetLocation;
 		    		Action newAction = new Action(BaseRobot.State.DEFENSE, pastureloc, ourPastrID);
 		    		this.actionQueue.clear();
 		    		this.actionQueue.addFirst(newAction);
@@ -120,10 +107,13 @@ public class SoldierPlayer extends BaseRobot {
     }    
     
     protected void scout_step() throws GameActionException {
+    	
         // I'm gonna scout me some enemies
         // scout in squads; HQ assigns all scouts to the same pastr and rallying point. 
     	// Once at rallying point, if it senses other robots of its team in the vicinity, it waits.
     	// Otherwise it goes into attack mode.
+    	
+    	/*
     	Action action = this.actionQueue.getFirst();
     	targetLoc= action.targetLocation;
     	enemyPastrID= action.targetID;
@@ -138,8 +128,9 @@ public class SoldierPlayer extends BaseRobot {
     			this.actionQueue.add(1, newAction);
     		}
     	}
+    	*/
     }
-    
+    /*
     protected boolean withScoutTeam() throws GameActionException {
     	return this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam).length>0;
     }
@@ -147,45 +138,28 @@ public class SoldierPlayer extends BaseRobot {
     protected void loneRanger() throws GameActionExcpetion {
     	return this.myRC.senseNearbyGameObjects(Robot.class, 30, this.myTeam).length==0;
     }
-    
-    protected void gatherin_step() throws GameActionException{
-    	if(this.myRC.isActive()){
-    		Action action = this.actionQueue.getFirst();
-    		MapLocation ourPastr = action.targetLocation;
-    		Direction dir = this.directionTo(action.targetLocation);
-    		
-    		if (dir != null)
-    			this.myRC.move(dir);
-    		
-    		if(this.myRC.getLocation().distanceSquaredTo(ourPastr) < 5){
-    			this.actionQueue.remove(0);
-    			Action newAction = new Action(BaseRobot.State.DEFENSE, ourPastr, this.myRC.senseObjectAtLocation(ourPastr).getID());
-    			this.actionQueue.addFirst(newAction);
-    		}
-    		
-    	}
-    }
-    
+    */
     protected void gatherout_step() throws GameActionException{
     	if(this.myRC.isActive()){
     		Action action = this.actionQueue.getFirst();
-    		
-    		Direction dir = this.directionTo(action.targetLocation);
-    		if (dir != null)
-    			this.myRC.sneak(dir);
-    		
-    		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
-    			this.actionQueue.remove(0);
+    		MapLocation target = action.targetLocation;
+
+    		if(this.myRC.getLocation().distanceSquaredTo(target) < 5){
+    			this.actionQueue.removeFirst();
     			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
     			this.actionQueue.addFirst(newAction);
+    		} else {
+    			Direction dir = this.directionTo(target);
+    			if (dir != null && dir != Direction.NONE && dir != Direction.OMNI)
+    				this.myRC.sneak(dir);
     		}
-    		
     	}
     }
     
     protected void default_step() throws GameActionException {
         // I'm gonna just chill and try not to get in anyone's way
-        
+        if(this.actionQueue.size() > 0)
+        	this.actionQueue.remove(0);
     }
     
     protected Direction directionTo(MapLocation loc) throws GameActionException {

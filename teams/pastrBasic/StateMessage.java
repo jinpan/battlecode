@@ -1,5 +1,8 @@
 package pastrBasic;
 
+import pastrBasic.BaseRobot;
+import pastrBasic.Message;
+import pastrBasic.StateMessage;
 
 public class StateMessage implements Message {
 	
@@ -19,11 +22,9 @@ public class StateMessage implements Message {
         	case SCOUT: state = 0x4; break;
         	case ATTACKHIGH: state = 0x5; break;
         	case DEFENSEHIGH: state = 0x6; break;
-        	case PASTUREHIGH: state = 0x7; break;
+        	//case PASTUREHIGH: state = 0x7; break;
+        	case GATHEROUT: state = 0x7; break;
         	case SCOUTHIGH: state = 0x8; break;
-        	
-        	case GATHERIN: state = 0x9; break;
-        	case GATHEROUT: state = 0x10; break;
         	
         	default: state = 0x0;
         }
@@ -44,11 +45,9 @@ public class StateMessage implements Message {
         	case 0x4: myState = BaseRobot.State.SCOUT; break;
         	case 0x5: myState = BaseRobot.State.ATTACKHIGH; break;
         	case 0x6: myState = BaseRobot.State.DEFENSEHIGH; break;
-        	case 0x7: myState = BaseRobot.State.PASTUREHIGH; break;
+        	//case 0x7: myState = BaseRobot.State.PASTUREHIGH; break;
+        	case 0x7: myState = BaseRobot.State.GATHEROUT; break;
         	case 0x8: myState = BaseRobot.State.SCOUTHIGH; break;
-        	
-        	case 0x9: myState = BaseRobot.State.GATHERIN; break;
-        	case 0x10: myState = BaseRobot.State.GATHEROUT; break;
         	
         	default: myState = BaseRobot.State.DEFAULT; break;
         }
