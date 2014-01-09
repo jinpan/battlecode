@@ -7,6 +7,7 @@ import battlecode.common.Robot;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
+import battlecode.common.RobotType;
 import battlecode.common.Team;
 import battlecode.common.GameConstants;
 
@@ -51,6 +52,9 @@ public abstract class BaseRobot {
         this.myRC = myRC;
         
         this.construct_core();
+        
+        if(myRC.getType() != RobotType.PASTR)
+        	this.establish_order();
     }
     
     public BaseRobot(RobotController myRC, State myState) throws GameActionException {
@@ -58,6 +62,9 @@ public abstract class BaseRobot {
         this.myState = myState;
         
         this.construct_core();
+        
+        if(myRC.getType() != RobotType.PASTR)
+        	this.establish_order();
     }
     
     protected void construct_core() throws GameActionException {        
@@ -76,6 +83,14 @@ public abstract class BaseRobot {
         this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
     }
 
+    protected void establish_order() throws GameActionException{
+        this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
+        this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);
+        this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
+        
+        this.myRC.setIndicatorString(1, String.valueOf(this.order));
+    }
+    
     public void run(){
         while (true){
             try {
@@ -107,6 +122,7 @@ public abstract class BaseRobot {
 			else {
 				this.actionQueue.addLast(action);
 			}
+			this.myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	
     	if (this.actionQueue.size() > 0){

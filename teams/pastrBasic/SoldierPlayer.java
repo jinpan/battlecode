@@ -55,10 +55,8 @@ public class SoldierPlayer extends BaseRobot {
     		//actual defense code would go here when it's coded; i'm being lazy
     		
     		if(this.myRC.getLocation().distanceSquaredTo(theLocation) < 5){
-    			if(this.actionQueue.size() > 1){
+    			if(this.actionQueue.size() > 1) //if told to do something else...
     				this.actionQueue.removeFirst();
-    			}
-    				//this.actionQueue.removeFirst();
     		}
     		
     	}
@@ -129,19 +127,17 @@ public class SoldierPlayer extends BaseRobot {
     			this.myRC.sneak(dir);
     		
     		if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5){
-    			this.actionQueue.removeFirst();
+    			this.actionQueue.remove(0);
     			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
     			this.actionQueue.addFirst(newAction);
     		}
-    		
     		
     	}
     }
     
     protected void default_step() throws GameActionException {
         // I'm gonna just chill and try not to get in anyone's way
-        if(this.actionQueue.size() > 0)
-        	this.actionQueue.remove(0);
+        
     }
     
     protected Direction directionTo(MapLocation loc) throws GameActionException {

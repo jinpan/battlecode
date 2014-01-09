@@ -3,6 +3,7 @@ package jinpan;
 import java.util.LinkedList;
 
 import battlecode.common.Direction;
+import battlecode.common.Robot;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
@@ -21,6 +22,7 @@ public abstract class BaseRobot {
     protected State startState;
     protected Team myTeam;
     protected Team enemyTeam;
+    protected Robot[] enemies;
     protected MapLocation myHQLoc;
     protected MapLocation enemyHQLoc;
     protected int ID;
@@ -61,6 +63,7 @@ public abstract class BaseRobot {
     protected void construct_core() throws GameActionException {        
         this.myTeam = this.myRC.getTeam();
         this.enemyTeam = this.myTeam.opponent();
+        this.enemies = this.myRC.senseNearbyGameObjects(Robot.class, 1000, this.enemyTeam);
         
         this.myHQLoc = this.myRC.senseHQLocation();
         this.enemyHQLoc = this.myRC.senseEnemyHQLocation();

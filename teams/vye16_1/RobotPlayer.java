@@ -35,7 +35,7 @@ public class RobotPlayer {
                    	}
            		}
            	} else if(rc.getType() == RobotType.SOLDIER){
-           		if(Clock.getRoundNum() < 15){
+           		if(Clock.getRoundNum() < 1500){
            			PASTRPlayer thisRobot = new PASTRPlayer(rc);
            			thisRobot.run();
        			} else {

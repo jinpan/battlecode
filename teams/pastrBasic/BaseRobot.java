@@ -33,8 +33,6 @@ public abstract class BaseRobot {
     public static final int OUTBOX_BASE = 1000;
     public static final int OUTBOX_SIZE = 10;
     
-    public static final int IDBOX_BASE = 10000; //store this robot's order in messaging system keyed to its ID, for easy lookup
-    
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
     public static final int OUTBOX_STATE_CHANNEL = 1;
@@ -82,7 +80,6 @@ public abstract class BaseRobot {
         this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
         this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);
         this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
-        this.myRC.broadcast(IDBOX_BASE + this.ID, this.order);
         
         this.myRC.setIndicatorString(1, String.valueOf(this.order));
     }
@@ -112,7 +109,7 @@ public abstract class BaseRobot {
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
-			if(this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getFirst())){
+			if(this.actionQueue.size() == 0 || action.isEqual(this.actionQueue.getFirst())){
 				if (action.myState.name().contains("HIGH")){
 					this.actionQueue.addFirst(action);
 				}
@@ -141,8 +138,7 @@ public abstract class BaseRobot {
     }
     
     protected void teardown() throws GameActionException {
-    	//if (this.startState != this.myState){
-    	if(true){
+    	if (this.startState != this.myState){
 	        StateMessage message = new StateMessage(this.myState);
 	        this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
     	}
@@ -186,11 +182,7 @@ public abstract class BaseRobot {
     }
     
     protected float random(){
-        float random_float =  (float) (this.ID * Math.random());
+        float random_float =  (float) (this.myRC.getRobot().getID() * Math.random());
         return random_float - (int) random_float;
-    }
-    
-    int idToOrder(int ID) throws GameActionException{
-    	return this.myRC.readBroadcast(IDBOX_BASE + ID);
     }
 }

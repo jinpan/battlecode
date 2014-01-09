@@ -14,6 +14,7 @@ public class HQPlayer extends BaseRobot {
 	
 	Direction toEnemy;
 	MapLocation[] myCorners;
+	int[][] pastureLocs;
 	
 	int numRobots;
 
@@ -23,15 +24,17 @@ public class HQPlayer extends BaseRobot {
         this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
         this.numRobots = 1;
         
+        this.pastureLocs = new int[1000][2];
+        
         this.myCorners = new MapLocation[2];
         
         if (this.myHQLoc.x < this.myRC.getMapWidth() / 2){
-            this.myCorners[0] = new MapLocation(1, 1);
-            this.myCorners[1] = new MapLocation(1, this.myRC.getMapWidth() - 1);
+            this.myCorners[0] = new MapLocation(GameConstants.PASTR_RANGE, GameConstants.PASTR_RANGE);
+            this.myCorners[1] = new MapLocation(GameConstants.PASTR_RANGE, this.myRC.getMapWidth() - GameConstants.PASTR_RANGE);
         }
         else {
-            this.myCorners[0] = new MapLocation(this.myRC.getMapWidth() - 1, 1);
-            this.myCorners[1] = new MapLocation(this.myRC.getMapWidth() - 1, this.myRC.getMapWidth() - 1);
+            this.myCorners[0] = new MapLocation(this.myRC.getMapWidth() - GameConstants.PASTR_RANGE, GameConstants.PASTR_RANGE);
+            this.myCorners[1] = new MapLocation(this.myRC.getMapWidth() - GameConstants.PASTR_RANGE, this.myRC.getMapWidth() - GameConstants.PASTR_RANGE);
         }
     }
 
