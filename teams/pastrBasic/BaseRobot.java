@@ -38,7 +38,10 @@ public abstract class BaseRobot {
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected int inbox;
+    protected static final int MAX_PASTURES = 18;
+	protected static final int RALLY_DISTANCE = 15;
+    
+	protected int inbox;
     protected boolean underAttack;
     
     protected LinkedList<Action> actionQueue;
@@ -46,6 +49,7 @@ public abstract class BaseRobot {
     public static final Direction[] dirs = {
         Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
         Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+    
     
     public BaseRobot(RobotController myRC) throws GameActionException {
         this.myRC = myRC;
@@ -117,7 +121,7 @@ public abstract class BaseRobot {
 					this.actionQueue.addLast(action);
 				}
 			}
-			//remove this action from the broadcast thing
+			//reset inbox to 0
 			myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	

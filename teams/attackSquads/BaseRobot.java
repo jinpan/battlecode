@@ -121,7 +121,7 @@ public abstract class BaseRobot {
 			}
 			else {
 				this.actionQueue.addLast(action);
-			}
+			}//reset inbox to 0
 			this.myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	

@@ -18,8 +18,8 @@ public class HQPlayer extends BaseRobot {
 	MapLocation[] myCorners; //these are the places we want to set up PASTRs
 	
 	int numRobots;
-
-    public HQPlayer(RobotController myRC) throws GameActionException {
+	
+	public HQPlayer(RobotController myRC) throws GameActionException {
         super(myRC);
         
         this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
@@ -74,7 +74,10 @@ public class HQPlayer extends BaseRobot {
 
     @Override
     protected void step() throws GameActionException {
-        if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
+    	MapLocation[] pastrLocs = this.myRC.sensePastrLocations(this.myTeam);
+		MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(this.enemyTeam);
+    	
+		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
             this.spawn();
             ++this.numRobots;
         }
@@ -102,20 +105,34 @@ public class HQPlayer extends BaseRobot {
         	}
         	order = idToOrder.get(robot.getID());
         	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-        	state = StateMessage.decode(this.myRC.readBroadcast(channel));
-        	if (state.myState == BaseRobot.State.DEFAULT){
+        	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
+        	if (state == BaseRobot.State.DEFAULT){
+        		if (pastrLocs.length<BaseRobot.MAX_PASTURES){
+        			state= BaseRobot.State.PASTURE;
+        		} else {
+        			state= BaseRobot.State.SCOUT;
+        		}
+        	}
         		/*
         		int idx = (int) (this.random() * this.myCorners.length); //make it try to build at a random good pasture location
         		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[idx]);
         		*/
-        		
-        		ActionMessage action;
-        		action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order%4]);
-
-        		channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-        		this.myRC.broadcast(channel, action.encode());
-        		
-        	}
+        	
+        	if (state==BaseRobot.State.PASTURE) {
+				ActionMessage action;
+				action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order % 4]);
+				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+				this.myRC.broadcast(channel, action.encode());
+			} else if (state==BaseRobot.State.SCOUT) {
+				MapLocation enemyLoc= enemyPastrs[0];
+				Robot enemyBot= this.myRC.senseObjectAtLocation(enemyLoc);
+				Direction dirToPastr= this.myHQLoc.directionTo(enemyLoc);
+				MapLocation rallyPoint= enemyLoc.add(dirToPastr, this.RALLY_DISTANCE);
+				ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, enemyLoc, enemyBot.getID());
+				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+				this.myRC.broadcast(channel, action.encode());
+			}
+        	
         }
     }
     
