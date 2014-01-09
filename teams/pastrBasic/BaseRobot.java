@@ -40,8 +40,8 @@ public abstract class BaseRobot {
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 18; //from Vickie's attacking code
-	protected static final int RALLY_DISTANCE = 15; //Vickie's attacking code
+    protected static final int MAX_PASTURES = 2; //from Vickie's attacking code
+	protected static final int RALLY_DISTANCE = 5; //Vickie's attacking code
     
 	protected int inbox;
     protected boolean underAttack;
@@ -77,6 +77,7 @@ public abstract class BaseRobot {
         this.enemyHQLoc = this.myRC.senseEnemyHQLocation();
         this.ID = this.myRC.getRobot().getID();
         this.actionQueue = new LinkedList<Action>();
+        this.teardown();
 
         this.myRC.setIndicatorString(0, String.valueOf(this.ID));
     }
@@ -115,14 +116,13 @@ public abstract class BaseRobot {
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
-			if(this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getLast())){ //don't duplicate an action we just received
-				if (action.myState.name().contains("HIGH")){
-					this.actionQueue.addFirst(action);
-				}
-				else {
-					this.actionQueue.addLast(action);
-				}
+			if (action.myState.name().contains("HIGH") && (this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getFirst()))){
+				this.actionQueue.addFirst(action);
 			}
+			else if(this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getLast())) {
+				this.actionQueue.addLast(action);
+			}
+			
 			//remove this action once we read it
 			myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
@@ -144,10 +144,8 @@ public abstract class BaseRobot {
     }
     
     protected void teardown() throws GameActionException {
-    	//if (this.startState != this.myState){
-	        StateMessage message = new StateMessage(this.myState);
-	        this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
-    	//}
+        StateMessage message = new StateMessage(this.myState);
+	    this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
     }
     
     protected void yield() throws GameActionException {

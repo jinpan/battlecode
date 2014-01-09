@@ -33,54 +33,34 @@ public class HQPlayer extends BaseRobot {
 		}	
         
         int order, channel;
-        StateMessage state;
+        State state;
         
-    	//MapLocation[] pastrLocs = this.myRC.sensePastrLocations(this.myTeam);
-		//MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(this.enemyTeam);
+    	MapLocation[] pastrLocs = this.myRC.sensePastrLocations(this.myTeam);
+		MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(this.enemyTeam);
         
         for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class, 4)){ //for every nearby robot
-        	/*
-        	if (idToOrder.get(robot.getID()) == null){
-        		continue;
-        	}
-        	order = idToOrder.get(robot.getID());
-        	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-        	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
-        	if (state == BaseRobot.State.DEFAULT){
-        		if (pastrLocs.length<BaseRobot.MAX_PASTURES){
-        			state= BaseRobot.State.PASTURE;
-        		} else {
-        			state= BaseRobot.State.SCOUT;
-        		}
-        	}
-        	
-        	if (state==BaseRobot.State.PASTURE) {
-				ActionMessage action;
-				action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[order % 4]);
-				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-				this.myRC.broadcast(channel, action.encode());
-			} else if (state==BaseRobot.State.SCOUT) {
-				MapLocation enemyLoc= enemyPastrs[0];
-				Robot enemyBot= this.myRC.senseObjectAtLocation(enemyLoc);
-				Direction dirToPastr= this.myHQLoc.directionTo(enemyLoc);
-				MapLocation rallyPoint= enemyLoc.add(dirToPastr, this.RALLY_DISTANCE);
-				ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, enemyLoc, enemyBot.getID());
-				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-				this.myRC.broadcast(channel, action.encode());
-			}
-			*/
         	
 			order = idToOrder(robot.getID()); 
 			if (order == 0)
 				continue;
 			
-			channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-			state = StateMessage.decode(this.myRC.readBroadcast(channel));
-			
-			if (state.myState == BaseRobot.State.DEFAULT){ //if this robot has no job yet
-				assignJob(order); //then give it a job; make this method smart!
-			}
-        	
+        	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
+        	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
+        	if (state == BaseRobot.State.DEFAULT){
+        		if (pastrLocs.length<BaseRobot.MAX_PASTURES || enemyPastrs.length == 0){
+        			assignPastureJob(order);
+        		} else {
+    				MapLocation enemyLoc= enemyPastrs[0];
+    				//Robot enemyBot= (Robot) this.myRC.senseObjectAtLocation(enemyLoc);
+    				Direction dirToPastr= this.myHQLoc.directionTo(enemyLoc);
+    				MapLocation rallyPoint= enemyLoc.add(dirToPastr.opposite(), BaseRobot.RALLY_DISTANCE);
+    				ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, 0, rallyPoint);
+    				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+    				this.myRC.broadcast(channel, action.encode());
+        		}
+        	}
+        
+			//state = StateMessage.decode(this.myRC.readBroadcast(channel));
         }
     }
     
@@ -101,7 +81,7 @@ public class HQPlayer extends BaseRobot {
     	return false;
     }
     
-	private void assignJob(int order) throws GameActionException{
+	private void assignPastureJob(int order) throws GameActionException{
 		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.PASTRLocs[order%numPASTR]);
 		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
 		this.myRC.broadcast(channel, action.encode());

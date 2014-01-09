@@ -35,29 +35,32 @@ public class SoldierPlayer extends BaseRobot {
     }
     
     protected void attack_step() throws GameActionException {
-        // I have a target and I'm gonna destroy it! Target may move though .. problems 
-    	/*
-    	Action action= this.actionQueue.getFirst();
-    	GameObject onSquare= this.myRC.senseObjectAtLocation(action.targetLocation);
-    	if (onSquare!= null && this.myRC.senseRobotInfo(onSquare).type==RobotType.PASTR){
-    		targetLoc= action.targetLocation;
-    	}else {
-    		Robot target= null;
-    		for (Robot enemy: enemies){
+    	// I have a target and I'm gonna destroy it! Target may move though .. problems 
+    	Action action = this.actionQueue.getFirst();
+    	GameObject onSquare = this.myRC.senseObjectAtLocation(action.targetLocation);
+    	if (onSquare!= null && this.myRC.senseRobotInfo((Robot) onSquare).type==RobotType.PASTR){
+    		targetLoc = action.targetLocation; //prioritize pastr shooting; those don't move
+    	}else { //must account for targets moving; is there a better way?
+    		/*
+    		System.out.println("shouldn't be here");
+    		Robot target = null;
+    		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, 1000, this.enemyTeam);
+    		for (Robot enemy : enemies){
     			if (enemy.getID()==action.targetID){
-    			target= enemy;
+    				target = enemy;
     			}
     		}
-    	targetLoc= this.myRC.senseRobotInfo(target).location;
+    		targetLoc = this.myRC.senseRobotInfo(target).location;
+    		*/
     	}
     	if (this.myRC.getLocation().distanceSquaredTo(targetLoc)<10){
+    		System.out.println("attacking");
     		this.myRC.attackSquare(targetLoc);
     	} else {
     		this.myRC.move(directionTo(targetLoc));
     	}
-    	*/
     }
-    
+
     protected void defense_step() throws GameActionException {
     	if(this.myRC.isActive()){
     		Action action = this.actionQueue.getFirst();
@@ -113,32 +116,38 @@ public class SoldierPlayer extends BaseRobot {
     	// Once at rallying point, if it senses other robots of its team in the vicinity, it waits.
     	// Otherwise it goes into attack mode.
     	
-    	/*
     	Action action = this.actionQueue.getFirst();
     	targetLoc= action.targetLocation;
+    	System.out.println(targetLoc.x + " " + targetLoc.y);
     	enemyPastrID= action.targetID;
-    	if (this.myRC.getLocation()==targetLoc){
-    		MapLocation newLoc= targetLoc.add(this.myHQLoc.directionTo(targetLoc).opposite(), 
-    				BaseRobot.RALLYING_DISTANCE);
-    		Action newAction = new Action(BaseRobot.State.ATTACK, newLoc, enemyPastrId);
+    	
+    	if (this.myRC.getLocation().equals(targetLoc)){
+    		MapLocation newLoc= targetLoc.add(this.myHQLoc.directionTo(targetLoc), BaseRobot.RALLY_DISTANCE);
+    		Action newAction = new Action(BaseRobot.State.ATTACK, newLoc, enemyPastrID);
     		if (withScoutTeam() || loneRanger()){
+    			System.out.println("changing to attacking");
     			this.actionQueue.removeFirst();
     			this.actionQueue.addFirst(newAction);
     		} else {
+    			System.out.println("waiting");
     			this.actionQueue.add(1, newAction);
     		}
+    	} else {
+    		Direction dir = directionTo(targetLoc);
+    		if(this.myRC.isActive() && dir != null && this.myRC.canMove(dir)){
+    			this.myRC.move(dir);
+    		}
     	}
-    	*/
     }
-    /*
-    protected boolean withScoutTeam() throws GameActionException {
+    
+    protected boolean withScoutTeam() throws GameActionException { //has allies next to it
     	return this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam).length>0;
     }
     
-    protected void loneRanger() throws GameActionExcpetion {
+    protected boolean loneRanger() throws GameActionException { //nobody is nearby
     	return this.myRC.senseNearbyGameObjects(Robot.class, 30, this.myTeam).length==0;
     }
-    */
+    
     protected void gatherout_step() throws GameActionException{
     	if(this.myRC.isActive()){
     		Action action = this.actionQueue.getFirst();
@@ -157,13 +166,16 @@ public class SoldierPlayer extends BaseRobot {
     }
     
     protected void default_step() throws GameActionException {
-        // I'm gonna just chill and try not to get in anyone's way
+        //stop doing nothing if told to do something else
         if(this.actionQueue.size() > 0)
         	this.actionQueue.remove(0);
     }
     
     protected Direction directionTo(MapLocation loc) throws GameActionException {
         Direction dir = this.myRC.getLocation().directionTo(loc);
+        
+        if(dir == Direction.NONE || dir == Direction.OMNI)
+        	return null;
         
         if (this.myRC.canMove(dir)){
             return dir;
