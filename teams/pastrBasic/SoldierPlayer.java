@@ -25,7 +25,7 @@ public class SoldierPlayer extends BaseRobot {
             case DEFENSE: this.defense_step(); return;
             case DEFENSEHIGH: this.defense_step(); return;
             case PASTURE: this.pasture_step(); return;
-            case PASTUREHIGH: this.pasture_step(); return;
+            //case PASTUREHIGH: this.pasture_step(); return; //this will likely never be used
             case SCOUT: this.scout_step(); return;
             case SCOUTHIGH: this.scout_step(); return;
             case GATHEROUT: this.gatherout_step(); return;
@@ -37,10 +37,23 @@ public class SoldierPlayer extends BaseRobot {
     protected void attack_step() throws GameActionException {
     	// I have a target and I'm gonna destroy it! Target may move though .. problems 
     	Action action = this.actionQueue.getFirst();
-    	GameObject onSquare = this.myRC.senseObjectAtLocation(action.targetLocation);
-    	if (onSquare!= null && this.myRC.senseRobotInfo((Robot) onSquare).type==RobotType.PASTR){
-    		targetLoc = action.targetLocation; //prioritize pastr shooting; those don't move
-    	}else { //must account for targets moving; is there a better way?
+    	MapLocation target = action.targetLocation;
+    	
+    	if(this.myRC.getLocation().distanceSquaredTo(target) <= 35){
+    		GameObject onSquare = this.myRC.senseObjectAtLocation(target);
+        	if (onSquare!= null && this.myRC.senseRobotInfo((Robot) onSquare).type==RobotType.PASTR){
+        		targetLoc = target;
+        	} else {
+        		MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(this.enemyTeam);
+        		if(enemyPastrs.length != 0){
+        			this.actionQueue.removeFirst();
+        			Action newAction = new Action(BaseRobot.State.ATTACK, enemyPastrs[0], 0);
+        			this.actionQueue.addLast(newAction);
+        		}
+        	}
+    	}
+    		
+    		//must account for targets moving; is there a better way?
     		/*
     		System.out.println("shouldn't be here");
     		Robot target = null;
@@ -51,13 +64,13 @@ public class SoldierPlayer extends BaseRobot {
     			}
     		}
     		targetLoc = this.myRC.senseRobotInfo(target).location;
-    		*/
-    	}
-    	if (this.myRC.getLocation().distanceSquaredTo(targetLoc)<10){
-    		System.out.println("attacking");
-    		this.myRC.attackSquare(targetLoc);
-    	} else {
-    		this.myRC.move(directionTo(targetLoc));
+    		 */
+    	if(this.myRC.isActive()){
+    		if (this.myRC.getLocation().distanceSquaredTo(target)<10){
+    			this.myRC.attackSquare(target);
+    		} else {
+    			this.myRC.move(directionTo(target));
+    		}
     	}
     }
 
@@ -78,7 +91,8 @@ public class SoldierPlayer extends BaseRobot {
     }
     
     protected void pasture_step() throws GameActionException {
-        // I'm gonna build me some pastures
+    	//try to make a pasture at some location
+    	//if a pasture is already there, become one of its herders
     	if (this.myRC.isActive()){
 	    	Action action = this.actionQueue.getFirst();
 	    	
@@ -110,33 +124,25 @@ public class SoldierPlayer extends BaseRobot {
     }    
     
     protected void scout_step() throws GameActionException {
-    	
-        // I'm gonna scout me some enemies
         // scout in squads; HQ assigns all scouts to the same pastr and rallying point. 
     	// Once at rallying point, if it senses other robots of its team in the vicinity, it waits.
     	// Otherwise it goes into attack mode.
     	
     	Action action = this.actionQueue.getFirst();
-    	targetLoc= action.targetLocation;
-    	System.out.println(targetLoc.x + " " + targetLoc.y);
-    	enemyPastrID= action.targetID;
+    	targetLoc = action.targetLocation;
+    	enemyPastrID = action.targetID;
     	
     	if (this.myRC.getLocation().equals(targetLoc)){
     		MapLocation newLoc= targetLoc.add(this.myHQLoc.directionTo(targetLoc), BaseRobot.RALLY_DISTANCE);
     		Action newAction = new Action(BaseRobot.State.ATTACK, newLoc, enemyPastrID);
     		if (withScoutTeam() || loneRanger()){
-    			System.out.println("changing to attacking");
     			this.actionQueue.removeFirst();
     			this.actionQueue.addFirst(newAction);
-    		} else {
-    			System.out.println("waiting");
-    			this.actionQueue.add(1, newAction);
-    		}
+    		} 
     	} else {
     		Direction dir = directionTo(targetLoc);
-    		if(this.myRC.isActive() && dir != null && this.myRC.canMove(dir)){
+    		if(this.myRC.isActive() && dir != null)
     			this.myRC.move(dir);
-    		}
     	}
     }
     

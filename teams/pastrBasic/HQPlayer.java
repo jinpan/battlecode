@@ -46,21 +46,17 @@ public class HQPlayer extends BaseRobot {
 			
         	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
         	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
-        	if (state == BaseRobot.State.DEFAULT){
+        	
+        	
+        	
+        	
+        	if (state == BaseRobot.State.DEFAULT){ //if robot hasn't been given a job yet
         		if (pastrLocs.length<BaseRobot.MAX_PASTURES || enemyPastrs.length == 0){
         			assignPastureJob(order);
         		} else {
-    				MapLocation enemyLoc= enemyPastrs[0];
-    				//Robot enemyBot= (Robot) this.myRC.senseObjectAtLocation(enemyLoc);
-    				Direction dirToPastr= this.myHQLoc.directionTo(enemyLoc);
-    				MapLocation rallyPoint= enemyLoc.add(dirToPastr.opposite(), BaseRobot.RALLY_DISTANCE);
-    				ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, 0, rallyPoint);
-    				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-    				this.myRC.broadcast(channel, action.encode());
+    				assignScoutJob(order, enemyPastrs[0]);
         		}
         	}
-        
-			//state = StateMessage.decode(this.myRC.readBroadcast(channel));
         }
     }
     
@@ -83,6 +79,13 @@ public class HQPlayer extends BaseRobot {
     
 	private void assignPastureJob(int order) throws GameActionException{
 		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.PASTRLocs[order%numPASTR]);
+		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+		this.myRC.broadcast(channel, action.encode());
+	}
+	
+	private void assignScoutJob(int order, MapLocation target) throws GameActionException{
+		MapLocation rallyPoint = target.add(this.myHQLoc.directionTo(target).opposite(), BaseRobot.RALLY_DISTANCE);
+		ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, 0, rallyPoint);
 		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
 		this.myRC.broadcast(channel, action.encode());
 	}
@@ -125,7 +128,7 @@ public class HQPlayer extends BaseRobot {
 	}
 	
 	protected int find_smart_PASTR_number(){
-		return 4;
+		return 2;
 	}
 
 }
