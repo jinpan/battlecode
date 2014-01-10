@@ -35,13 +35,18 @@ public abstract class BaseRobot {
     
     public static final int IDBOX_BASE = 10000; //store this robot's order in the array
     
+    public static final int SQUAD_ID_BASE = 20000;//where the HQ posts who's in whose squad
+    public static final int SQUAD_LOC_BASE = 20010;//where the squad members post whether or not they're at the rally point
+    public static final int SQUAD_BULLETIN_BASE = 20020;//where the HQ posts the enemy pasture assignments
+    
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 1;
-	protected static final int RALLY_DISTANCE = 5;
+    protected static final int MAX_PASTURES = 2; 
+	protected static final int RALLY_DISTANCE = 5; //how far from target enemy squads will rally
+	protected static final int NUM_SQUADS = 2;
     
 	protected int inbox;
     protected boolean underAttack;
