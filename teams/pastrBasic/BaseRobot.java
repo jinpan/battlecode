@@ -40,8 +40,8 @@ public abstract class BaseRobot {
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 2; //from Vickie's attacking code
-	protected static final int RALLY_DISTANCE = 5; //Vickie's attacking code
+    protected static final int MAX_PASTURES = 1;
+	protected static final int RALLY_DISTANCE = 5;
     
 	protected int inbox;
     protected boolean underAttack;

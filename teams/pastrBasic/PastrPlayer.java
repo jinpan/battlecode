@@ -56,7 +56,7 @@ public class PastrPlayer extends BaseRobot{
     	double[][] cowGrowth = this.myRC.senseCowGrowth(); //cowGrowth[a][b] is growth at location (a, b)
     	MapLocation base = this.myRC.getLocation();
     	int timeStep = 0;
-    	int timeLim = Math.min(250, 2 * (this.myRC.getMapHeight() + this.myRC.getMapWidth()));
+    	int timeLim = Math.min(250, 5 * (this.myRC.getMapHeight() + this.myRC.getMapWidth()));
     	
     	for(int i = 0; i < 8; i++){
     		extrema[i] = base;
@@ -64,6 +64,10 @@ public class PastrPlayer extends BaseRobot{
     		
     		TerrainTile curTerrain = this.myRC.senseTerrainTile(extrema[i]);
     		while(curTerrain == TerrainTile.NORMAL || curTerrain == TerrainTile.ROAD){
+    			if(timeToExtrema[i] > timeLim || cowGrowth[extrema[i].x][extrema[i].y] == 0){ //avoid moving too long or back into HQ territory
+    				break;
+    			}
+    			
     			extrema[i] = extrema[i].add(dirs[i]);
     			
     			if(curTerrain == TerrainTile.NORMAL)
@@ -75,10 +79,6 @@ public class PastrPlayer extends BaseRobot{
     			
     			curTerrain = this.myRC.senseTerrainTile(extrema[i]);
     			timeToExtrema[i] += timeStep;
-    			
-    			//if(timeToExtrema[i] > 250 || cowGrowth[extrema[i].x][extrema[i].y] == 0) //avoid moving too long or back into HQ territory
-    			if(timeToExtrema[i] > timeLim)
-    				break;
     		}
     		
     		extrema[i] = extrema[i].add(dirs[i].opposite());
