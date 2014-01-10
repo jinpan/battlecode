@@ -8,11 +8,11 @@ public class soldierPlayer extends RobotBase{
 	boolean hasHitWall = false;
 	Direction curdir = Direction.NORTH;
 	MapLocation pastrLoc;
-	
+
 	public soldierPlayer(RobotController rc) throws GameActionException{
 		super(rc);
 	}
-	
+
 	void step() throws GameActionException{
 		if(pastrFollowing){
 			int pdir = rc.readBroadcast(turncounter);
@@ -30,85 +30,100 @@ public class soldierPlayer extends RobotBase{
 				}
 			}
 		} else {
-			MapLocation[] pastrs = rc.sensePastrLocations(rc.getTeam());
-			Direction pDir;
-			pDir = Direction.NORTH;
-			if(pastrs.length != 0){
-				pastrLoc = pastrs[(int)(Math.random() * pastrs.length - 1)];
-				pDir = rc.getLocation().directionTo(pastrLoc);
-			}
-			
-			//detect if we should turn into PASTR instead
-			MapLocation[] nearby = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 6); 
-			int cowtot = 0;
-			for(MapLocation i : nearby){
-				cowtot += rc.senseCowsAtLocation(i);
-			}
-			if(cowtot > 3000 && rc.isActive()){
-				boolean tooClose = false;
-				for(MapLocation i : pastrs){
-					if(rc.getLocation().distanceSquaredTo(i) < 12)
-						tooClose = true;
-				}
-				if(!tooClose)
-					rc.construct(RobotType.PASTR);
-			}
-			
-			if(towardPastr){
+			Robot[] baddies = rc.senseNearbyGameObjects(Robot.class, 9999, rc.getTeam().opponent());
+			if(baddies.length == 0 || rc.senseRobotInfo(baddies[0]).type == RobotType.HQ){
 
-				if(pastrs.length == 0){ //if not built yet, shuffle around
-					curdir = directions[(int)(Math.random()*8)];
-				} else { //when done, go to the nearest one
+				MapLocation[] pastrs = rc.sensePastrLocations(rc.getTeam());
+				Direction pDir;
+				pDir = Direction.NORTH;
+				if(pastrs.length != 0){
+					pastrLoc = pastrs[(int)(Math.random() * pastrs.length - 1)];
+					pDir = rc.getLocation().directionTo(pastrLoc);
+				}
+
+				//detect if we should turn into PASTR instead
+				MapLocation[] nearby = MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 6); 
+				int cowtot = 0;
+				for(MapLocation i : nearby){
+					cowtot += rc.senseCowsAtLocation(i);
+				}
+				if(cowtot > 3000 && rc.isActive()){
+					boolean tooClose = false;
+					for(MapLocation i : pastrs){
+						if(rc.getLocation().distanceSquaredTo(i) < 12)
+							tooClose = true;
+					}
+					if(!tooClose)
+						rc.construct(RobotType.PASTR);
+				}
+
+				if(towardPastr){
+
+					if(pastrs.length == 0){ //if not built yet, shuffle around
+						curdir = directions[(int)(Math.random()*8)];
+					} else { //when done, go to the nearest one
+						if(!rc.canMove(curdir)){
+							int i = 0;
+							while(!rc.canMove(curdir) && i < 8){
+								curdir = curdir.rotateLeft();
+							}
+						}
+					}
+
+					pastrCounter--;
+
+					boolean nextToPASTR = false;
+					for(MapLocation i : pastrs){
+						if(rc.getLocation().distanceSquaredTo(i) < 3)
+							nextToPASTR = true;
+					}
+					if(pastrCounter <= 0 || nextToPASTR){
+						pastrCounter = 0;
+						hasHitWall = false;
+						towardPastr = false; 
+						curdir = getGoodDir();
+					}
+
+				} else {
+					pastrCounter++;
+					if((pastrCounter > 30 && hasHitWall) || pastrCounter > 60){
+						towardPastr = true;
+						curdir = pDir;
+					}
+
 					if(!rc.canMove(curdir)){
+						hasHitWall = true;
 						int i = 0;
 						while(!rc.canMove(curdir) && i < 8){
 							curdir = curdir.rotateLeft();
 						}
 					}
 				}
-				
-				pastrCounter--;
-				
-				boolean nextToPASTR = false;
-				for(MapLocation i : pastrs){
-					if(rc.getLocation().distanceSquaredTo(i) < 3)
-						nextToPASTR = true;
+
+				if(rc.isActive() && rc.canMove(curdir)){
+					if(towardPastr)
+						rc.move(curdir);
+					if(!towardPastr)
+						rc.sneak(curdir);
 				}
-				if(pastrCounter <= 0 || nextToPASTR){
-					pastrCounter = 0;
-					hasHitWall = false;
-					towardPastr = false; 
-					curdir = getGoodDir();
-				}
-				
 			} else {
-				pastrCounter++;
-				if((pastrCounter > 30 && hasHitWall) || pastrCounter > 80){
-					towardPastr = true;
-					curdir = pDir;
+				MapLocation ourTarget = rc.senseRobotInfo(baddies[0]).location;
+				
+				if(rc.isActive() && rc.getLocation().distanceSquaredTo(ourTarget) <= 10){
+					rc.attackSquare(ourTarget);
+				} else {
+					Direction d = rc.getLocation().directionTo(ourTarget);
+					if(rc.isActive() && rc.canMove(d))
+						rc.move(d);
 				}
 				
-				if(!rc.canMove(curdir)){
-					hasHitWall = true;
-					int i = 0;
-					while(!rc.canMove(curdir) && i < 8){
-						curdir = curdir.rotateLeft();
-					}
-				}
-			}
-			
-			if(rc.isActive() && rc.canMove(curdir)){
-				if(towardPastr)
-					rc.move(curdir);
-				if(!towardPastr)
-					rc.sneak(curdir);
 			}
 		}
-		
+
 
 		rc.yield();
 	}
-	
+
 	Direction getGoodDir() throws GameActionException{
 		int mini = 9999;
 		int goodd = 0;

@@ -7,10 +7,13 @@ public class RobotPlayer {
 		try{
 			if(rc.getType() == RobotType.HQ){
 				while(true){
-					if (rc.isActive() && rc.senseRobotCount()<GameConstants.MAX_ROBOTS) {
+					Robot[] baddies = rc.senseNearbyGameObjects(Robot.class, 15, rc.getTeam().opponent());
+					if (baddies.length == 0 && rc.isActive() && rc.senseRobotCount()<GameConstants.MAX_ROBOTS) {
 						Direction dir = rc.getLocation().directionTo(rc.senseEnemyHQLocation());
 						if (rc.canMove(dir))
 							rc.spawn(dir);
+					} else if (baddies.length != 0) {
+						rc.attackSquare(rc.senseRobotInfo(baddies[0]).location);
 					}
 				}
 			} else if(rc.getType() == RobotType.SOLDIER){
