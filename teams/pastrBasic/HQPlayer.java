@@ -12,7 +12,7 @@ public class HQPlayer extends BaseRobot {
 
 	int numRobots, numProcessed; //total number of robots, number of robots in the hashmap
 	int numPASTR;
-	int currentSquad=0;
+	int currentSquad;
 	int[] squadAssignments;
 	
 	public HQPlayer(RobotController myRC) throws GameActionException {
@@ -21,6 +21,7 @@ public class HQPlayer extends BaseRobot {
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
 		this.numRobots = 1;
 		this.numProcessed = 0;
+		this.currentSquad=0;
 		
 		numPASTR = find_smart_PASTR_number(); //make this method smart!
 		this.PASTRLocs = new MapLocation[numPASTR];
@@ -58,6 +59,8 @@ public class HQPlayer extends BaseRobot {
         		}
         	}
         }
+        
+        this.broadcastScoutJobs(enemyPastrs);
     }
     
     private boolean spawn() throws GameActionException {
@@ -83,25 +86,35 @@ public class HQPlayer extends BaseRobot {
 		this.myRC.broadcast(channel, action.encode());
 	}
 	
-	private int getCurrentSquad(){
-		int squadNumber=0;
-		for (int i=0; i< squadAssignments.length; i++){
-			if (squadAssignments[i]<3){
-				squadNumber=i;
-				return squadNumber;
-			}
-		} return squadNumber;
+	private void broadcastScoutJobs(MapLocation[] enemypastrs) throws GameActionException{
+		for (int squad= 0; squad < squadAssignments.length; squad++){
+			int channel = BaseRobot.SQUAD_BULLETIN_BASE+ squad;
+			int currentJob = this.myRC.readBroadcast(channel);
+			int enemyIndex = currentSquad+squad;
+			if (squadAssignments[squad]!=0 && currentJob==0 && enemyIndex<enemypastrs.length){
+				MapLocation nextEnemy= enemypastrs[enemyIndex];
+				MapLocation rallyPoint= nextEnemy.add(nextEnemy.directionTo(this.myHQLoc), BaseRobot.RALLY_DISTANCE);
+				ActionMessage msg= new ActionMessage(BaseRobot.State.SCOUT, squad, rallyPoint);
+				this.myRC.broadcast(channel, msg.encode());
+			}//only broadcasts enemyPastrs that have not already been assigned to other squads
+			//If all squads have already been assigned, the squads that have finished their jobs go help other squads
+		}
 	}
 	
 	private void assignScoutJob(int order, MapLocation target) throws GameActionException{
-		if (squadAssignments[currentSquad]>=3){
+		if (currentSquad< squadAssignments.length && squadAssignments[currentSquad]>=3){
 			currentSquad++;
+		}
+		if (currentSquad>= squadAssignments.length){
+			currentSquad = squadAssignments.length-1;
 		}
 		MapLocation rallyPoint = target.add(this.myHQLoc.directionTo(target).opposite(), BaseRobot.RALLY_DISTANCE);
 		ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, currentSquad, rallyPoint);
+		
 		//broadcast the squads to messageboard
 		this.myRC.broadcast(BaseRobot.SQUAD_ID_BASE+currentSquad*3+squadAssignments[currentSquad], order);
 		squadAssignments[currentSquad]++;
+		
 		System.out.println("HQ assigning scout to squad number "+ currentSquad);
 		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
 		this.myRC.broadcast(channel, action.encode());

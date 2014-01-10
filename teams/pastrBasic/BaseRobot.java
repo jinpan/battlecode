@@ -46,7 +46,7 @@ public abstract class BaseRobot {
     
     protected static final int MAX_PASTURES = 2; 
 	protected static final int RALLY_DISTANCE = 5; //how far from target enemy squads will rally
-	protected static final int NUM_SQUADS = 2;
+	protected static final int NUM_SQUADS = 10;
     
 	protected int inbox;
     protected boolean underAttack;

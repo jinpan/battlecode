@@ -6,10 +6,12 @@ import battlecode.common.*;
 public class SoldierPlayer extends BaseRobot {
     
 	MapLocation targetLoc;
+	MapLocation rallyLoc;
 	MapLocation pastureloc;
 	int ourPastrID;
 	int squadNumber;
 	boolean rallied=false;
+	//boolean underAttack= false;
 	
 	protected static final int DEFENSE_RADIUS= 20;
 
@@ -19,10 +21,10 @@ public class SoldierPlayer extends BaseRobot {
 
     @Override
     protected void step() throws GameActionException {
-        
+    	        
         switch (this.myState) {
-            case ATTACK: this.attack_step(); return;
-            case ATTACKHIGH: this.attack_step(); return;
+            case ATTACK: this.attack_pasture_step(); return;
+            case ATTACKHIGH: this.attack_pasture_step(); return;
             case DEFENSE: this.defense_step(); return;
             case DEFENSEHIGH: this.defense_step(); return;
             case PASTURE: this.pasture_step(); return;
@@ -35,46 +37,58 @@ public class SoldierPlayer extends BaseRobot {
         }
     }
     
-    protected void attack_step() throws GameActionException {
+   /* protected void checkAttack() throws GameActionException {
+    	underAttack= this.myRC.getHealth()<= RobotType.SOLDIER.maxHealth - RobotType.SOLDIER.attackPower;
+    }*/
+    
+    protected void retreat() throws GameActionException {
+    	Action action = new Action(BaseRobot.State.SCOUT, rallyLoc, squadNumber);
+    	this.actionQueue.addFirst(action);
+    }
+    
+    protected void attack_pasture_step() throws GameActionException {
        	Action action = this.actionQueue.getFirst();
     	MapLocation target = action.targetLocation;
     	squadNumber= action.targetID;
     	
-    	System.out.println("attacking");
-    	if(this.myRC.getLocation().distanceSquaredTo(target) <= 35){
-    		GameObject onSquare = this.myRC.senseObjectAtLocation(target);
-        	if (onSquare!= null && this.myRC.senseRobotInfo((Robot) onSquare).type==RobotType.PASTR){
-        		targetLoc = target;
-        	} else {
-        		System.out.println("job well done. pastr dead");
-        		MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(this.enemyTeam);
-        		System.out.println("Located next possible targets");
-        		if(enemyPastrs.length != 0){
-        			this.actionQueue.removeFirst();
-        			Action newAction = new Action(BaseRobot.State.ATTACK, enemyPastrs[squadNumber], 0);
-        			this.actionQueue.add(newAction);
-        			System.out.println("on to bigger and better things!");
-        		}
-        	}
+    	if (this.myRC.getHealth() <= RobotType.SOLDIER.maxHealth - RobotType.SOLDIER.attackPower*4){
+    		this.retreat();
+    		return;
     	}
-    		
-    		//must account for targets moving; is there a better way?
-    		/*
-    		System.out.println("shouldn't be here");
-    		Robot target = null;
-    		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, 1000, this.enemyTeam);
-    		for (Robot enemy : enemies){
-    			if (enemy.getID()==action.targetID){
-    				target = enemy;
-    			}
-    		}
-    		targetLoc = this.myRC.senseRobotInfo(target).location;
-    		 */
+    	
+    	if (this.myRC.canSenseSquare(target)) {
+			GameObject onSquare = this.myRC.senseObjectAtLocation(target);
+			if (onSquare==null) {
+				System.out.println("job well done. pasture dead");
+				int codemsg = this.myRC.readBroadcast(BaseRobot.SQUAD_BULLETIN_BASE + squadNumber);
+				if (codemsg != 0) {
+					ActionMessage msg = ActionMessage.decode(codemsg);
+					Action newAction = msg.toAction();
+					System.out.println("new target: " + newAction.targetLocation.x + " "+ newAction.targetLocation.y);
+					
+					this.actionQueue.removeFirst();
+					this.actionQueue.add(newAction);
+
+					this.myRC.broadcast(BaseRobot.SQUAD_BULLETIN_BASE+ squadNumber, 0);
+					System.out.println("on to bigger and better things!");
+				} else {
+					System.out.println("Whoops, bulletin fail");
+					MapLocation[] enemyPastrs = this.myRC.senseBroadcastingRobotLocations(this.enemyTeam);
+					if (enemyPastrs.length != 0) {
+						Action newAction = new Action(BaseRobot.State.ATTACK,enemyPastrs[0], squadNumber);
+						this.actionQueue.removeFirst();
+						this.actionQueue.add(newAction);
+					}
+				} return;
+			}
+		}
     	if(this.myRC.isActive()){
-    		if (this.myRC.getLocation().distanceSquaredTo(target)<10){
+			if (this.myRC.getLocation().distanceSquaredTo(target)<10){
     			this.myRC.attackSquare(target);
-    		} else if (this.myRC.canMove(directionTo(target))){
+    			System.out.println("shooting");
+    		} else if (directionTo(target)!= null && this.myRC.canMove(directionTo(target))){
     			this.myRC.move(directionTo(target));
+    			System.out.println("going to range");
     		}
     	}
     }
@@ -113,7 +127,6 @@ public class SoldierPlayer extends BaseRobot {
 		    		Action newAction = new Action(BaseRobot.State.DEFENSE, pastureloc, ourPastrID);
 		    		this.actionQueue.clear();
 		    		this.actionQueue.addFirst(newAction);
-		    		rallied= false;
 		    		return;
 		    	}
 	    	}
@@ -133,29 +146,31 @@ public class SoldierPlayer extends BaseRobot {
         // scout in squads; HQ assigns all scouts to the same pastr and rallying point. 
     	// Once at rallying point, if it senses other robots of its team in the vicinity, it waits.
     	// Otherwise it goes into attack mode.
+    	
     	Action action = this.actionQueue.getFirst();
     	targetLoc = action.targetLocation;
+    	rallyLoc = action.targetLocation;
     	squadNumber = action.targetID;
-    	System.out.println("scouting, squad number " + squadNumber);
     	
-    	if (this.myRC.getLocation().equals(targetLoc)){
-    		int membersThere= this.myRC.readBroadcast(BaseRobot.SQUAD_LOC_BASE + this.squadNumber);
-    		System.out.println("Scout, squad number " + squadNumber + ", " + membersThere + " members there too.");
-    		if (!rallied){
+    	if (this.myRC.getLocation().distanceSquaredTo(targetLoc)<=5){
+			int membersThere= this.myRC.readBroadcast(BaseRobot.SQUAD_LOC_BASE + this.squadNumber);
+			if (!rallied){
+    			System.out.println("Scout arrived, squad number " + squadNumber + ", " + membersThere + " members there too.");
     			membersThere++;
-    			this.myRC.broadcast(BaseRobot.SQUAD_LOC_BASE+ this.squadNumber, membersThere);
     			rallied= true;
-    		}
-    		if (loneRanger()|| membersThere==3 || membersThere<0){
+    		}   
+			System.out.println(membersThere);
+    		this.myRC.broadcast(BaseRobot.SQUAD_LOC_BASE+ this.squadNumber, membersThere);
+
+    		if (loneRanger()|| membersThere>=3 || membersThere<0){
     			MapLocation newLoc=targetLoc.add(this.myHQLoc.directionTo(targetLoc), BaseRobot.RALLY_DISTANCE);
         		Action newAction= new Action(BaseRobot.State.ATTACK, newLoc, squadNumber);
         		this.actionQueue.removeFirst();
     			this.actionQueue.addFirst(newAction);
-    			System.out.println("Scout transition to attack");
+    			
     			this.myRC.broadcast(BaseRobot.SQUAD_LOC_BASE+ this.squadNumber, -10);
     		}
     	} else {
-    		System.out.println("Scout is moving to the pasture");
     		Direction dir = directionTo(targetLoc);
     		if(this.myRC.isActive() && dir != null){
     			this.myRC.move(dir);
@@ -193,8 +208,10 @@ public class SoldierPlayer extends BaseRobot {
     protected Direction directionTo(MapLocation loc) throws GameActionException {
         Direction dir = this.myRC.getLocation().directionTo(loc);
         
-        if(dir == Direction.NONE || dir == Direction.OMNI)
+        if(dir == Direction.NONE || dir == Direction.OMNI){
         	return null;
+        }
+        	
         
         if (this.myRC.canMove(dir)){
             return dir;
