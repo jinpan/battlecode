@@ -23,16 +23,13 @@ public class HQPlayer extends BaseRobot {
         this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
         this.numRobots = 1;
         
-        this.myCorners = new MapLocation[2];
+        this.spawnRates = this.myRC.senseCowGrowth();
         
-        if (this.myHQLoc.x < this.myRC.getMapWidth() / 2){
-            this.myCorners[0] = new MapLocation(1, 1);
-            this.myCorners[1] = new MapLocation(1, this.myRC.getMapWidth() - 1);
-        }
-        else {
-            this.myCorners[0] = new MapLocation(this.myRC.getMapWidth() - 1, 1);
-            this.myCorners[1] = new MapLocation(this.myRC.getMapWidth() - 1, this.myRC.getMapWidth() - 1);
-        }
+        this.locScores = this.computeLocScoresDist();
+
+        System.out.println("done");
+        System.out.println(this.findPastureLoc(this.myHQLoc));
+        System.out.println("done");
     }
 
     @Override
@@ -41,88 +38,6 @@ public class HQPlayer extends BaseRobot {
             this.spawn();
             ++this.numRobots;
         }
-        
-        // TODO: preserve state so we don't recompute all of idToOrder each step
-        /*HashMap<Integer, Integer> idToOrder = new HashMap<Integer, Integer>();
-        int channel, id;
-        for (int i=1; i<this.numRobots; ++i){
-        	channel = BaseRobot.get_outbox_channel(i, BaseRobot.OUTBOX_ID_CHANNEL);
-        	id = this.myRC.readBroadcast(channel);
-        	idToOrder.put(id,  i);
-        }
-        
-        int order;
-        StateMessage state;
-        
-        for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)){
-        	if (idToOrder.get(robot.getID()) == null){
-        		continue;
-        	}
-        	order = idToOrder.get(robot.getID());
-        	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-        	state = StateMessage.decode(this.myRC.readBroadcast(channel));
-        	if (state.myState == BaseRobot.State.DEFAULT){
-        		int idx = (int) (this.random() * this.myCorners.length);
-        		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[idx]);
-        		channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-        		this.myRC.broadcast(channel, action.encode());
-        	}
-        }*/
-        
-        HashMap<int[], ArrayList<Integer>> attackers = new HashMap<int[], ArrayList<Integer>>();
-        ArrayList<int[]> enemyList = new ArrayList<int[]>();
-        
-        int maxOrder= this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
-        int channel; StateMessage state;
-        
-        for (int order=0; order<=maxOrder; order++){
-        	channel= BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-        	state= StateMessage.decode(this.myRC.readBroadcast(channel));
-        	if (state.myState== BaseRobot.State.DEFAULT){
-        		int idx = (int) (this.random() * this.myCorners.length);
-        		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, this.myCorners[idx]);
-        		channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-        		this.myRC.broadcast(channel, action.encode());
-        	}
-        	/*if (state.myState.name().contains("ATTACK")){
-        		channel= BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-        		ActionMessage act= ActionMessage.decode(this.myRC.readBroadcast(channel));
-        		ArrayList<Integer> bots;
-        		int[] newKey= {act.targetID, 1000*act.targetLocation.x+act.targetLocation.y};
-        		if (!attackers.containsKey(newKey)){
-        			bots= new ArrayList<Integer>();
-        			enemyList.add(newKey);
-        		} else {
-        			bots= attackers.get(newKey);
-        		}
-        		bots.add(order);
-        		attackers.put(newKey, bots);
-        	}*/
-        }
-        /*for (int[] enemy: enemyList){
-        	ArrayList<Integer> inboxes= attackers.get(enemy);
-        	for (int order: inboxes){
-        		MapLocation goTo= new MapLocation(enemy[1]/1000, enemy[1]%1000);
-        		ActionMessage msg= new ActionMessage(BaseRobot.State.ATTACKHIGH, enemy[0], goTo);
-        		channel= BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-        		this.myRC.broadcast(channel,  msg.encode());
-        	}
-        }*/
-        
-    }
-    
-    /*private MapLocation averageLoc(ArrayList<MapLocation> locs){
-    	int x= 0; int y=0;
-    	for (MapLocation loc: locs){
-    		x+= loc.x; y+= loc.y;
-    	} x/=locs.size(); y/=locs.size();
-    	return new MapLocation(x, y);
-    }*/
-    
-    private void assignPasture(SoldierPlayer soldier, MapLocation loc) throws GameActionException {
-    	ActionMessage msg = new ActionMessage(BaseRobot.State.PASTURE, 0, loc);
-    	int channel = soldier.get_inbox_channel(0);
-    	this.myRC.broadcast(channel, msg.encode());
     }
     
     private boolean spawn() throws GameActionException {

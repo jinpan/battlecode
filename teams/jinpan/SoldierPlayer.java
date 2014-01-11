@@ -34,34 +34,8 @@ public class SoldierPlayer extends BaseRobot {
         }
     }
     
-    /*protected void rally_step() throws GameActionException {
-    	Action action= this.actionQueue.getFirst();
-    	if (this.myRC.getLocation().distanceSquaredTo(action.targetLocation)<=4
-    			&& this.myRC.senseNearbyGameObjects(Robot.class, 4, this.myTeam).length >=2){
-    		this.attack_step(); //attack if rally condition satisfied
-    	} else {//go to rally location specified in the inbox
-    		if (this.myRC.canMove(directionTo(action.targetLocation))&& this.myRC.isActive()){
-    			this.myRC.move(directionTo(action.targetLocation));
-    		}
-    	}
-    }*/
-    
-    //If at any time a robot goes into attack mode, it needs to send an ActionMessage to its own inbox with targetID
     protected void attack_step() throws GameActionException {
-        // I have a target and I've rallied at the targetLoc with at least 2 other soldiers and imma go attack.
-    	Action action= this.actionQueue.getFirst();
-    	Robot target= null;
-    	for (Robot enemy: enemies){
-    		if (enemy.getID()==action.targetID){
-    			target= enemy;
-    		}
-    	}
-    	MapLocation targetLoc= this.myRC.senseRobotInfo(target).location;
-    	if (this.myRC.getLocation().distanceSquaredTo(targetLoc)<10){
-    		this.myRC.attackSquare(targetLoc);
-    	} else {
-    		this.myRC.move(directionTo(targetLoc));
-    	}
+        // I have a target and I'm gonna destroy it! Target may move though .. problems   
     }
     
     protected void defense_step() throws GameActionException {
