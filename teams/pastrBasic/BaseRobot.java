@@ -13,7 +13,7 @@ import battlecode.common.GameConstants;
 public abstract class BaseRobot {
     
     public enum State {
-        DEFAULT, ATTACK, DEFENSE, PASTURE, SCOUT,
+        DEFAULT, ATTACK, DEFENSE, PASTURE, RALLY,
         ATTACKHIGH, DEFENSEHIGH, PASTUREHIGH, SCOUTHIGH, 
         GATHEROUT
     };
@@ -35,18 +35,31 @@ public abstract class BaseRobot {
     
     public static final int IDBOX_BASE = 2000; //store this robot's order in the array
     
+    /*
     public static final int SQUAD_ID_BASE = 20000;//where the HQ posts who's in whose squad
     public static final int SQUAD_LOC_BASE = 20010;//where the squad members post whether or not they're at the rally point
     public static final int SQUAD_BULLETIN_BASE = 20020;//where the HQ posts the enemy pasture assignments
+    */
+    
+    public static final int SQUAD_BASE = 3000;
+    public static final int SQUAD_OFFSET = 250; //size of channel each squad has
+    
+    public static final int SQUAD_RALLYPT_CHANNEL = 0; //where the squad should rally
+    public static final int SQUAD_RALLYAMT_CHANNEL = 1; //number of robots at this rally point
+    public static final int SQUAD_ATTACKPT_CHANNEL = 2; //the main goal for the squad to attack, usually a pasture or group of enemies
+    public static final int SQUAD_SKIRMISH_CHANNEL = 3; //the current subgoal, such as attacking one enemy robot in a group
+    
+    public static final int SQUAD_HQNAVINSTR_CHANNEL = 100; //where the HQ tells the robots how to move
     
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 2; 
-	protected static final int RALLY_DISTANCE = 5; //how far from target enemy squads will rally
-	protected static final int NUM_SQUADS = 10;
+    protected static final int MAX_PASTURES = 0; 
+	protected static final int RALLY_DISTANCE = 5; //how far from HQ squads will rally
+	protected static final int NUM_SQUADS = 1;
+	protected static final int MAX_SQUAD_SIZE = 4;
     
 	protected int inbox;
     protected boolean underAttack;

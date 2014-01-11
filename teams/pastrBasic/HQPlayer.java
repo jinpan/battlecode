@@ -38,6 +38,9 @@ public class HQPlayer extends BaseRobot {
 			this.spawn();
 		}
 		
+		//macrogame code goes here
+		//adjustments if we're losing, game is about to end, if we're winning on milk, etc.
+		
         int order, channel;
         State state;
         
@@ -54,15 +57,19 @@ public class HQPlayer extends BaseRobot {
         	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
         	
         	if (state == BaseRobot.State.DEFAULT){ //if robot hasn't been given a job yet
-        		if (pastrLocs.length<BaseRobot.MAX_PASTURES || enemyPastrs.length == 0){
+        		if (false){
+        		//if (pastrLocs.length<BaseRobot.MAX_PASTURES || enemyPastrs.length == 0){
         			assignPastureJob(order);
         		} else {
-    				assignScoutJob(order, enemyPastrs[currentSquad]);
+        			if(enemyPastrs.length == 0)
+        				assignScoutJob(order, this.enemyHQLoc);
+        			else
+        				assignScoutJob(order, enemyPastrs[currentSquad]);
         		}
         	}
         }
         
-        this.broadcastScoutJobs(enemyPastrs);
+        //this.broadcastScoutJobs(enemyPastrs);
     }
     
     private boolean spawn() throws GameActionException {
@@ -110,8 +117,9 @@ public class HQPlayer extends BaseRobot {
 		this.myRC.broadcast(channel, action.encode());
 	}
 	
+	/*
 	private void broadcastScoutJobs(MapLocation[] enemypastrs) throws GameActionException{
-		for (int squad= 0; squad < squadAssignments.length; squad++){
+		for (int squad= 0; squad < BaseRobot.NUM_SQUADS; squad++){
 			int channel = BaseRobot.SQUAD_BULLETIN_BASE+ squad;
 			int currentJob = this.myRC.readBroadcast(channel);
 			int enemyIndex = currentSquad+squad;
@@ -124,25 +132,36 @@ public class HQPlayer extends BaseRobot {
 			//If all squads have already been assigned, the squads that have finished their jobs go help other squads
 		}
 	}
+	*/
 	
 	private void assignScoutJob(int order, MapLocation target) throws GameActionException{
-		if (currentSquad< squadAssignments.length && squadAssignments[currentSquad]>=3){
+		if (currentSquad< BaseRobot.NUM_SQUADS && squadAssignments[currentSquad]>=BaseRobot.MAX_SQUAD_SIZE){
 			currentSquad++;
 		}
-		if (currentSquad>= squadAssignments.length){
-			currentSquad = squadAssignments.length-1;
+		if (currentSquad>= BaseRobot.NUM_SQUADS){
+			currentSquad = BaseRobot.NUM_SQUADS-1;
 		}
-		MapLocation rallyPoint = target.add(this.myHQLoc.directionTo(target).opposite(), BaseRobot.RALLY_DISTANCE);
-		ActionMessage action = new ActionMessage(BaseRobot.State.SCOUT, currentSquad, rallyPoint);
+		
+		MapLocation rallyPoint = get_rally_point(target);
+		ActionMessage action = new ActionMessage(BaseRobot.State.RALLY, currentSquad, rallyPoint); //tell this robot to go to the rally point
 		
 		//broadcast the squads to messageboard
-		this.myRC.broadcast(BaseRobot.SQUAD_ID_BASE+currentSquad*3+squadAssignments[currentSquad], order);
+		//this.myRC.broadcast(BaseRobot.SQUAD_ID_BASE+currentSquad*3+squadAssignments[currentSquad], order);
 		squadAssignments[currentSquad]++;
 		
 		System.out.println("HQ assigning scout to squad number "+ currentSquad);
+		
 		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+		int mainChannel = BaseRobot.SQUAD_BASE + currentSquad * BaseRobot.SQUAD_OFFSET + SQUAD_RALLYPT_CHANNEL;
+		
 		this.myRC.broadcast(channel, action.encode());
+		this.myRC.broadcast(mainChannel, action.encode()); //store rally point in squad channel
 	}
+	
+	private MapLocation get_rally_point(MapLocation target){
+		return this.myHQLoc.add(this.myHQLoc.directionTo(target), RALLY_DISTANCE);
+	}
+	
     
 	protected MapLocation[] find_k_best_pasture_locations(int k){
 		MapLocation[] results = new MapLocation[k];

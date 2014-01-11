@@ -19,10 +19,9 @@ public class StateMessage implements Message {
         	case ATTACK: state = 0x1; break;
         	case DEFENSE: state = 0x2; break;
         	case PASTURE: state = 0x3; break;
-        	case SCOUT: state = 0x4; break;
+        	case RALLY: state = 0x4; break;
         	case ATTACKHIGH: state = 0x5; break;
         	case DEFENSEHIGH: state = 0x6; break;
-        	//case PASTUREHIGH: state = 0x7; break;
         	case GATHEROUT: state = 0x7; break;
         	case SCOUTHIGH: state = 0x8; break;
         	
@@ -42,7 +41,7 @@ public class StateMessage implements Message {
         	case 0x1: myState = BaseRobot.State.ATTACK; break;
         	case 0x2: myState = BaseRobot.State.DEFENSE; break;
         	case 0x3: myState = BaseRobot.State.PASTURE; break;
-        	case 0x4: myState = BaseRobot.State.SCOUT; break;
+        	case 0x4: myState = BaseRobot.State.RALLY; break;
         	case 0x5: myState = BaseRobot.State.ATTACKHIGH; break;
         	case 0x6: myState = BaseRobot.State.DEFENSEHIGH; break;
         	//case 0x7: myState = BaseRobot.State.PASTUREHIGH; break;
