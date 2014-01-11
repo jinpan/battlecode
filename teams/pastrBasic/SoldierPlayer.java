@@ -85,10 +85,8 @@ public class SoldierPlayer extends BaseRobot {
     	if(this.myRC.isActive()){
 			if (this.myRC.getLocation().distanceSquaredTo(target)<10){
     			this.myRC.attackSquare(target);
-    			System.out.println("shooting");
     		} else if (directionTo(target)!= null && this.myRC.canMove(directionTo(target))){
     			this.myRC.move(directionTo(target));
-    			System.out.println("going to range");
     		}
     	}
     }
@@ -120,23 +118,27 @@ public class SoldierPlayer extends BaseRobot {
 	    		return;
 	    	}
 	    	if (this.myRC.canSenseSquare(action.targetLocation)){
-		    	GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation);
-		    	if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
+		    	GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation); //if one of our PASTRs is already there
+		    	if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam && this.myRC.senseRobotInfo((Robot)squattingRobot).type == RobotType.PASTR){
 		    		ourPastrID = squattingRobot.getID(); //gets and stores the PASTR id
 		    		pastureloc = action.targetLocation;
 		    		Action newAction = new Action(BaseRobot.State.DEFENSE, pastureloc, ourPastrID);
-		    		this.actionQueue.clear();
+		    		this.actionQueue.removeFirst();
 		    		this.actionQueue.addFirst(newAction);
 		    		return;
 		    	}
 	    	}
     		Direction dir = this.directionTo(action.targetLocation);
     		if (dir == null){
+    			System.out.println("with new navigation, this should not happen");
     			this.myRC.construct(RobotType.PASTR);
     			return;
     		}
     		else {
-    			this.myRC.move(dir);
+    			if(action.targetLocation.distanceSquaredTo(this.myRC.getLocation()) < 16)
+    				this.myRC.sneak(dir);
+    			else 
+    				this.myRC.move(dir);
     			return;
     		}
     	}
@@ -186,14 +188,14 @@ public class SoldierPlayer extends BaseRobot {
     	if(this.myRC.isActive()){
     		Action action = this.actionQueue.getFirst();
     		MapLocation target = action.targetLocation;
-
-    		if(this.myRC.getLocation().distanceSquaredTo(target) < 5){
+    		
+    		if(this.myRC.getLocation().distanceSquaredTo(target) < 3){
     			this.actionQueue.removeFirst();
     			Action newAction = new Action(BaseRobot.State.DEFENSE, targetLoc, ourPastrID);
     			this.actionQueue.addFirst(newAction);
     		} else {
     			Direction dir = this.directionTo(target);
-    			if (dir != null && dir != Direction.NONE && dir != Direction.OMNI)
+    			if (dir != null)
     				this.myRC.sneak(dir);
     		}
     	}
@@ -211,7 +213,6 @@ public class SoldierPlayer extends BaseRobot {
         if(dir == Direction.NONE || dir == Direction.OMNI){
         	return null;
         }
-        	
         
         if (this.myRC.canMove(dir)){
             return dir;

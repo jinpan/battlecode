@@ -33,7 +33,7 @@ public abstract class BaseRobot {
     public static final int OUTBOX_BASE = 1000;
     public static final int OUTBOX_SIZE = 10;
     
-    public static final int IDBOX_BASE = 10000; //store this robot's order in the array
+    public static final int IDBOX_BASE = 2000; //store this robot's order in the array
     
     public static final int SQUAD_ID_BASE = 20000;//where the HQ posts who's in whose squad
     public static final int SQUAD_LOC_BASE = 20010;//where the squad members post whether or not they're at the rally point

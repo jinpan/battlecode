@@ -86,17 +86,7 @@ public class PastrPlayer extends BaseRobot{
     	}
     }
     
-    protected MapLocation get_good_herding_loc() throws GameActionException{
-    	for(int i = 0; i < 8; i++){
-    		System.out.print(timeToExtrema[i] + " ");
-    	}
-    	System.out.println();
-    	
-    	for(int i = 0; i < 8; i++){
-    		System.out.print(dirCooldown[i] + " ");
-    	}
-    	System.out.println();
-    	
+    protected MapLocation get_good_herding_loc() throws GameActionException{   
     	
     	int maxind = 0, maxtime = -1;
     	for(int i = 0; i < 8; i++){

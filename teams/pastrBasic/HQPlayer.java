@@ -10,7 +10,6 @@ public class HQPlayer extends BaseRobot {
 	Direction toEnemy;
 	MapLocation[] PASTRLocs;
 
-	int numRobots, numProcessed; //total number of robots, number of robots in the hashmap
 	int numPASTR;
 	int currentSquad;
 	int[] squadAssignments;
@@ -19,14 +18,12 @@ public class HQPlayer extends BaseRobot {
 		super(myRC);
 
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
-		this.numRobots = 1;
-		this.numProcessed = 0;
 		this.currentSquad=0;
 		
 		numPASTR = find_smart_PASTR_number(); //make this method smart!
 		this.PASTRLocs = new MapLocation[numPASTR];
 		PASTRLocs = find_k_best_pasture_locations(numPASTR); //make this method smart!
-		squadAssignments= new int[BaseRobot.NUM_SQUADS];
+		squadAssignments= new int[BaseRobot.NUM_SQUADS]; //how many robots in each squad
 	}
 
     @Override
@@ -39,7 +36,6 @@ public class HQPlayer extends BaseRobot {
     	
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
 			this.spawn();
-			++this.numRobots;
 		}
 		
         int order, channel;
