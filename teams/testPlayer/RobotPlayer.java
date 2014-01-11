@@ -13,7 +13,8 @@ public class RobotPlayer {
 						if (rc.canMove(dir))
 							rc.spawn(dir);
 					} else if (baddies.length != 0) {
-						rc.attackSquare(rc.senseRobotInfo(baddies[0]).location);
+						if(rc.isActive())
+							rc.attackSquare(rc.senseRobotInfo(baddies[0]).location);
 					}
 				}
 			} else if(rc.getType() == RobotType.SOLDIER){

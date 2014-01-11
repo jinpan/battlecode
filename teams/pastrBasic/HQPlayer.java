@@ -31,11 +31,17 @@ public class HQPlayer extends BaseRobot {
 
     @Override
     protected void step() throws GameActionException {
+		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
+		
+		if (this.myRC.isActive() && nearbyEnemies.length != 0) {
+			this.shoot(nearbyEnemies);
+		}
+    	
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
 			this.spawn();
 			++this.numRobots;
-		}	
-        
+		}
+		
         int order, channel;
         State state;
         
@@ -70,14 +76,36 @@ public class HQPlayer extends BaseRobot {
 		}
 		else {
 	        for (Direction dir: BaseRobot.dirs){
-	            if (dir != this.toEnemy
-	            		&& this.myRC.senseObjectAtLocation(this.myHQLoc.add(dir)) == null){
+	            if (this.myRC.senseObjectAtLocation(this.myHQLoc.add(dir)) == null){
 	                this.myRC.spawn(dir);
 	                return true;
 	            }
 	        }
 		}
     	return false;
+    }
+    
+    private boolean shoot(Robot[] nearbyEnemies) throws GameActionException{
+    	MapLocation curloc;
+    	
+    	for(Robot r : nearbyEnemies){ //try to hit something directly
+    		curloc = this.myRC.senseRobotInfo(r).location;
+    		if(this.myRC.canAttackSquare(curloc)){
+    			this.myRC.attackSquare(curloc);
+    			return true;
+    		}
+    	}
+    	
+    	for(Robot r : nearbyEnemies){ //try to hit something for splash damage
+    		curloc = this.myRC.senseRobotInfo(r).location;
+    		curloc = curloc.add(curloc.directionTo(this.myHQLoc));
+    		if(this.myRC.canAttackSquare(curloc)){
+    			this.myRC.attackSquare(curloc);
+    			return true;
+    		}
+    	}
+    	
+    	return false; //give up    	
     }
     
 	private void assignPastureJob(int order) throws GameActionException{

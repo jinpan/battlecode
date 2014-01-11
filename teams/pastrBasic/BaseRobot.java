@@ -117,10 +117,12 @@ public abstract class BaseRobot {
      * Called at the start of each turn.  Robot should check its inbox for new actions to do.
      */
     protected void setup() throws GameActionException {
+    	this.startState = this.myState;
     	this.inbox = this.receive(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
 			Action action = msg.toAction();
+			//don't add on an action we already are doing
 			if (action.myState.name().contains("HIGH") && (this.actionQueue.size() == 0 || !action.isEqual(this.actionQueue.getFirst()))){
 				this.actionQueue.addFirst(action);
 			}
@@ -136,8 +138,7 @@ public abstract class BaseRobot {
     	if (this.actionQueue.size() > 0){
     		this.myState = this.actionQueue.getFirst().myState;
     	}
-		
-		this.startState = this.myState;
+
 		this.myRC.setIndicatorString(0, this.myState.toString());
     }
     
@@ -145,12 +146,14 @@ public abstract class BaseRobot {
      * Should be overridden in children
      */
     protected void step() throws GameActionException {
-        
+
     }
-    
+
     protected void teardown() throws GameActionException {
-        StateMessage message = new StateMessage(this.myState);
-	    this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
+    	if(this.startState != this.myState){
+    		StateMessage message = new StateMessage(this.myState);
+    		this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_STATE_CHANNEL), message.encode());
+    	}
     }
     
     protected void yield() throws GameActionException {
