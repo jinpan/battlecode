@@ -11,11 +11,12 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation targetLoc;
 	MapLocation rallyLoc;
 	MapLocation pastureloc;
+	MapLocation leaderloc;
 	MapLocation enemyPastr = this.enemyHQLoc;
 	int ourPastrID;
 	int squadNumber;
-	boolean rallied=false;
-	//boolean underAttack= false;
+	boolean rallied = false;
+	boolean isLeader = false;
 
 	protected static final int DEFENSE_RADIUS= 20;
 
@@ -53,12 +54,21 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected void attack_step() throws GameActionException {
 		//Action action = this.actionQueue.getFirst();
+		
 		ActionMessage action = ActionMessage.decode(this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL)); //get our attack assignment
-
-		if(!enemyPastr.equals(action.targetLocation)){
+		
+		if(!enemyPastr.equals(action.targetLocation))
 			nav = pathFind(this.myRC.getLocation(), action.targetLocation);
+		/*
+		if(isLeader){
+			if(!enemyPastr.equals(action.targetLocation))
+				nav = pathFind(this.myRC.getLocation(), action.targetLocation);	
+		} else {
+			leaderloc = ActionMessage.decode(this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_LEADER_CHANNEL)).targetLocation;
+			if(Clock.getRoundNum() % 10 == 0)
+				nav = pathFind(this.myRC.getLocation(), leaderloc);
 		}
-
+		*/
 		enemyPastr = action.targetLocation;
 
 		//TODO: figure out when to retreat
@@ -86,7 +96,7 @@ public class SoldierPlayer extends BaseRobot {
 		//look at enemy robots we can see, and put them on the threat list
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
 		for(Robot r : nearbyEnemies){
-			if(this.myRC.senseRobotInfo(r).type == RobotType.HQ)
+			if(this.myRC.senseRobotInfo(r).type == RobotType.HQ || this.myRC.senseRobotInfo(r).type == RobotType.PASTR)
 				continue;
 
 			int match = -1;
@@ -123,6 +133,11 @@ public class SoldierPlayer extends BaseRobot {
 			idle_step(); //try to find a better goal
 		} else {
 			main_attack_step(enemyPastr); //destroy our assigned PASTR
+		}
+		
+		if(isLeader){
+			ActionMessage newAction = new ActionMessage(State.ATTACK, 0, this.myRC.getLocation()); //leader transmits where it is
+			this.myRC.broadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_LEADER_CHANNEL, newAction.encode());
 		}
 
 	}
@@ -182,13 +197,22 @@ public class SoldierPlayer extends BaseRobot {
 		if(this.myRC.isActive()){
 			if (this.myRC.getLocation().distanceSquaredTo(target)<10){
 				this.myRC.attackSquare(target);
-			} else if (directionTo(target)!= null){
+			} else if (true){
+				if (isLeader) System.out.println("Checking list. Currently at " + myRC.getLocation() + " going to " + nav.getFirst());
 				if(this.myRC.getLocation().equals(nav.getFirst())) {
 					nav.remove();
 				}
 				else{
 					this.myRC.setIndicatorString(0, nav.toString());
-					Direction moveDirection = myRC.getLocation().directionTo(nav.getFirst());
+					
+					MapLocation nextLoc;
+					if(isLeader){
+						nextLoc = nav.getFirst();
+					} else {
+						nextLoc = nav.getFirst();
+					}
+					
+					Direction moveDirection = myRC.getLocation().directionTo(nextLoc);
 //					if (!canTravel(myRC.getLocation(), nav.getFirst())) {
 //						nav = pathFind(myRC.getLocation(), nav.getFirst());
 //					}
@@ -271,6 +295,10 @@ public class SoldierPlayer extends BaseRobot {
 				System.out.println("Scout arrived, squad number " + squadNumber + ", " + membersThere + " members there too.");
 				membersThere++;
 				rallied= true;
+			}
+			
+			if(membersThere == 1){
+				isLeader = true;
 			}
 
 			this.myRC.broadcast(numChannel, membersThere);

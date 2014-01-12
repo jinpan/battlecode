@@ -48,6 +48,7 @@ public abstract class BaseRobot {
     public static final int SQUAD_RALLYAMT_CHANNEL = 1; //number of robots at this rally point
     public static final int SQUAD_ATTACKPT_CHANNEL = 2; //the main goal for the squad to attack, usually a pasture or group of enemies
     public static final int SQUAD_SKIRMISH_CHANNEL = 3; //the current subgoal, such as attacking one enemy robot in a group
+    public static final int SQUAD_LEADER_CHANNEL = 4; //the leader indicates where it is
     public static final int SQUAD_THREAT_BASE = 10; //begin list of current threats here
     public static final int MAX_THREAT_NUM = 10; //max number of threats to keep track of
     
@@ -60,8 +61,8 @@ public abstract class BaseRobot {
     
     protected static final int MAX_PASTURES = 3; 
 	protected static final int RALLY_DISTANCE = 0; //how far from HQ squads will rally
-	protected static final int NUM_SQUADS = 1; //total number of different squads
-	protected static final int MAX_SQUAD_SIZE = 1;
+	protected static final int NUM_SQUADS = 2; //total number of different squads
+	protected static final int MAX_SQUAD_SIZE = 4;
     
 	protected int inbox;
     protected boolean underAttack;
@@ -99,7 +100,7 @@ public abstract class BaseRobot {
         this.actionQueue = new LinkedList<Action>();
         this.teardown();
 
-        this.myRC.setIndicatorString(0, String.valueOf(this.ID));
+        //this.myRC.setIndicatorString(0, String.valueOf(this.ID));
     }
     
     protected void establish_order() throws GameActionException{
@@ -108,7 +109,7 @@ public abstract class BaseRobot {
         this.myRC.broadcast(this.get_outbox_channel(BaseRobot.OUTBOX_ID_CHANNEL), this.ID);
         this.myRC.broadcast(IDBOX_BASE + this.ID, this.order);
         
-        this.myRC.setIndicatorString(1, String.valueOf(this.order));
+        //this.myRC.setIndicatorString(1, String.valueOf(this.order));
     }
 
     public void run(){
@@ -149,12 +150,12 @@ public abstract class BaseRobot {
 			myRC.broadcast(this.get_inbox_channel(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL), 0);
     	}
     	
-    	myRC.setIndicatorString(2, Integer.toString(actionQueue.size()));
+    	//myRC.setIndicatorString(2, Integer.toString(actionQueue.size()));
     	if (this.actionQueue.size() > 0){
     		this.myState = this.actionQueue.getFirst().myState;
     	}
 
-		this.myRC.setIndicatorString(0, this.myState.toString());
+		//this.myRC.setIndicatorString(0, this.myState.toString());
     }
     
     /*
