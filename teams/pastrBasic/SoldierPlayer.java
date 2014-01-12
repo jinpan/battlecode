@@ -8,6 +8,8 @@ import battlecode.common.*;
 public class SoldierPlayer extends BaseRobot {
 
 	LinkedList<MapLocation> nav = new LinkedList<MapLocation>();	
+	LinkedList<MapLocation> pastureNav = new LinkedList<MapLocation>();
+	int asdf = 0;
 	MapLocation targetLoc;
 	MapLocation rallyLoc;
 	MapLocation pastureloc;
@@ -261,18 +263,33 @@ public class SoldierPlayer extends BaseRobot {
 					return;
 				}
 			}
+			if (asdf == 0) {
+				System.out.println("Computing path" + action.targetLocation);
+				pastureNav = pathFind(myRC.getLocation(), action.targetLocation);
+				System.out.println("Computed path");
+				asdf++;
+			}else {
+				this.myRC.setIndicatorString(2,  "Computed path");
+			}
 			Direction dir = this.directionTo(action.targetLocation);
 			if (dir == null){
 				System.out.println("with new navigation, this should not happen");
 				this.myRC.construct(RobotType.PASTR);
 				return;
-			}
-			else {
-				if(action.targetLocation.distanceSquaredTo(this.myRC.getLocation()) < 16)
-					this.myRC.sneak(dir);
-				else 
-					this.myRC.move(dir);
-				return;
+			} else {
+				if (myRC.getLocation().equals(pastureNav.getFirst())) {
+	        		pastureNav.remove();
+	        	} else {
+	        		Direction moveDirection = myRC.getLocation().directionTo(pastureNav.getFirst());
+	        		if (myRC.isActive() && myRC.canMove(moveDirection)) {
+	        			if(action.targetLocation.distanceSquaredTo(this.myRC.getLocation()) < 16)
+	    					this.myRC.sneak(moveDirection);
+	    				else 
+	    					this.myRC.move(moveDirection);
+	    				return;
+	        		} 
+	    			yield();
+	        	}
 			}
 		}
 	}    

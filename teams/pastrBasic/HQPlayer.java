@@ -132,7 +132,7 @@ public class HQPlayer extends BaseRobot {
 			if (pastr!=null){
 				counter++;
 			}
-		}System.out.println(counter);
+		}//System.out.println(counter);
 		double bestSoFar = 0;
 		boolean good=true;
 		int besti = 0, bestj = 0;
@@ -306,14 +306,15 @@ public class HQPlayer extends BaseRobot {
 	private void assignPastureJob(int order, int n) throws GameActionException{
 		MapLocation bestloc;
 		if (this.PASTRLocs[n]==null){
-			System.out.println("here "+ n);
+			//System.out.println("here "+ n);
 			bestloc = this.findBestPastureLoc();
-			System.out.println("recalculating");
+			//System.out.println("recalculating");
 			this.PASTRLocs[n]= bestloc;
+			System.out.println("Assigned " + bestloc);
 		} else {
 			bestloc= this.PASTRLocs[n];
 		}
-		System.out.println(bestloc.x+" "+bestloc.y);
+		//System.out.println(bestloc.x+" "+bestloc.y);
 		ActionMessage action = new ActionMessage(BaseRobot.State.PASTURE, 0, bestloc);
 		int channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
 		this.myRC.broadcast(channel, action.encode());
