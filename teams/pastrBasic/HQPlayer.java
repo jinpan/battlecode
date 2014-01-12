@@ -14,6 +14,8 @@ public class HQPlayer extends BaseRobot {
 	int currentSquad;
 	int[] squadAssignments;
 	
+	boolean squadsMax = false;
+	
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
 
@@ -57,11 +59,10 @@ public class HQPlayer extends BaseRobot {
         	state = StateMessage.decode(this.myRC.readBroadcast(channel)).myState;
         	
         	if (state == BaseRobot.State.DEFAULT){ //if robot hasn't been given a job yet
-        		if (false){
-        		//if (pastrLocs.length<BaseRobot.MAX_PASTURES || enemyPastrs.length == 0){
+        		if (squadsMax){
         			assignPastureJob(order);
         		} else {
-        			if(enemyPastrs.length == 0)
+        			if(enemyPastrs.length <= currentSquad)
         				assignScoutJob(order, this.enemyHQLoc);
         			else
         				assignScoutJob(order, enemyPastrs[currentSquad]);
@@ -140,6 +141,7 @@ public class HQPlayer extends BaseRobot {
 		}
 		if (currentSquad>= BaseRobot.NUM_SQUADS){
 			currentSquad = BaseRobot.NUM_SQUADS-1;
+			squadsMax = true;
 		}
 		
 		MapLocation rallyPoint = get_rally_point(target);
@@ -201,7 +203,7 @@ public class HQPlayer extends BaseRobot {
 	}
 	
 	protected int find_smart_PASTR_number(){
-		return 2;
+		return 3;
 	}
 
 }

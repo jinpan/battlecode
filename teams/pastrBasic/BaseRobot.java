@@ -48,6 +48,8 @@ public abstract class BaseRobot {
     public static final int SQUAD_RALLYAMT_CHANNEL = 1; //number of robots at this rally point
     public static final int SQUAD_ATTACKPT_CHANNEL = 2; //the main goal for the squad to attack, usually a pasture or group of enemies
     public static final int SQUAD_SKIRMISH_CHANNEL = 3; //the current subgoal, such as attacking one enemy robot in a group
+    public static final int SQUAD_THREAT_BASE = 10; //begin list of current threats here
+    public static final int MAX_THREAT_NUM = 10; //max number of threats to keep track of
     
     public static final int SQUAD_HQNAVINSTR_CHANNEL = 100; //where the HQ tells the robots how to move
     
@@ -56,10 +58,10 @@ public abstract class BaseRobot {
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
-    protected static final int MAX_PASTURES = 0; 
+    protected static final int MAX_PASTURES = 3; 
 	protected static final int RALLY_DISTANCE = 5; //how far from HQ squads will rally
-	protected static final int NUM_SQUADS = 1;
-	protected static final int MAX_SQUAD_SIZE = 4;
+	protected static final int NUM_SQUADS = 2; //total number of different squads
+	protected static final int MAX_SQUAD_SIZE = 5;
     
 	protected int inbox;
     protected boolean underAttack;
