@@ -135,10 +135,10 @@ public class SoldierPlayer extends BaseRobot {
 			main_attack_step(enemyPastr); //destroy our assigned PASTR
 		}
 		
-		if(isLeader){
+		/*if(isLeader){
 			ActionMessage newAction = new ActionMessage(State.ATTACK, 0, this.myRC.getLocation()); //leader transmits where it is
 			this.myRC.broadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_LEADER_CHANNEL, newAction.encode());
-		}
+		}*/
 
 	}
 
