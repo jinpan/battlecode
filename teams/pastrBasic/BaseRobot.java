@@ -59,9 +59,9 @@ public abstract class BaseRobot {
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     
     protected static final int MAX_PASTURES = 3; 
-	protected static final int RALLY_DISTANCE = 5; //how far from HQ squads will rally
-	protected static final int NUM_SQUADS = 2; //total number of different squads
-	protected static final int MAX_SQUAD_SIZE = 5;
+	protected static final int RALLY_DISTANCE = 0; //how far from HQ squads will rally
+	protected static final int NUM_SQUADS = 1; //total number of different squads
+	protected static final int MAX_SQUAD_SIZE = 1;
     
 	protected int inbox;
     protected boolean underAttack;

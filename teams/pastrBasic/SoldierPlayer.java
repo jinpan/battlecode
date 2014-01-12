@@ -1,13 +1,17 @@
 package pastrBasic;
 
+import java.util.LinkedList;
+
 import pastrBasic.Action;
 import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
 
+	LinkedList<MapLocation> nav = new LinkedList<MapLocation>();	
 	MapLocation targetLoc;
 	MapLocation rallyLoc;
 	MapLocation pastureloc;
+	MapLocation enemyPastr = this.enemyHQLoc;
 	int ourPastrID;
 	int squadNumber;
 	boolean rallied=false;
@@ -50,7 +54,12 @@ public class SoldierPlayer extends BaseRobot {
 	protected void attack_step() throws GameActionException {
 		//Action action = this.actionQueue.getFirst();
 		ActionMessage action = ActionMessage.decode(this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL)); //get our attack assignment
-		MapLocation enemyPastr = action.targetLocation;
+
+		if(!enemyPastr.equals(action.targetLocation)){
+			nav = pathFind(this.myRC.getLocation(), action.targetLocation);
+		}
+
+		enemyPastr = action.targetLocation;
 
 		//TODO: figure out when to retreat
 		//TODO: check_HQ_announce(); //check for distress signals from the HQ
@@ -72,14 +81,14 @@ public class SoldierPlayer extends BaseRobot {
 				threatCount++;
 			}
 		}
-		System.out.println("found " + threatCount + "threats");
+		//System.out.println("found " + threatCount + "threats");
 
 		//look at enemy robots we can see, and put them on the threat list
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
 		for(Robot r : nearbyEnemies){
 			if(this.myRC.senseRobotInfo(r).type == RobotType.HQ)
 				continue;
-			
+
 			int match = -1;
 
 			for(int i = 0; i < BaseRobot.MAX_THREAT_NUM; i++){
@@ -121,7 +130,7 @@ public class SoldierPlayer extends BaseRobot {
 	protected void skirmish_step(MapLocation enemyPastr, ThreatMessage[] threats) throws GameActionException{ //deal with a small threat
 		MapLocation bestThreat = null; //below, we decide which threat we should address
 		int minID = 9999;
-		
+
 		//attack the robot with the lowest ID
 		for(int i = 0; i < BaseRobot.MAX_THREAT_NUM; i++){
 			if(threats[i] == null)
@@ -131,7 +140,6 @@ public class SoldierPlayer extends BaseRobot {
 				minID = threats[i].targetID;
 			}
 		}
-		
 
 		if(bestThreat != null){
 			if(this.myRC.isActive()){
@@ -146,14 +154,16 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 	}
-	
+
 	protected void idle_step() throws GameActionException{ //there are no surviving enemy PASTRs
 		System.out.println("trying to get new target");
-		MapLocation newGoal = get_next_attack_loc(); //try to get a new good target
-		if(!newGoal.equals(this.enemyHQLoc)){
-			System.out.println("made new target at " + newGoal.x + " " + newGoal.y + " and broadcasting to " + (BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL));
-			ActionMessage attackAction = new ActionMessage(BaseRobot.State.ATTACK, 0, newGoal);
-			this.myRC.broadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL, attackAction.encode());    
+		if((this.myRC.getRobot().getID() + Clock.getRoundNum()) % 5 == 0){
+			MapLocation newGoal = get_next_attack_loc(); //try to get a new good target
+			if(!newGoal.equals(this.enemyHQLoc)){
+				System.out.println("made new target at " + newGoal.x + " " + newGoal.y + " and broadcasting to " + (BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL));
+				ActionMessage attackAction = new ActionMessage(BaseRobot.State.ATTACK, 0, newGoal);
+				this.myRC.broadcast(BaseRobot.SQUAD_BASE + this.squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_ATTACKPT_CHANNEL, attackAction.encode());    
+			}
 		}
 	}
 
@@ -173,7 +183,19 @@ public class SoldierPlayer extends BaseRobot {
 			if (this.myRC.getLocation().distanceSquaredTo(target)<10){
 				this.myRC.attackSquare(target);
 			} else if (directionTo(target)!= null){
-				this.myRC.move(directionTo(target));
+				if(this.myRC.getLocation().equals(nav.getFirst())) {
+					nav.remove();
+				}
+				else{
+					this.myRC.setIndicatorString(0, nav.toString());
+					Direction moveDirection = myRC.getLocation().directionTo(nav.getFirst());
+//					if (!canTravel(myRC.getLocation(), nav.getFirst())) {
+//						nav = pathFind(myRC.getLocation(), nav.getFirst());
+//					}
+					if (myRC.isActive() && myRC.canMove(moveDirection)) {
+						myRC.move(moveDirection);
+					} 
+				}
 			}
 		}
 	}
@@ -240,7 +262,7 @@ public class SoldierPlayer extends BaseRobot {
 		rallyLoc = action.targetLocation;
 		squadNumber = action.targetID;
 
-		if (this.myRC.getLocation().distanceSquaredTo(rallyLoc)<5){ //if we're near the rally point
+		if (this.myRC.getLocation().distanceSquaredTo(rallyLoc)<9){ //if we're near the rally point
 			int numChannel = BaseRobot.SQUAD_BASE + squadNumber*BaseRobot.SQUAD_OFFSET + SQUAD_RALLYAMT_CHANNEL; //how many robots are already at the rally point    		
 
 			//increment the count of robots already here
@@ -287,9 +309,25 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation[] pastrs = this.myRC.sensePastrLocations(this.enemyTeam);
 
 		if(pastrs.length == 0){
-			return this.enemyHQLoc;
+			return this.enemyHQLoc; //if no pastures, patrol the enemy HQ
 		} else{
-			return pastrs[0];
+			int mindist = 1000000;
+			int ind = 0;
+			boolean seenOpenPastr = false;
+			for(int i = 0; i < pastrs.length; i++){
+				if(pastrs[i].distanceSquaredTo(this.enemyHQLoc) < 25)
+					continue;
+				if(this.myRC.getLocation().distanceSquaredTo(pastrs[i]) < mindist){
+					ind = i;
+					mindist = this.myRC.getLocation().distanceSquaredTo(pastrs[i]);
+					seenOpenPastr = true;
+				}
+			}
+
+			if(seenOpenPastr)
+				return pastrs[ind]; //go to the closest pasture
+			else
+				return this.enemyHQLoc; //if all pastures next to enemy HQ, patrol the enemy HQ
 		}
 	}
 
@@ -351,4 +389,113 @@ public class SoldierPlayer extends BaseRobot {
 		return null;        
 	}
 
+	private SearchNode bugSearch(MapLocation start, MapLocation target) throws GameActionException{
+		boolean mline[][] = new boolean[100][100];
+		MapLocation ehqloc = target;
+		MapLocation curr = start;
+		// optimize, kinda slow right now. -> lol no it's good enough.
+		// Initialize mline array for easy lookup later
+		while (!(curr.x == ehqloc.x && curr.y == ehqloc.y)) {
+			mline[curr.x][curr.y] = true;
+			curr = curr.add(curr.directionTo(ehqloc));
+		}
+		// Actual bug iteration
+		SearchNode current = new SearchNode(start, 1, null, this);
+		current.isPivot = true;
+		Direction curDir = current.loc.directionTo(ehqloc);
+		while (current.loc.x != ehqloc.x || current.loc.y != ehqloc.y) {
+			// If on the m-line, and can move forward, move forward towards the enemy HQ.
+			boolean canMoveForward = (this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
+					this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD);
+			if (mline[current.loc.x][current.loc.y] && (this.myRC.senseTerrainTile(current.loc.add(current.loc.directionTo(ehqloc))) == TerrainTile.NORMAL ||
+					this.myRC.senseTerrainTile(current.loc.add(current.loc.directionTo(ehqloc))) == TerrainTile.ROAD)) {
+				curDir = current.loc.directionTo(ehqloc);
+				current = new SearchNode(current.loc.add(curDir), current.length+1, current, this);
+			}
+			// If can move forward, and right hand touching wall, move forward
+			else if (canMoveForward && this.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.VOID) {
+				current = new SearchNode(current.loc.add(curDir), current.length + 1, current, this);
+			}
+			// If right hand side is empty, turn right and move forward
+			else if (canMoveForward && (this.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.NORMAL ||
+					this.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.ROAD)) {
+				curDir = curDir.rotateRight().rotateRight();
+				current.isPivot = true;
+				current = new SearchNode(current.loc.add(curDir), current.length + 1, current, this);
+			}
+			// Only condition for this else should be that the robot cannot move forward and has a wall on the right. Therefore just turn left and move. Report corner.
+			else {
+				curDir = curDir.rotateLeft();
+				if (!(this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
+						this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD)) {
+					curDir = curDir.rotateLeft();
+				}
+				if (!(this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
+						this.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD)) {
+					curDir = curDir.rotateLeft();
+				}
+				if (this.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight().rotateRight().rotateRight())) == TerrainTile.VOID) {
+					//System.out.println("Corner found at " + current.loc);
+				}
+				current = new SearchNode(current.loc.add(curDir), current.length + 1, current, this);
+			}
+		}
+		current.isPivot = true;
+		return current;
+	}
+	private LinkedList<MapLocation> pathFind(MapLocation start, MapLocation target) throws GameActionException {
+		SearchNode bugSearch = bugSearch(start, target);
+		SearchNode[] nodes = new SearchNode[bugSearch.length];
+		int counter = bugSearch.length-1;
+		while (!bugSearch.loc.equals(start)) {
+			nodes[counter] = bugSearch;
+			bugSearch = bugSearch.prevLoc;
+			counter--;
+		}
+		nodes[0] = bugSearch;
+		LinkedList<MapLocation> pivots = new LinkedList<MapLocation>();
+		pivots.add(nodes[0].loc);
+		for (int i = 1; i < nodes.length; i++) {
+			if (nodes[i].isPivot) {
+				pivots.add(nodes[i].loc);
+			}
+		}
+		// Get rid of some pivots cause we can. MUCH IMPROVEMENT. SUCH WOW. :')
+		MapLocation pivotArray[] = new MapLocation[pivots.size()];
+		int temp = 0;
+		for (MapLocation pivot: pivots) {
+			pivotArray[temp] = pivot;
+			temp++;
+		}
+		int first = 0;
+		LinkedList<MapLocation> finalList = new LinkedList<MapLocation>();
+		finalList.add(pivotArray[first]);
+		for (int i = pivots.size()-1; i > first; i--) {
+			if (first == pivots.size()-1) {
+				break;
+			}
+			if (canTravel(pivotArray[first], pivotArray[i])) {
+				finalList.add(pivotArray[i]);
+				first = i;
+				i = pivots.size();
+			} else if (i - first == 1) {
+				LinkedList<MapLocation> newpath = pathFind(pivotArray[first], pivotArray[i]);
+				newpath.remove();
+				finalList.addAll(newpath);
+				first = i;
+				i = pivots.size();
+			}
+		}
+		return finalList;
+	}
+	public boolean canTravel(MapLocation start, MapLocation target) {
+		while (!(start.x == target.x && start.y == target.y)) {
+			if (this.myRC.senseTerrainTile(start) == TerrainTile.VOID) return false;
+			start = start.add(start.directionTo(target));
+		}
+		return true;
+	}
+
 }
+
+
