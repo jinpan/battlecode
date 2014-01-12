@@ -53,6 +53,7 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation enemyPastr = action.targetLocation;
 
 		//TODO: figure out when to retreat
+		//TODO: check_HQ_announce(); //check for distress signals from the HQ
 
 		ThreatMessage[] threats = new ThreatMessage[BaseRobot.MAX_THREAT_NUM];
 		ThreatMessage curThreat;
@@ -64,7 +65,7 @@ public class SoldierPlayer extends BaseRobot {
 		//look at threats on the message board
 		for(int i = 0; i < BaseRobot.MAX_THREAT_NUM; i++){
 			curThreat = ThreatMessage.decode(this.myRC.readBroadcast(baseChannel+i));
-			if((curRound - curThreat.roundNum)%100 > 4){ //if the message is old, remove it
+			if((curRound - curThreat.roundNum +10000)%100 > 4){ //if the message is old, remove it
 				this.myRC.broadcast(baseChannel+i, 0);
 			} else {
 				threats[i] = curThreat;
@@ -107,8 +108,6 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		}
 
-		//check_HQ_announce(); //check for distress signals from the HQ
-
 		if(threatCount != 0){
 			skirmish_step(enemyPastr, threats); //figure out which threat we want to address, then attack
 		} else if(enemyPastr.equals(this.enemyHQLoc)){
@@ -123,6 +122,7 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation bestThreat = null; //below, we decide which threat we should address
 		int minID = 9999;
 		
+		//attack the robot with the lowest ID
 		for(int i = 0; i < BaseRobot.MAX_THREAT_NUM; i++){
 			if(threats[i] == null)
 				continue;
@@ -131,6 +131,7 @@ public class SoldierPlayer extends BaseRobot {
 				minID = threats[i].targetID;
 			}
 		}
+		
 
 		if(bestThreat != null){
 			if(this.myRC.isActive()){
