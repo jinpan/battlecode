@@ -3,7 +3,8 @@ package sprintBot;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import attack.BaseRobot.State;
+import sprintBot.BaseRobot;
+import sprintBot.BaseRobot.State;
 import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
@@ -28,6 +29,11 @@ public class HQPlayer extends BaseRobot {
 
     @Override
     protected void step() throws GameActionException {
+    	Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
+		if (this.myRC.isActive() && nearbyEnemies.length != 0) {
+			this.shoot(nearbyEnemies);
+		}    	
+    	
         if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
             this.spawn();
             ++this.numRobots;
@@ -47,23 +53,15 @@ public class HQPlayer extends BaseRobot {
         	}
         }
         
-        HashMap<Integer, Integer> idToOrder = new HashMap<Integer, Integer>();
-        int channel, id;
-        for (int i=1; i<this.numRobots; ++i){
-        	channel = BaseRobot.get_outbox_channel(i, BaseRobot.OUTBOX_ID_CHANNEL);
-        	id = this.myRC.readBroadcast(channel);
-        	idToOrder.put(id, i);
-        }
-        
-        int order;
+        int order, channel;
         StateMessage state;
         
         if (closestTarget != null){
 	        for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
-	        	if (idToOrder.get(robot.getID()) == null){
+	        	if (idToOrder(robot.getID()) == 0){
 	        		continue;
 	        	}
-	        	order = idToOrder.get(robot.getID());
+	        	order = idToOrder(robot.getID());
 	        	channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
 	        	state = StateMessage.decode(this.myRC.readBroadcast(channel));
 	        	if (state.state == BaseRobot.State.DEFAULT){
@@ -90,6 +88,29 @@ public class HQPlayer extends BaseRobot {
 	        }
 		}
     	return false;
+    }
+    
+    private boolean shoot(Robot[] nearbyEnemies) throws GameActionException{
+    	MapLocation curloc;
+    	
+    	for(Robot r : nearbyEnemies){ //try to hit something directly
+    		curloc = this.myRC.senseRobotInfo(r).location;
+    		if(this.myRC.canAttackSquare(curloc)){
+    			this.myRC.attackSquare(curloc);
+    			return true;
+    		}
+    	}
+    	
+    	for(Robot r : nearbyEnemies){ //try to hit something for splash damage
+    		curloc = this.myRC.senseRobotInfo(r).location;
+    		curloc = curloc.add(curloc.directionTo(this.myHQLoc));
+    		if(this.myRC.canAttackSquare(curloc)){
+    			this.myRC.attackSquare(curloc);
+    			return true;
+    		}
+    	}
+    	
+    	return false; //give up    	
     }
 
 }
