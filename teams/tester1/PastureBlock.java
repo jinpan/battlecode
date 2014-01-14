@@ -15,7 +15,7 @@ public class PastureBlock {
 	}
 	
 	public ArrayList<MapLocation> pastrLocs(ArrayList<MapLocation> pastrs){
-		int buffer= 10;
+		int buffer= 8;
 		int num= (this.width/buffer) * (this.height/buffer);
 		//System.out.println(num);
 		if (num==0){

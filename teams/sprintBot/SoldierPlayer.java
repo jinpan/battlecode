@@ -1,16 +1,16 @@
 package sprintBot;
 
 import java.util.LinkedList;
+
 import sprintBot.*;
 import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
     
-	MapLocation targetLoc;
+	MapLocation targetLoc; //the previous target we were assigned to
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
 	
-
     public SoldierPlayer(RobotController myRC) throws GameActionException {
         super(myRC);
 
@@ -72,32 +72,25 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		}
     	else {
-    		Direction dir = this.myRC.getLocation().directionTo(action.targetLocation);
-    		if (action.targetLocation.equals(targetLoc)) {
-    			if (myRC.getLocation().equals(curPath.getFirst())) {
-            		curPath.remove();
-            	} else {
-            		Direction moveDirection = myRC.getLocation().directionTo(curPath.getFirst());
-            		if (myRC.isActive() && myRC.canMove(moveDirection)) {
-            			myRC.move(moveDirection);
-            		} 
-        			yield();
-            	} 
-    		} else {
-    			curPath = pathFind(myRC.getLocation(), action.targetLocation);
-    			targetLoc = action.targetLocation;
-    		}
-//			for (int i=0; i<7; ++i) {
-//				if (this.canMove(dir) && this.myRC.getActionDelay() < 1){
-//					
-//					this.move(dir);
-//					return;
-//				}
-//				else {
-//					dir = dir.rotateRight();
-//				}
-//			}
+    		move_to_target(action.targetLocation);
     	}
+    }
+    
+    protected void move_to_target(MapLocation target) throws GameActionException{
+		if (target.equals(targetLoc)) {
+			if (myRC.getLocation().equals(curPath.getFirst())) {
+        		curPath.remove();
+        	} else {
+        		Direction moveDirection = directionTo(curPath.getFirst());
+        		if (myRC.isActive() && myRC.canMove(moveDirection)) {
+        			myRC.move(moveDirection);
+        		} 
+    			yield();
+        	} 
+		} else {
+			curPath = pathFind(myRC.getLocation(), target);
+			targetLoc = target;
+		}
     }
     
     protected boolean respond_to_threat() throws GameActionException{
@@ -212,28 +205,34 @@ public class SoldierPlayer extends BaseRobot {
     
     protected void pasturize_step() throws GameActionException {
     	if (this.myRC.isActive()){
+        	//handles all attacking actions
+        	if(respond_to_threat()){
+        		return;
+        	}
+    		
 	    	Action action = this.actionQueue.getFirst();
 	    	
 	    	if (this.myRC.getLocation().equals(action.targetLocation)){
 	    		this.myRC.construct(RobotType.PASTR);
 	    		return;
 	    	}
+	    	
 	    	if (this.myRC.canSenseSquare(action.targetLocation)){
-	    		Direction dir = this.myRC.getLocation().directionTo(action.targetLocation);
-				for (int i=0; i<7; ++i) {
-					if (this.canMove(dir) && this.myRC.getActionDelay() < 1){
-						
-						this.sneak(dir);
-						return;
-					}
-					else {
-						dir = dir.rotateRight();
-					}
+	    		GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation);
+				if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam && this.myRC.senseRobotInfo((Robot)squattingRobot).type == RobotType.PASTR){
+					//ourPastrID = squattingRobot.getID(); //gets and stores the PASTR id
+					//pastureloc = action.targetLocation;
+					Action newAction = new Action(BaseRobot.State.DEFEND, action.targetLocation, squattingRobot.getID());
+					this.actionQueue.removeFirst();
+					this.actionQueue.addFirst(newAction);
+					return;
 				}
 	    	}
+	    	
+	    	move_to_target(action.targetLocation);
     	}
     }    
-    
+
     protected void default_step() throws GameActionException {
     	//handles all attacking actions
     	if(respond_to_threat()){

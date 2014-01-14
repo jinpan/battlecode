@@ -1,5 +1,7 @@
 package sprintBot;
 
+import sprintBot.BaseRobot;
+
 
 public class StateMessage implements Message {
 	

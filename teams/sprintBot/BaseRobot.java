@@ -213,4 +213,22 @@ public abstract class BaseRobot {
 	int idToOrder(int ID) throws GameActionException{
 		return this.myRC.readBroadcast(IDBOX_BASE + ID);
 	}
+	
+    protected int abs(int a){
+    	if (a>0)
+    		return a;
+    	else return -1*a;
+    }
+    
+    protected int min(int a, int b){
+    	if (a<b)
+    		return a;
+    	else return b;
+    }
+    
+    protected int max(int a, int b){
+    	if (a>b)
+    		return a;
+    	else return b;
+    }
 }
