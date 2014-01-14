@@ -8,6 +8,7 @@ import battlecode.common.*;
 public class SoldierPlayer extends BaseRobot {
     
 	MapLocation targetLoc; //the previous target we were assigned to
+	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
 	
@@ -48,8 +49,6 @@ public class SoldierPlayer extends BaseRobot {
     
     protected void attack_step() throws GameActionException {
     	Action action = this.actionQueue.getFirst();
-		this.myRC.setIndicatorString(3, String.valueOf(this.myRC.getActionDelay()));
-    	this.myRC.setIndicatorString(4, action.targetLocation.toString());
     	
     	//handles all attacking actions
     	if(respond_to_threat()){
@@ -72,18 +71,21 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		}
     	else {
-    		move_to_target(action.targetLocation);
+    		move_to_target(action.targetLocation, false);
     	}
     }
     
-    protected void move_to_target(MapLocation target) throws GameActionException{
+    protected void move_to_target(MapLocation target, boolean sneak) throws GameActionException{
 		if (target.equals(targetLoc)) {
 			if (myRC.getLocation().equals(curPath.getFirst())) {
         		curPath.remove();
         	} else {
         		Direction moveDirection = directionTo(curPath.getFirst());
-        		if (myRC.isActive() && myRC.canMove(moveDirection)) {
-        			myRC.move(moveDirection);
+        		if (myRC.isActive() && moveDirection != null && myRC.canMove(moveDirection)) {
+        			if(!sneak)
+        				myRC.move(moveDirection);
+        			else
+        				myRC.sneak(moveDirection);
         		} 
     			yield();
         	} 
@@ -195,12 +197,34 @@ public class SoldierPlayer extends BaseRobot {
     }
     
     protected void defend_step() throws GameActionException {
-        // I'm gonna defend the pasture wheee go me
+    	//handles all attacking actions
+    	if(respond_to_threat()){
+    		return;
+    	}
+    	
+    	//System.out.println("here, defending");
+    	if(this.actionQueue.size() > 1){
+    		this.actionQueue.removeFirst();
+    	} else {
+        	Action action = this.actionQueue.getFirst();
+        	move_to_target(action.targetLocation, false);
+    	}
     }
     
     protected void herd_step() throws GameActionException {
-        // I'm gonna scout me some enemies
-        
+    	//handles all attacking actions
+    	if(respond_to_threat()){
+    		return;
+    	}
+    	
+    	Action action = this.actionQueue.getFirst();
+    	if(this.myRC.getLocation().equals(action.targetLocation)){
+    		this.actionQueue.removeFirst();
+    		Action newAction = new Action(BaseRobot.State.DEFEND, ourPastrLoc, 0);
+    		this.actionQueue.addFirst(newAction);
+    	} else {
+    		move_to_target(action.targetLocation, true);
+    	}
     }
     
     protected void pasturize_step() throws GameActionException {
@@ -222,6 +246,7 @@ public class SoldierPlayer extends BaseRobot {
 				if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam && this.myRC.senseRobotInfo((Robot)squattingRobot).type == RobotType.PASTR){
 					//ourPastrID = squattingRobot.getID(); //gets and stores the PASTR id
 					//pastureloc = action.targetLocation;
+					ourPastrLoc = action.targetLocation;
 					Action newAction = new Action(BaseRobot.State.DEFEND, action.targetLocation, squattingRobot.getID());
 					this.actionQueue.removeFirst();
 					this.actionQueue.addFirst(newAction);
@@ -229,7 +254,7 @@ public class SoldierPlayer extends BaseRobot {
 				}
 	    	}
 	    	
-	    	move_to_target(action.targetLocation);
+	    	move_to_target(action.targetLocation, false);
     	}
     }    
 

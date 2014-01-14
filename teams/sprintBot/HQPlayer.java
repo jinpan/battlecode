@@ -49,8 +49,7 @@ public class HQPlayer extends BaseRobot {
         	}
         }
         this.bestSpawnRate= best;
-        this.spawnThresh= best*0.6;
-        
+        this.spawnThresh= best*0.6;        
         this.numBestSpawn= counter;
         this.pastrBlocks= new ArrayList<PastureBlock>();
         this.pastrLocs0= new ArrayList<MapLocation>();
@@ -276,7 +275,7 @@ public class HQPlayer extends BaseRobot {
     		//this.detectedVertices.add(vertex);
     		//System.out.println(this.detectedVertices.get(this.detectedVertices.size()-1));
     		vertex= new MapLocation(min(a+width*xadd, a), min(b+height*yadd, b));
-    		block= new PastureBlock(vertex, width-1, height-1);
+    		block= new PastureBlock(vertex, width-1, height-1, this.pastrBuffer);
     		this.pastrBlocks.add(block);
         	block.pastrLocs(this.pastrLocs0);
     	} 
