@@ -15,17 +15,25 @@ public class PastureBlock {
 	}
 	
 	public ArrayList<MapLocation> pastrLocs(ArrayList<MapLocation> pastrs){
-		int num= this.width/10 * this.height/10 + 1;
-		if (num==1){
+		int buffer= 10;
+		int num= (this.width/buffer) * (this.height/buffer);
+		//System.out.println(num);
+		if (num==0){
 			MapLocation loc = new MapLocation(vertex.x+width/2, vertex.y+height/2);
 			pastrs.add(loc);
 		} else {
-			for (int i=0; i<this.height/10; i++){
-				for (int j=0; j<this.width/10; j++){
-					pastrs.add(new MapLocation(vertex.x+j*this.width/10, vertex.y+i*this.height/10));
+			for (int i=0; i<=this.width/buffer; i++){
+				for (int j=0; j<=this.height/buffer; j++){
+					pastrs.add(new MapLocation(buffer/2+ vertex.x+i*buffer, buffer/2+ vertex.y+j*buffer));
 				}
 			}
 		} return pastrs;
+	}
+	
+	public boolean contains(MapLocation loc){
+		boolean xin= loc.x>=vertex.x && loc.x<=vertex.x+width;
+		boolean yin= loc.y>=vertex.y && loc.y<=vertex.y+height;
+		return xin && yin;
 	}
 
 }
