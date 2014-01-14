@@ -24,26 +24,8 @@ public abstract class BaseRobot {
     protected int ID;
     protected int order;
     
-    protected int pastrBuffer;
-    
     protected MapLocation previousLoc;
     protected MapLocation previousLoc2;
-    
-    protected int inbox;
-    protected boolean underAttack;
-    
-    protected LinkedList<Action> actionQueue;
-    
-    protected double[][] spawnRates;
-    protected double[][] locScores;
-    protected boolean[][] couldBeVoid;
-
-    
-    
-    
-    public static final Direction[] dirs = {
-        Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
-        Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
     
     public static final int INBOX_BASE = 0;
     public static final int INBOX_SIZE = 10;
@@ -58,12 +40,26 @@ public abstract class BaseRobot {
     public static final int OUTBOX_ID_CHANNEL = 0;
     public static final int OUTBOX_STATE_CHANNEL = 1;
     public static final int IDBOX_BASE = 10000; //store this robot's order in the array
-
+    public static final int PASTR_HERDERS_BASE = 20000; //keeps track of the number of herders for pasture
+    
+    
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
     public static final int SOLDIER_ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 2;
     public static final int PASTR_ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 3;
     public static final int PASTR_BUILDING_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 4;
     
+    protected int inbox;
+    protected boolean underAttack;
+    
+    protected LinkedList<Action> actionQueue;
+    
+    protected double[][] spawnRates;
+    protected double[][] locScores;
+    protected boolean[][] couldBeVoid;
+
+    public static final Direction[] dirs = {
+        Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
+        Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
     
     public BaseRobot(RobotController myRC) throws GameActionException {
         this.myRC = myRC;
@@ -89,7 +85,6 @@ public abstract class BaseRobot {
         this.previousLoc2 = this.myRC.getLocation();
         this.actionQueue = new LinkedList<Action>();
         this.maxDist = this.myRC.getMapHeight() * this.myRC.getMapHeight() + this.myRC.getMapWidth() * this.myRC.getMapWidth();
-        this.pastrBuffer= 10;
         
         this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
         this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);
@@ -119,7 +114,6 @@ public abstract class BaseRobot {
      * Called at the start of each turn.  Robot should check its inbox for new actions to do.
      */
     protected void setup() throws GameActionException {
-    	this.startState = this.myState;
     	this.inbox = this.receive(BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
     	if (inbox != 0){
 			ActionMessage msg = ActionMessage.decode(this.inbox);
@@ -130,6 +124,8 @@ public abstract class BaseRobot {
     	if (this.actionQueue.size() > 0){
     		this.myState = this.actionQueue.getFirst().state;
     	}
+		
+		this.startState = this.myState;
     }
     
     /*

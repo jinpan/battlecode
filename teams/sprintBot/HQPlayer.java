@@ -10,6 +10,7 @@ import battlecode.common.*;
 public class HQPlayer extends BaseRobot {
 	
 	Direction toEnemy;
+	int distToEnemy;
 	MapLocation[] myCorners;
 	ArrayList<MapLocation> pastrLocs0;
 	ArrayList<PastureBlock> pastrBlocks;
@@ -24,7 +25,10 @@ public class HQPlayer extends BaseRobot {
 	int numRobots;
 	int armySize; //number of robots we've gathered around the HQ
 
-    public HQPlayer(RobotController myRC) throws GameActionException {
+    public static final int MIN_ARMY_SIZE= 5;
+    public static final int PASTURE_UNIT_SIZE= 3;
+	
+	public HQPlayer(RobotController myRC) throws GameActionException {
         super(myRC);
         
         this.spawnRates= this.myRC.senseCowGrowth();
@@ -32,6 +36,7 @@ public class HQPlayer extends BaseRobot {
         this.mapWidth= this.myRC.getMapWidth();
         
         this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
+        this.distToEnemy= this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
         this.numRobots = 1;
         this.armySize = 0;
         
@@ -49,7 +54,8 @@ public class HQPlayer extends BaseRobot {
         	}
         }
         this.bestSpawnRate= best;
-        this.spawnThresh= best*0.6;        
+        this.spawnThresh= best*0.6;
+        
         this.numBestSpawn= counter;
         this.pastrBlocks= new ArrayList<PastureBlock>();
         this.pastrLocs0= new ArrayList<MapLocation>();
@@ -77,7 +83,7 @@ public class HQPlayer extends BaseRobot {
         //finds enemy pastures and posts locations on message board
         MapLocation[] targets = this.myRC.sensePastrLocations(this.enemyTeam);
         for (int i=0; i<targets.length; ++i){
-        	if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
+        	if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 24){
         		if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
         			closestTarget = targets[i];
         		}
@@ -90,9 +96,9 @@ public class HQPlayer extends BaseRobot {
         StateMessage state;
         
         //if there's a pasture to attack, do so
-        if(armySize >= 3){
-        	/*
-        	if (closestTarget != null){
+        if(closestTarget != null){
+        	
+        	if (armySize>= this.MIN_ARMY_SIZE){
         		for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
         			if (idToOrder(robot.getID()) == 0){
         				continue;
@@ -108,16 +114,18 @@ public class HQPlayer extends BaseRobot {
         		}
         		armySize = 0;
         	}
-        	*/
-    		MapLocation pastrLoc = null;
-			if (this.pastrLocs0.size()==0){
-				this.findPastureBlock();
-			} if (this.pastrLocs0.size()>0){
-				pastrLoc= pastrLocs0.remove(0);
-			} else {
-				offensive= true;
-			}
-			
+        }
+        
+        else { //if there are no pastures to attack, we build our own.
+        	MapLocation pastrLoc = null;
+        	MapLocation[] myPastrs= this.myRC.sensePastrLocations(this.myTeam);
+
+        	if (this.pastrLocs0.size()<= myPastrs.length){
+        		this.findPastureBlock();
+        	} if (this.pastrLocs0.size()>myPastrs.length){
+        		pastrLoc=this.pastrLocs0.get(myPastrs.length);
+        	}
+
         	for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
         		if (idToOrder(robot.getID()) == 0){
         			System.out.println("couldn't find order");
@@ -130,15 +138,13 @@ public class HQPlayer extends BaseRobot {
         			ActionMessage action = new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastrLoc);
         			channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
         			this.myRC.broadcast(channel, (int) action.encode());
+        			armySize--;
         		}
         	}
-        	armySize = 0;
-        }
+        }    
     }
     
     private void assign_job() throws GameActionException{
-    	
-    	
     	
     }
     
@@ -275,7 +281,7 @@ public class HQPlayer extends BaseRobot {
     		//this.detectedVertices.add(vertex);
     		//System.out.println(this.detectedVertices.get(this.detectedVertices.size()-1));
     		vertex= new MapLocation(min(a+width*xadd, a), min(b+height*yadd, b));
-    		block= new PastureBlock(vertex, width-1, height-1, this.pastrBuffer);
+    		block= new PastureBlock(vertex, width-1, height-1);
     		this.pastrBlocks.add(block);
         	block.pastrLocs(this.pastrLocs0);
     	} 
