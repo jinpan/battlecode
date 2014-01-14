@@ -1,7 +1,6 @@
 package sprintBot;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import sprintBot.BaseRobot;
 import sprintBot.BaseRobot.State;
@@ -49,7 +48,7 @@ public class HQPlayer extends BaseRobot {
         			closestTarget = targets[i];
         		}
 				EnemyProfileMessage enemyProf = new EnemyProfileMessage(0, 200, targets[i], Clock.getRoundNum());
-				this.squad_send(BaseRobot.SQUAD_LOW_HITLIST + 2 * i, enemyProf.encode());
+				this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * i, enemyProf.encode());
         	}
         }
         

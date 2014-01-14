@@ -64,13 +64,11 @@ public class SoldierPlayer extends BaseRobot {
 		this.myRC.setIndicatorString(3, String.valueOf(this.myRC.getActionDelay()));
     	this.myRC.setIndicatorString(4, action.targetLocation.toString());
     	
-    	LinkedList<EnemyProfileMessage> highEnemies = this.getEnemies(0);
-    	LinkedList<EnemyProfileMessage> mediumEnemies = this.getEnemies(1);
-    	LinkedList<EnemyProfileMessage> lowEnemies = this.getEnemies(2);
+    	LinkedList<EnemyProfileMessage> soldEnemies = this.getEnemies(0);
+    	LinkedList<EnemyProfileMessage> bldgEnemies = this.getEnemies(1);   	
     	
-    	int highCounter = highEnemies.size();
-    	int mediumCounter = mediumEnemies.size();
-    	int lowCounter = lowEnemies.size();
+    	int soldCounter = soldEnemies.size();
+    	int bldgCounter = bldgEnemies.size();
     	
     	boolean attacked = (this.myRC.getActionDelay() > 1);
     	
@@ -80,18 +78,22 @@ public class SoldierPlayer extends BaseRobot {
     		nearbyInfo[i] = this.myRC.senseRobotInfo(nearbyEnemies[i]);
     	}
     	
-    	for (EnemyProfileMessage enemyProf: highEnemies){
+    	//attack the first thing in range that we can
+    	for (EnemyProfileMessage enemyProf: soldEnemies){
+    		System.out.println("trying to match " + enemyProf.id);
     		for (int i=0; i<nearbyEnemies.length; ++i){
-    			if (nearbyEnemies[i].getID() == enemyProf.id){
+    			if (nearbyEnemies[i] != null && nearbyEnemies[i].getID() == enemyProf.id){
     				if (attacked || this.myRC.getActionDelay() > 1){
+    					//update location and last time we saw it
     					if (nearbyInfo[i].location != enemyProf.lastSeenLoc){
     						enemyProf.lastSeenLoc = nearbyInfo[i].location;
     						enemyProf.lastSeenTime = Clock.getRoundNum();
     						long msg = enemyProf.encode();
-    						this.squad_send(BaseRobot.SQUAD_HIGH_HITLIST + 2*i, msg);
+    						this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2*i, msg);
     					}
     				}
     				else {
+    					//attack it and then update information
 	    				this.myRC.attackSquare(nearbyInfo[i].location);
 	    				attacked = true;
 	    				
@@ -107,47 +109,13 @@ public class SoldierPlayer extends BaseRobot {
 	    					msg = -1;
 	    				}
 	    				
-	    				this.squad_send(BaseRobot.SQUAD_HIGH_HITLIST + 2*i, msg);
+	    				this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2*i, msg);
     				}
     				nearbyEnemies[i] = null; // set to null so we don't count it twice
     			}
     		}
     	}
 
-    	for (EnemyProfileMessage enemyProf: mediumEnemies){
-    		for (int i=0; i<nearbyEnemies.length; ++i){
-    			if (nearbyEnemies[i] != null && nearbyEnemies[i].getID() == enemyProf.id){
-    				if (attacked || this.myRC.getActionDelay() > 1){
-    					if (nearbyInfo[i].location != enemyProf.lastSeenLoc){
-    						enemyProf.lastSeenLoc = nearbyInfo[i].location;
-    						enemyProf.lastSeenTime = Clock.getRoundNum();
-    						long msg = enemyProf.encode();
-    						this.squad_send(BaseRobot.SQUAD_MED_HITLIST + 2*i, msg);
-    					}
-    				}
-    				else {
-	    				this.myRC.attackSquare(nearbyInfo[i].location);
-	    				attacked = true;
-	    				
-	    				enemyProf.lastSeenLoc = nearbyInfo[i].location;
-	    				enemyProf.lastSeenTime = Clock.getRoundNum();
-	    				enemyProf.health -= 10;
-	    				
-	    				long msg;
-	    				if (enemyProf.health > 0){
-		    				msg = enemyProf.encode();
-	    				}
-	    				else {
-	    					msg = -1;
-	    				}
-	    				
-	    				this.squad_send(BaseRobot.SQUAD_MED_HITLIST + 2*i, msg);
-    				}
-    				nearbyEnemies[i] = null; // set to null so we don't count it twice
-    			}
-    		}
-    	}
-    	
     	for (int i=0; i<nearbyEnemies.length; ++i){
     		if (nearbyEnemies[i] != null){
 				int health = (int) nearbyInfo[i].health;
@@ -161,20 +129,16 @@ public class SoldierPlayer extends BaseRobot {
     				if (health <= 0){
     					// they're dead!
     				}
-    				else if (health < 50){
-    					this.squad_send(BaseRobot.SQUAD_HIGH_HITLIST + 2 * highCounter, enemyProf.encode());
-    					++highCounter;
-    				}
     				else {
-    					this.squad_send(BaseRobot.SQUAD_MED_HITLIST + 2 * mediumCounter, enemyProf.encode());
-    					++mediumCounter;
+    					this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2 * soldCounter, enemyProf.encode());
+    					++soldCounter;
     				}
     				nearbyEnemies[i] = null;
     			}
     		}
     	}
     	
-    	for (EnemyProfileMessage enemyProf: lowEnemies){
+    	for (EnemyProfileMessage enemyProf: bldgEnemies){
     		for (int i=0; i<nearbyEnemies.length; ++i){
     			if (nearbyEnemies[i] != null){
     				if (!attacked && this.myRC.getActionDelay() < 1) {
@@ -190,8 +154,8 @@ public class SoldierPlayer extends BaseRobot {
 	    					msg = -1;
 	    				}
 	    				
-	    				this.squad_send(BaseRobot.SQUAD_LOW_HITLIST + 2 * lowCounter, msg);
-	    				++lowCounter;
+	    				this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * bldgCounter, msg);
+	    				++bldgCounter;
     				}
     				nearbyEnemies[i] = null; // set to null so we don't count it twice
     			}
@@ -202,6 +166,7 @@ public class SoldierPlayer extends BaseRobot {
     		return;
     	}
     	
+    	//if there's nothing we can attack, do a move step
     	if (this.myRC.canSenseSquare(action.targetLocation) && this.myRC.senseObjectAtLocation(action.targetLocation) == null) {
 			// target was destroyed
 			this.actionQueue.removeFirst();
@@ -317,12 +282,11 @@ public class SoldierPlayer extends BaseRobot {
     	
     	int channel = 0;
     	switch (priority){
-	    	case 0: channel = BaseRobot.SQUAD_HIGH_HITLIST; break;
-	    	case 1: channel = BaseRobot.SQUAD_MED_HITLIST; break;
-	    	case 2: channel = BaseRobot.SQUAD_LOW_HITLIST; break;
+	    	case 0: channel = BaseRobot.SQUAD_SOLD_HITLIST; break;
+	    	case 1: channel = BaseRobot.SQUAD_BLDG_HITLIST; break;
     	}
     	
-    	for (int i=0; i<25; i+=2){
+    	for (int i=0; i<ENEMY_MEMORY_LEN*2; i+=2){
     		int msg1 = this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + channel + i);
     		int msg2 = this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + channel + i + 1);
     		long msg = msg1; msg <<= 32; msg |= msg2 & 0xFFFFFFFFL;

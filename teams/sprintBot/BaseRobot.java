@@ -39,9 +39,9 @@ public abstract class BaseRobot {
     public static final int OUTBOX_BASE = 2000;
     public static final int OUTBOX_SIZE = 10;
     public static final int SQUAD_BASE = 4000;
-    public static final int SQUAD_HIGH_HITLIST = 0;
-    public static final int SQUAD_MED_HITLIST = 50;
-    public static final int SQUAD_LOW_HITLIST = 100;
+    public static final int ENEMY_MEMORY_LEN = 15;
+    public static final int SQUAD_SOLD_HITLIST = 0;
+    public static final int SQUAD_BLDG_HITLIST = SQUAD_SOLD_HITLIST + 2 * ENEMY_MEMORY_LEN;
     
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
@@ -159,7 +159,7 @@ public abstract class BaseRobot {
     	return (this.myRC.canMove(dir)
     			&& !destination.equals(this.previousLoc)
     			&& !destination.equals(this.previousLoc2)
-    			&& destination.distanceSquaredTo(this.enemyHQLoc) > 15);
+    			&& destination.distanceSquaredTo(this.enemyHQLoc) > 24);
     }
     
     protected void move(Direction dir) throws GameActionException {
