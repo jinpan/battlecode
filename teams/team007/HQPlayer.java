@@ -25,8 +25,8 @@ public class HQPlayer extends BaseRobot {
 	int numRobots;
 	int armySize; //number of robots we've gathered around the HQ
 
-	public static final int MIN_ARMY_SIZE= 6;
-	public static final int PASTURE_UNIT_SIZE= 4;
+	public static int MIN_ARMY_SIZE= 6;
+	public static int PASTURE_UNIT_SIZE= 6;
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
@@ -38,7 +38,6 @@ public class HQPlayer extends BaseRobot {
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
 		this.distToEnemy= this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
-		this.armySize = 0;
 
 		double best= 0;
 		int counter=0;
@@ -59,7 +58,6 @@ public class HQPlayer extends BaseRobot {
 		this.numBestSpawn= counter;
 		this.pastrBlocks= new ArrayList<PastureBlock>();
 		this.pastrLocs0= new ArrayList<MapLocation>();
-		//this.detectedVertices= new ArrayList<MapLocation>();
 
 		this.findPastureBlock();
 	}
@@ -93,14 +91,26 @@ public class HQPlayer extends BaseRobot {
 		}
 
 		int order, channel;
-		int pastrCount = 0;
 		StateMessage state;
+		
+		armySize = 0;
+		Robot[] nearbyAllies =  this.myRC.senseNearbyGameObjects(Robot.class, 20, this.myTeam);
+		for(int i = 0; i < nearbyAllies.length; i++){
+			if (idToOrder(nearbyAllies[i].getID()) == 0){
+				continue;
+			}
+			order = idToOrder(nearbyAllies[i].getID());
+			channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
+			state = StateMessage.decode(this.myRC.readBroadcast(channel));
+			if (state.state == BaseRobot.State.DEFAULT){
+				armySize++;
+			}
+		}
 
 		//if there's a pasture to attack, do so
 		if(closestTarget != null){
-
 			if (armySize>= this.MIN_ARMY_SIZE){
-				for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
+				for (Robot robot: nearbyAllies) {
 					if (idToOrder(robot.getID()) == 0){
 						continue;
 					}
@@ -113,11 +123,9 @@ public class HQPlayer extends BaseRobot {
 						this.myRC.broadcast(channel, (int) action.encode());
 					}
 				}
-				armySize = 0;
+				this.MIN_ARMY_SIZE++; //make our armies bigger over time
 			}
-		}
-
-		else { //if there are no pastures to attack, we build our own.
+		} else { //if there are no pastures to attack, we build our own.
 			if(armySize >= this.PASTURE_UNIT_SIZE){
 				MapLocation pastrLoc = null;
 				MapLocation[] myPastrs= this.myRC.sensePastrLocations(this.myTeam);
@@ -128,9 +136,8 @@ public class HQPlayer extends BaseRobot {
 					pastrLoc=this.pastrLocs0.get(myPastrs.length);
 				}
 
-				for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
+				for (Robot robot: nearbyAllies) {
 					if (idToOrder(robot.getID()) == 0){
-						System.out.println("couldn't find order");
 						continue;
 					}
 					order = idToOrder(robot.getID());
@@ -142,8 +149,6 @@ public class HQPlayer extends BaseRobot {
 						this.myRC.broadcast(channel, (int) action.encode());
 					}
 				}
-				
-				armySize = 0;
 			}
 		}    
 	}
