@@ -1,17 +1,9 @@
 package sprintBot;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 
-import sprintBot.BaseRobot;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
-import battlecode.common.Team;
-import battlecode.common.GameConstants;
-import battlecode.common.TerrainTile;
+import battlecode.common.*;
 
 public abstract class BaseRobot {
     
@@ -28,6 +20,7 @@ public abstract class BaseRobot {
     protected Team enemyTeam;
     protected MapLocation myHQLoc;
     protected MapLocation enemyHQLoc;
+    protected int maxDist;
     protected int ID;
     protected int order;
     
@@ -41,7 +34,7 @@ public abstract class BaseRobot {
     public static final int SQUAD_BASE = 4000;
     public static final int ENEMY_MEMORY_LEN = 15;
     public static final int SQUAD_SOLD_HITLIST = 0;
-    public static final int SQUAD_BLDG_HITLIST = SQUAD_SOLD_HITLIST + 2 * ENEMY_MEMORY_LEN;
+    public static final int SQUAD_BLDG_HITLIST = 50;
     
     public static final int INBOX_ACTIONMESSAGE_CHANNEL = 0;
     public static final int OUTBOX_ID_CHANNEL = 0;
@@ -89,6 +82,7 @@ public abstract class BaseRobot {
         this.previousLoc = this.myRC.getLocation();
         this.previousLoc2 = this.myRC.getLocation();
         this.actionQueue = new LinkedList<Action>();
+        this.maxDist = this.myRC.getMapHeight() * this.myRC.getMapHeight() + this.myRC.getMapWidth() * this.myRC.getMapWidth();
         
         this.order = this.myRC.readBroadcast(BaseRobot.ORDER_CHANNEL);
         this.myRC.broadcast(BaseRobot.ORDER_CHANNEL, this.order + 1);

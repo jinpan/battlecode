@@ -1,16 +1,8 @@
 package sprintBot;
 
 import java.util.ArrayList;
-
 import sprintBot.BaseRobot;
-import sprintBot.BaseRobot.State;
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
-import battlecode.common.MapLocation;
-import battlecode.common.Robot;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
 	
@@ -38,9 +30,10 @@ public class HQPlayer extends BaseRobot {
             ++this.numRobots;
         }
         
-        int dist = this.myRC.getMapHeight() * this.myRC.getMapHeight() + this.myRC.getMapWidth() * this.myRC.getMapWidth();
+        int dist = maxDist;
         MapLocation closestTarget = null;
         
+        //finds enemy pastures and posts locations on message board
         MapLocation[] targets = this.myRC.sensePastrLocations(this.enemyTeam);
         for (int i=0; i<targets.length; ++i){
         	if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
@@ -55,6 +48,7 @@ public class HQPlayer extends BaseRobot {
         int order, channel;
         StateMessage state;
         
+        //if there's a pasture to attack, 
         if (closestTarget != null){
 	        for (Robot robot: this.myRC.senseNearbyGameObjects(Robot.class)) {
 	        	if (idToOrder(robot.getID()) == 0){
@@ -70,6 +64,12 @@ public class HQPlayer extends BaseRobot {
 	        	}
 	        }
         }
+    }
+    
+    private void assign_job() throws GameActionException{
+    	
+    	
+    	
     }
     
     private boolean spawn() throws GameActionException {

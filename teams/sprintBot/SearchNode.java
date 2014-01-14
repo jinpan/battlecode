@@ -1,6 +1,4 @@
 package sprintBot;
-import java.util.LinkedList;
-
 import battlecode.common.MapLocation;
 
 public class SearchNode {

@@ -1,21 +1,8 @@
 package sprintBot;
 
 import java.util.LinkedList;
-
-import sprintBot.SearchNode;
-
 import sprintBot.*;
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
-import battlecode.common.GameObject;
-import battlecode.common.MapLocation;
-import battlecode.common.Robot;
-import battlecode.common.RobotController;
-import battlecode.common.RobotInfo;
-import battlecode.common.RobotType;
-import battlecode.common.TerrainTile;
+import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
     
@@ -64,6 +51,56 @@ public class SoldierPlayer extends BaseRobot {
 		this.myRC.setIndicatorString(3, String.valueOf(this.myRC.getActionDelay()));
     	this.myRC.setIndicatorString(4, action.targetLocation.toString());
     	
+    	//handles all attacking actions
+    	if(respond_to_threat()){
+    		return;
+    	}
+    	
+    	//if there's nothing we can attack, do a move step
+    	if (this.myRC.canSenseSquare(action.targetLocation) && this.myRC.senseObjectAtLocation(action.targetLocation) == null) {
+			// target was destroyed
+			this.actionQueue.removeFirst();
+			if (this.actionQueue.size() > 0){
+				this.myState = this.actionQueue.getFirst().state;
+				this.step();
+				return;
+			}
+			else {
+				this.myState = State.DEFAULT;
+				this.step();
+				return;
+			}
+		}
+    	else {
+    		Direction dir = this.myRC.getLocation().directionTo(action.targetLocation);
+    		if (action.targetLocation.equals(targetLoc)) {
+    			if (myRC.getLocation().equals(curPath.getFirst())) {
+            		curPath.remove();
+            	} else {
+            		Direction moveDirection = myRC.getLocation().directionTo(curPath.getFirst());
+            		if (myRC.isActive() && myRC.canMove(moveDirection)) {
+            			myRC.move(moveDirection);
+            		} 
+        			yield();
+            	} 
+    		} else {
+    			curPath = pathFind(myRC.getLocation(), action.targetLocation);
+    			targetLoc = action.targetLocation;
+    		}
+//			for (int i=0; i<7; ++i) {
+//				if (this.canMove(dir) && this.myRC.getActionDelay() < 1){
+//					
+//					this.move(dir);
+//					return;
+//				}
+//				else {
+//					dir = dir.rotateRight();
+//				}
+//			}
+    	}
+    }
+    
+    protected boolean respond_to_threat() throws GameActionException{
     	LinkedList<EnemyProfileMessage> soldEnemies = this.getEnemies(0);
     	LinkedList<EnemyProfileMessage> bldgEnemies = this.getEnemies(1);   	
     	
@@ -80,7 +117,6 @@ public class SoldierPlayer extends BaseRobot {
     	
     	//attack the first thing in range that we can
     	for (EnemyProfileMessage enemyProf: soldEnemies){
-    		System.out.println("trying to match " + enemyProf.id);
     		for (int i=0; i<nearbyEnemies.length; ++i){
     			if (nearbyEnemies[i] != null && nearbyEnemies[i].getID() == enemyProf.id){
     				if (attacked || this.myRC.getActionDelay() > 1){
@@ -162,52 +198,7 @@ public class SoldierPlayer extends BaseRobot {
     		}
     	}
     	
-    	if (attacked){
-    		return;
-    	}
-    	
-    	//if there's nothing we can attack, do a move step
-    	if (this.myRC.canSenseSquare(action.targetLocation) && this.myRC.senseObjectAtLocation(action.targetLocation) == null) {
-			// target was destroyed
-			this.actionQueue.removeFirst();
-			if (this.actionQueue.size() > 0){
-				this.myState = this.actionQueue.getFirst().state;
-				this.step();
-				return;
-			}
-			else {
-				this.myState = State.DEFAULT;
-				this.step();
-				return;
-			}
-		}
-    	else {
-    		Direction dir = this.myRC.getLocation().directionTo(action.targetLocation);
-    		if (action.targetLocation.equals(targetLoc)) {
-    			if (myRC.getLocation().equals(curPath.getFirst())) {
-            		curPath.remove();
-            	} else {
-            		Direction moveDirection = myRC.getLocation().directionTo(curPath.getFirst());
-            		if (myRC.isActive() && myRC.canMove(moveDirection)) {
-            			myRC.move(moveDirection);
-            		} 
-        			yield();
-            	} 
-    		} else {
-    			curPath = pathFind(myRC.getLocation(), action.targetLocation);
-    			targetLoc = action.targetLocation;
-    		}
-//			for (int i=0; i<7; ++i) {
-//				if (this.canMove(dir) && this.myRC.getActionDelay() < 1){
-//					
-//					this.move(dir);
-//					return;
-//				}
-//				else {
-//					dir = dir.rotateRight();
-//				}
-//			}
-    	}
+    	return attacked;
     }
     
     protected void defend_step() throws GameActionException {
@@ -220,11 +211,8 @@ public class SoldierPlayer extends BaseRobot {
     }
     
     protected void pasturize_step() throws GameActionException {
-        // I'm gonna build me some pastures
     	if (this.myRC.isActive()){
 	    	Action action = this.actionQueue.getFirst();
-	    	
-
 	    	
 	    	if (this.myRC.getLocation().equals(action.targetLocation)){
 	    		this.myRC.construct(RobotType.PASTR);
@@ -247,7 +235,11 @@ public class SoldierPlayer extends BaseRobot {
     }    
     
     protected void default_step() throws GameActionException {
-        // I'm gonna just chill and try not to get in anyone's way
+    	//handles all attacking actions
+    	if(respond_to_threat()){
+    		return;
+    	}
+    	
     	MapLocation bestLoc = this.myRC.getLocation();
 		int buildingpastrs = this.myRC.readBroadcast(BaseRobot.PASTR_BUILDING_CHANNEL);
     	if (this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) > 400 && this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam).length > 3 ) {
