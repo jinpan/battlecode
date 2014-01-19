@@ -285,6 +285,11 @@ public class SoldierPlayer extends BaseRobot {
 	protected void pasturize_step() throws GameActionException {
 		if (this.myRC.isActive()){
 			//handles all attacking actions
+			
+			if (!isSafe()) {
+				return;
+			}
+			
 			if(respond_to_threat()){
 				return;
 			}
@@ -435,8 +440,13 @@ public class SoldierPlayer extends BaseRobot {
 		Robot[] nearbyRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, enemyTeam);
 		int avgx = 0;
 		int avgy = 0;
+		int enemyCount = 0;
 		for (int i = 0; i < nearbyRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(nearbyRobots[i]);
+//			if (ri.location.distanceSquaredTo(this.myRC.getLocation()) > 10) {
+//				continue;
+//			}
+			enemyCount++;
 			avgx += ri.location.x;
 			avgy += ri.location.y;
 		}
@@ -448,7 +458,7 @@ public class SoldierPlayer extends BaseRobot {
 			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
 			if (ri.location.distanceSquaredTo(com) <= 35) myRobotCount++;
 		}
-		if (myRobotCount < nearbyRobots.length) {
+		if (myRobotCount < enemyCount) {
 			Direction moveDirection = directionTo(com);
 			if (moveDirection != null) moveDirection = moveDirection.opposite();
 			if (myRC.isActive() && moveDirection != null && canMove(moveDirection))
