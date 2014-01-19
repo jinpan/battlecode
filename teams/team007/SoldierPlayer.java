@@ -132,9 +132,11 @@ public class SoldierPlayer extends BaseRobot {
 		EnemyProfileMessage bestProf = null;
 		RobotInfo bestRobotInfo = null;
 		int bestInd = 0;
-		
-		for (EnemyProfileMessage enemyProf: soldEnemies){
-			for (int i=0; i<nearbyEnemies.length; ++i){
+
+		for (int i=0; i<nearbyEnemies.length; ++i){
+			if(nearbyEnemies[i] == null)
+				continue;
+			for (EnemyProfileMessage enemyProf: soldEnemies){
 				if (nearbyEnemies[i] != null && nearbyEnemies[i].getID() == enemyProf.id){
 					if (attacked || this.myRC.getActionDelay() > 1){
 						//update location and last time we saw it
@@ -217,8 +219,8 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		}
 
-		for (EnemyProfileMessage enemyProf: bldgEnemies){
-			for (int i=0; i<nearbyEnemies.length; ++i){
+		for (int i=0; i<nearbyEnemies.length; ++i){
+			for (EnemyProfileMessage enemyProf: bldgEnemies){
 				if (nearbyEnemies[i] != null){
 					if (!attacked && this.myRC.getActionDelay() < 1) {
 						this.myRC.attackSquare(nearbyInfo[i].location);
@@ -292,11 +294,14 @@ public class SoldierPlayer extends BaseRobot {
 			if (this.myRC.canSenseSquare(action.targetLocation)){
 				GameObject squattingRobot = this.myRC.senseObjectAtLocation(action.targetLocation);
 				if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam && this.myRC.senseRobotInfo((Robot)squattingRobot).type == RobotType.PASTR){
-					ourPastrLoc = action.targetLocation;
-					Action newAction = new Action(BaseRobot.State.DEFEND, action.targetLocation, squattingRobot.getID());
-					this.actionQueue.removeFirst();
-					this.actionQueue.addFirst(newAction);
-					return;
+					if(this.myRC.getLocation().distanceSquaredTo(action.targetLocation) < 5)
+						this.myRC.construct(RobotType.NOISETOWER);
+					
+					//ourPastrLoc = action.targetLocation;
+					//Action newAction = new Action(BaseRobot.State.DEFEND, action.targetLocation, squattingRobot.getID());
+					//this.actionQueue.removeFirst();
+					//this.actionQueue.addFirst(newAction);
+					//return;
 				}
 			}
 

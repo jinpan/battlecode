@@ -26,7 +26,7 @@ public class HQPlayer extends BaseRobot {
 	int armySize; //number of robots we've gathered around the HQ
 
 	public static int MIN_ARMY_SIZE= 6;
-	public static int PASTURE_UNIT_SIZE= 6;
+	public static int PASTURE_UNIT_SIZE= 3;
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);

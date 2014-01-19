@@ -33,7 +33,7 @@ public abstract class BaseRobot {
     public static final int OUTBOX_BASE = 2000;
     public static final int OUTBOX_SIZE = 10;
     public static final int SQUAD_BASE = 4000;
-    public static final int ENEMY_MEMORY_LEN = 15;
+    public static final int ENEMY_MEMORY_LEN = 12;
     public static final int SQUAD_SOLD_HITLIST = 0;
     public static final int SQUAD_BLDG_HITLIST = 50;
     
