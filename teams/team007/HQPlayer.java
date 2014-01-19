@@ -20,13 +20,11 @@ public class HQPlayer extends BaseRobot {
 	double bestSpawnRate;
 	int numBestSpawn;
 
-	boolean offensive = false;
+	MapLocation pastrLoc;
+
+	boolean offensive = false; //adjust this smart
 
 	int numRobots;
-	int armySize; //number of robots we've gathered around the HQ
-
-	public static int MIN_ARMY_SIZE= 6;
-	public static int PASTURE_UNIT_SIZE= 3;
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
@@ -60,6 +58,7 @@ public class HQPlayer extends BaseRobot {
 		this.pastrLocs0= new ArrayList<MapLocation>();
 
 		this.findPastureBlock();
+		pastrLoc = this.pastrLocs0.get(0);
 	}
 
 	@Override
@@ -72,7 +71,6 @@ public class HQPlayer extends BaseRobot {
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
 			this.spawn();
 			++this.numRobots;
-			++this.armySize;
 		}
 
 		int dist = maxDist;
@@ -92,65 +90,40 @@ public class HQPlayer extends BaseRobot {
 
 		int order, channel;
 		StateMessage state;
-		
-		armySize = 0;
-		Robot[] nearbyAllies =  this.myRC.senseNearbyGameObjects(Robot.class, 20, this.myTeam);
-		for(int i = 0; i < nearbyAllies.length; i++){
-			if (idToOrder(nearbyAllies[i].getID()) == 0){
-				continue;
-			}
-			order = idToOrder(nearbyAllies[i].getID());
-			channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-			state = StateMessage.decode(this.myRC.readBroadcast(channel));
-			if (state.state == BaseRobot.State.DEFAULT){
-				armySize++;
-			}
-		}
 
 		//if there's a pasture to attack, do so
 		if(closestTarget != null){
-			if (armySize>= this.MIN_ARMY_SIZE){
-				for (Robot robot: nearbyAllies) {
-					if (idToOrder(robot.getID()) == 0){
-						continue;
-					}
-					order = idToOrder(robot.getID());
-					channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-					state = StateMessage.decode(this.myRC.readBroadcast(channel));
-					if (state.state == BaseRobot.State.DEFAULT){
-						ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
-						channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-						this.myRC.broadcast(channel, (int) action.encode());
-					}
+			Robot[] nearbyAllies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
+			
+			for (Robot robot: nearbyAllies) {
+				if (idToOrder(robot.getID()) == 0) {continue;}
+
+				order = idToOrder(robot.getID());
+				channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
+				state = StateMessage.decode(this.myRC.readBroadcast(channel));
+				if (true){
+					ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+					this.myRC.broadcast(channel, (int) action.encode());
 				}
-				this.MIN_ARMY_SIZE++; //make our armies bigger over time
 			}
 		} else { //if there are no pastures to attack, we build our own.
-			if(armySize >= this.PASTURE_UNIT_SIZE){
-				MapLocation pastrLoc = null;
-				MapLocation[] myPastrs= this.myRC.sensePastrLocations(this.myTeam);
+			Robot[] nearbyAllies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
+			
+			for (Robot robot: nearbyAllies) {
+				if (idToOrder(robot.getID()) == 0) {continue;}
 
-				if (this.pastrLocs0.size()<= myPastrs.length){
-					this.findPastureBlock();
-				} if (this.pastrLocs0.size()>myPastrs.length){
-					pastrLoc=this.pastrLocs0.get(myPastrs.length);
-				}
-
-				for (Robot robot: nearbyAllies) {
-					if (idToOrder(robot.getID()) == 0){
-						continue;
-					}
-					order = idToOrder(robot.getID());
-					channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-					state = StateMessage.decode(this.myRC.readBroadcast(channel));
-					if (state.state == BaseRobot.State.DEFAULT && pastrLoc!=null){
-						ActionMessage action = new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastrLoc);
-						channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-						this.myRC.broadcast(channel, (int) action.encode());
-					}
+				order = idToOrder(robot.getID());
+				channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
+				state = StateMessage.decode(this.myRC.readBroadcast(channel));
+				if (state.state == BaseRobot.State.DEFAULT && pastrLoc!=null){
+					ActionMessage action = new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastrLoc);
+					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
+					this.myRC.broadcast(channel, (int) action.encode());
 				}
 			}
-		}    
+			 
+		}
 	}
 
 	private boolean spawn() throws GameActionException {
