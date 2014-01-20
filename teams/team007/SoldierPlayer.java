@@ -461,12 +461,12 @@ public class SoldierPlayer extends BaseRobot {
 		if (myRobotCount < enemyCount) {
 			Direction moveDirection = directionTo(com);
 			if (moveDirection != null) moveDirection = moveDirection.opposite();
-			if (myRC.isActive() && moveDirection != null && canMove(moveDirection))
+			if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
 				myRC.move(moveDirection);
-			return false;
-		} else {
-			return true;
+				return false;
+			}
 		}
+		return true;
 	}
 
 
