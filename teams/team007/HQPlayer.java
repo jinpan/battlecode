@@ -90,12 +90,15 @@ public class HQPlayer extends BaseRobot {
 
 		int order, channel;
 		StateMessage state;
+		
+		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
+		Robot[] closeAllies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam);
+		int totalAllies = allies.length;
+		int neighborAllies = closeAllies.length;
 
 		//if there's a pasture to attack, do so
-		if(closestTarget != null){
-			Robot[] nearbyAllies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
-			
-			for (Robot robot: nearbyAllies) {
+		if(closestTarget != null && totalAllies > 5 && neighborAllies > 2){
+			for (Robot robot: allies) {
 				if (idToOrder(robot.getID()) == 0) {continue;}
 
 				order = idToOrder(robot.getID());
@@ -107,16 +110,14 @@ public class HQPlayer extends BaseRobot {
 					this.myRC.broadcast(channel, (int) action.encode());
 				}
 			}
-		} else { //if there are no pastures to attack, we build our own.
-			Robot[] nearbyAllies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
-			
-			for (Robot robot: nearbyAllies) {
+		} else if(neighborAllies > 2){ //if there are no pastures to attack, we build our own.
+			for (Robot robot: allies) {
 				if (idToOrder(robot.getID()) == 0) {continue;}
 
 				order = idToOrder(robot.getID());
 				channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
 				state = StateMessage.decode(this.myRC.readBroadcast(channel));
-				if (state.state == BaseRobot.State.DEFAULT && pastrLoc!=null){
+				if (pastrLoc!=null){
 					ActionMessage action = new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastrLoc);
 					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
 					this.myRC.broadcast(channel, (int) action.encode());
