@@ -1,4 +1,4 @@
-package team007;
+package team007micro;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -8,7 +8,7 @@ import battlecode.common.*;
 public abstract class BaseRobot {
     
     public enum State {
-        DEFAULT, ATTACK, DEFEND, HERD, PASTURIZE
+        DEFAULT, ATTACK, PASTURIZE
     };
     
     protected State myState = State.DEFAULT;
@@ -47,8 +47,6 @@ public abstract class BaseRobot {
     public static final int SOLDIER_ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 2;
     public static final int PASTR_ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 3;
     public static final int PASTR_BUILDING_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 4;
-    
-    public static final int PASTR_DISTRESS_CHANNEL = 50000;
     
     protected int inbox;
     protected boolean underAttack;

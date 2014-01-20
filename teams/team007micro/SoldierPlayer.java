@@ -1,4 +1,4 @@
-package team007;
+package team007micro;
 
 import java.util.LinkedList;
 
@@ -50,7 +50,7 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		//handles all attacking actions
-		if(respond_to_threat()){
+		if(respond_to_threat(false)){
 			return;
 		}
 
@@ -103,74 +103,81 @@ public class SoldierPlayer extends BaseRobot {
 		}
 	}
 
-	protected boolean respond_to_threat() throws GameActionException{
+	protected boolean respond_to_threat(boolean defending) throws GameActionException{
 		if(this.myRC.getActionDelay() > 1)
 			return false;
 
-		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.enemyTeam);
+		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 36, this.enemyTeam);
 		
 		if(nearbyEnemies.length == 0)
 			return false;
-		
-		int minHealth = 201;
-		int bestInd = -1;
+
+		MapLocation ourLoc = this.myRC.getLocation();
+		int maxHeur = 0;
+		if(defending)
+			maxHeur = ourLoc.distanceSquaredTo(this.actionQueue.getFirst().targetLocation);
 		RobotInfo bestRobotInfo = null;
 		
 		for(int i = 0; i < nearbyEnemies.length; i++){
 			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
-			if(cur.type == RobotType.SOLDIER){
-				if(cur.health < minHealth){
-					minHealth = (int)cur.health;
-					bestInd = i;
-					bestRobotInfo = cur;
-				}
+			int thisHeur = getHeuristic(cur, ourLoc);
+			if(thisHeur > maxHeur){
+				maxHeur = thisHeur;
+				bestRobotInfo = cur;
 			}
 		}
-		
-		if(bestInd != -1){
-			this.myRC.attackSquare(bestRobotInfo.location);
-			return true;
-		}
 
-		
-		for(int i = 0; i < nearbyEnemies.length; i++){
-			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
-			if(cur.type == RobotType.PASTR){
-				if(cur.health < minHealth){
-					minHealth = (int)cur.health;
-					bestInd = i;
-					bestRobotInfo = cur;
-				}
+		if(bestRobotInfo != null){
+			if(this.myRC.canAttackSquare(bestRobotInfo.location)){
+				this.myRC.attackSquare(bestRobotInfo.location);
+			}else{
+				Direction dir = directionTo(bestRobotInfo.location);
+				if(dir != null)
+					this.myRC.move(dir);
 			}
-		}
-		
-		if(bestInd != -1){
-			this.myRC.attackSquare(bestRobotInfo.location);
 			return true;
 		}
-
 		
 		return false;
 	}
+	
+	protected int getHeuristic(RobotInfo r, MapLocation orig){
+		int health = (int)r.health;
+		int dist = orig.distanceSquaredTo(r.location);
+		RobotType type = r.type;
+		
+		int heuristic = 200;
+		heuristic -= health;
+		heuristic -= dist * 4;
+		
+		if(type == RobotType.PASTR)
+			heuristic += 100;
+		
+		return heuristic;
+	}
 
-	protected void pasturize_step() throws GameActionException {
+	protected void pasturize_step() throws GameActionException {		
 		if (this.myRC.isActive()){
-			
+			//handles all attacking actions
+
 			if (!isSafe()) {
 				return;
 			}
+			
+			Action action = this.actionQueue.getFirst();
+			MapLocation target = action.targetLocation;
+			
+			boolean atPastr = false;
+			if(this.myRC.canSenseSquare(target) && this.myRC.senseObjectAtLocation(target) != null)
+				atPastr = true;
 
-			if(respond_to_threat()){
+			if(respond_to_threat(atPastr)){
 				return;
 			}
 
-			Action action = this.actionQueue.getFirst();
-
-			if (this.myRC.getLocation().equals(action.targetLocation)){
+			if (this.myRC.getLocation().equals(target)){
 				this.myRC.construct(RobotType.PASTR);
 			}
-
-			MapLocation target = action.targetLocation;
 
 			if (this.myRC.canSenseSquare(target)){
 				GameObject squattingRobot = this.myRC.senseObjectAtLocation(target);
@@ -241,7 +248,7 @@ public class SoldierPlayer extends BaseRobot {
 			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
 			if (ri.location.distanceSquaredTo(com) <= 35) myRobotCount++;
 		}
-		if (myRobotCount < enemyCount - 1) {
+		if (myRobotCount < enemyCount) {
 			Direction moveDirection = directionTo(com);
 			if (moveDirection != null) moveDirection = moveDirection.opposite();
 			if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {

@@ -1,9 +1,9 @@
-package team007;
+package team007micro;
 
 import java.util.ArrayList;
 
-import team007.BaseRobot;
-import team007.StateMessage;
+import team007micro.BaseRobot;
+import team007micro.StateMessage;
 import battlecode.common.*;
 
 public class PastrPlayer extends BaseRobot{
@@ -16,7 +16,6 @@ public class PastrPlayer extends BaseRobot{
     }
     
     protected void step() throws GameActionException{
-    	
     	Robot[] nearbyHerders = myRC.senseNearbyGameObjects(Robot.class, 5, myTeam);
     	
     	int robotOrder, channel, id;
