@@ -60,25 +60,17 @@ public class SoldierPlayer extends BaseRobot {
 			this.actionQueue.removeFirst();
 			if (this.actionQueue.size() > 0){
 				this.myState = this.actionQueue.getFirst().state;
-				//this.step();
 				return;
-			}
-			else {
+			} else {
 				MapLocation[] enemies= this.myRC.sensePastrLocations(this.enemyTeam);
 				Action newAction;
 				if(enemies.length != 0){
-					System.out.println("there");
 					newAction = new Action(BaseRobot.State.ATTACK, enemies[0], 0);
 				} else {
-					System.out.println("here");
 					newAction = new Action(BaseRobot.State.ATTACK, this.enemyHQLoc, 0);
 				}
 				this.actionQueue.addFirst(newAction);
 				return;
-
-				//this.myState = BaseRobot.State.DEFAULT;
-				//this.step();
-				//return;
 			}
 		} else {
 			move_to_target(action.targetLocation, false);
@@ -161,7 +153,6 @@ public class SoldierPlayer extends BaseRobot {
 		return false;
 	}
 
-
 	protected void pasturize_step() throws GameActionException {
 		if (this.myRC.isActive()){
 			//handles all attacking actions
@@ -178,7 +169,6 @@ public class SoldierPlayer extends BaseRobot {
 
 			if (this.myRC.getLocation().equals(action.targetLocation)){
 				this.myRC.construct(RobotType.PASTR);
-				return;
 			}
 
 			MapLocation target = action.targetLocation;
@@ -191,17 +181,6 @@ public class SoldierPlayer extends BaseRobot {
 
 					if(this.myRC.getLocation().equals(ourNoiseLoc))
 						this.myRC.construct(RobotType.NOISETOWER);
-
-					if(this.myRC.canSenseSquare(ourNoiseLoc)){
-						GameObject otherRobot = this.myRC.senseObjectAtLocation(ourNoiseLoc);
-						if(otherRobot != null && otherRobot.getTeam() == this.myTeam){
-							ourPastrLoc = action.targetLocation;
-							Action newAction = new Action(BaseRobot.State.DEFEND, action.targetLocation, squattingRobot.getID());
-							this.actionQueue.removeFirst();
-							this.actionQueue.addFirst(newAction);
-							return;
-						}	
-					}
 				}
 			}
 
