@@ -28,8 +28,6 @@ public class SoldierPlayer extends BaseRobot {
 			this.actionQueue.addFirst(this.newAction);
 			this.myState = this.newAction.state;
 			this.newAction = null;
-			System.out.println("NOT NULL");
-			System.out.println(this.myState);
 		}
 	}
 
@@ -40,11 +38,7 @@ public class SoldierPlayer extends BaseRobot {
 
 		switch (this.myState) {
 		case ATTACK: this.attack_step(); break;
-		case DEFEND: this.defend_step(); break;
-		case HERD: this.herd_step(); break;
 		case PASTURIZE: this.pasturize_step(); break;
-
-		default: this.default_step(); return;
 		}
 	}
 
@@ -118,178 +112,64 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected boolean respond_to_threat() throws GameActionException{
-		LinkedList<EnemyProfileMessage> soldEnemies = this.getEnemies(0);
-		LinkedList<EnemyProfileMessage> bldgEnemies = this.getEnemies(1);   	
-
-		int soldCounter = soldEnemies.size();
-		int bldgCounter = bldgEnemies.size();
-
-		boolean attacked = (this.myRC.getActionDelay() > 1);
+		if(this.myRC.getActionDelay() > 1)
+			return false;
 
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.enemyTeam);
-		RobotInfo[] nearbyInfo = new RobotInfo[nearbyEnemies.length];
-		for (int i=0; i<nearbyEnemies.length; ++i){
-			nearbyInfo[i] = this.myRC.senseRobotInfo(nearbyEnemies[i]);
-		}
-
-		//attack the first thing in range that we can
-		int minHealth = 101;
-		EnemyProfileMessage bestProf = null;
+		
+		if(nearbyEnemies.length == 0)
+			return false;
+		
+		int minHealth = 201;
+		int bestInd = -1;
 		RobotInfo bestRobotInfo = null;
-		int bestInd = 0;
-
-		for (int i=0; i<nearbyEnemies.length; ++i){
-			if(nearbyEnemies[i] == null)
-				continue;
-			for (EnemyProfileMessage enemyProf: soldEnemies){
-				if (nearbyEnemies[i] != null && nearbyEnemies[i].getID() == enemyProf.id){
-					if (attacked || this.myRC.getActionDelay() > 1){
-						//update location and last time we saw it
-						if (nearbyInfo[i].location != enemyProf.lastSeenLoc){
-							enemyProf.lastSeenLoc = nearbyInfo[i].location;
-							enemyProf.lastSeenTime = Clock.getRoundNum();
-							long msg = enemyProf.encode();
-							this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2*i, msg);
-						}
-					}
-					else {
-						//attack it and then update information
-						if(enemyProf.health < minHealth){
-							minHealth = enemyProf.health;
-							bestProf = enemyProf;
-							bestRobotInfo = nearbyInfo[i];
-							bestInd = i;
-						}
-
-						/*
-						this.myRC.attackSquare(nearbyInfo[i].location);
-						attacked = true;
-
-						enemyProf.lastSeenLoc = nearbyInfo[i].location;
-						enemyProf.lastSeenTime = Clock.getRoundNum();
-						enemyProf.health -= 10;
-
-						long msg;
-						if (enemyProf.health > 0){
-							msg = enemyProf.encode();
-						}
-						else {
-							msg = -1;
-						}
-
-						this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2*i, msg);
-						 */
-					}
-					nearbyEnemies[i] = null; // set to null so we don't count it twice
+		
+		for(int i = 0; i < nearbyEnemies.length; i++){
+			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
+			if(cur.type == RobotType.SOLDIER){
+				if(cur.health < minHealth){
+					minHealth = (int)cur.health;
+					bestInd = i;
+					bestRobotInfo = cur;
 				}
 			}
 		}
-
-		if(!attacked && bestProf != null){
+		
+		if(bestInd != -1){
 			this.myRC.attackSquare(bestRobotInfo.location);
-			bestProf.lastSeenLoc = bestRobotInfo.location;
-			bestProf.lastSeenTime = Clock.getRoundNum();
-			bestProf.health -= 10;
-
-			long msg;
-			if(bestProf.health > 0){
-				msg = bestProf.encode();
-			} else {
-				msg = -1;
-			}
-
-			this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2*bestInd, msg);
-			attacked = true;
+			return true;
 		}
 
-		for (int i=0; i<nearbyEnemies.length; ++i){
-			if (nearbyEnemies[i] != null){
-				int health = (int) nearbyInfo[i].health;
-				if (nearbyInfo[i].type == RobotType.SOLDIER){
-					if (!attacked && this.myRC.getActionDelay() < 1){
-						this.myRC.attackSquare(nearbyInfo[i].location);
-						attacked = true;
-						health -= 10;
-					}
-					EnemyProfileMessage enemyProf = new EnemyProfileMessage(nearbyEnemies[i].getID(), health, nearbyInfo[i].location, Clock.getRoundNum());
-					if (health <= 0){
-						// they're dead!
-					}
-					else {
-						this.squad_send(BaseRobot.SQUAD_SOLD_HITLIST + 2 * soldCounter, enemyProf.encode());
-						++soldCounter;
-					}
-					nearbyEnemies[i] = null;
+		
+		for(int i = 0; i < nearbyEnemies.length; i++){
+			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
+			if(cur.type == RobotType.PASTR){
+				if(cur.health < minHealth){
+					minHealth = (int)cur.health;
+					bestInd = i;
+					bestRobotInfo = cur;
 				}
 			}
 		}
-
-		for (int i=0; i<nearbyEnemies.length; ++i){
-			for (EnemyProfileMessage enemyProf: bldgEnemies){
-				if (nearbyEnemies[i] != null){
-					if (!attacked && this.myRC.getActionDelay() < 1) {
-						this.myRC.attackSquare(nearbyInfo[i].location);
-						attacked = true;
-						enemyProf.health -= 10;
-
-						long msg;
-						if (enemyProf.health > 0){
-							msg = enemyProf.encode();
-						}
-						else {
-							msg = -1;
-						}
-
-						this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * bldgCounter, msg);
-						++bldgCounter;
-					}
-					nearbyEnemies[i] = null; // set to null so we don't count it twice
-				}
-			}
+		
+		if(bestInd != -1){
+			this.myRC.attackSquare(bestRobotInfo.location);
+			return true;
 		}
 
-		return attacked;
+		
+		return false;
 	}
 
-	protected void defend_step() throws GameActionException {
-		//handles all attacking actions
-		if(respond_to_threat()){
-			return;
-		}
-
-		//System.out.println("here, defending");
-		if(this.actionQueue.size() > 1){
-			this.actionQueue.removeFirst();
-		} else {
-			Action action = this.actionQueue.getFirst();
-			move_to_target(action.targetLocation, false);
-		}
-	}
-
-	protected void herd_step() throws GameActionException {
-		//handles all attacking actions
-		if(respond_to_threat()){
-			return;
-		}
-
-		Action action = this.actionQueue.getFirst();
-		if(this.myRC.getLocation().equals(action.targetLocation)){
-			this.actionQueue.removeFirst();
-			Action newAction = new Action(BaseRobot.State.DEFEND, ourPastrLoc, 0);
-			this.actionQueue.addFirst(newAction);
-		} else {
-			move_to_target(action.targetLocation, true);
-		}
-	}
 
 	protected void pasturize_step() throws GameActionException {
 		if (this.myRC.isActive()){
 			//handles all attacking actions
-			
+
 			if (!isSafe()) {
 				return;
 			}
-			
+
 			if(respond_to_threat()){
 				return;
 			}
@@ -333,81 +213,6 @@ public class SoldierPlayer extends BaseRobot {
 		}
 	}    
 
-	protected void default_step() throws GameActionException {
-		//handles all attacking actions
-		if(respond_to_threat()){
-			return;
-		}
-
-		if(this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 5){
-			Direction dir = this.myHQLoc.directionTo(this.myRC.getLocation());
-			if(this.myRC.isActive() && this.myRC.canMove(dir)){
-				this.myRC.move(dir);
-			}
-		}
-
-		if(this.myRC.getLocation().distanceSquaredTo(this.enemyHQLoc) < 100)
-			move_to_target(this.enemyHQLoc, false);
-
-		/*
-		MapLocation bestLoc = this.myRC.getLocation();
-		int buildingpastrs = this.myRC.readBroadcast(BaseRobot.PASTR_BUILDING_CHANNEL);
-		if (this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) > 400 && this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam).length > 3 ) {
-			if (this.myRC.readBroadcast(BaseRobot.PASTR_BUILDING_CHANNEL) < 5){
-				double bestCows = this.myRC.senseCowsAtLocation(this.myRC.getLocation());
-				for (MapLocation loc: MapLocation.getAllMapLocationsWithinRadiusSq(this.myRC.getLocation(), 25)){
-					if (cowPotential(loc) > bestCows){
-						bestLoc = loc;
-						bestCows = cowPotential(loc);
-					}
-				}
-				this.myRC.broadcast(BaseRobot.PASTR_BUILDING_CHANNEL, buildingpastrs + 1);
-				this.newAction = new Action(BaseRobot.State.PASTURIZE, bestLoc, 0);
-			}
-		}
-		 */
-	}
-
-	/*
-	private double cowPotential(MapLocation loc) throws GameActionException {
-		double num = 0;
-
-		for (MapLocation otherLoc: MapLocation.getAllMapLocationsWithinRadiusSq(loc, GameConstants.PASTR_RANGE)){
-			if (this.myRC.canSenseSquare(otherLoc)){
-				num += this.myRC.senseCowsAtLocation(otherLoc);
-			}
-		}
-
-		return num;
-	}
-	 */
-
-	private LinkedList<EnemyProfileMessage> getEnemies(int priority) throws GameActionException {
-		LinkedList<EnemyProfileMessage> result = new LinkedList<EnemyProfileMessage>();
-
-		int channel = 0;
-		switch (priority){
-		case 0: channel = BaseRobot.SQUAD_SOLD_HITLIST; break;
-		case 1: channel = BaseRobot.SQUAD_BLDG_HITLIST; break;
-		}
-
-		for (int i=0; i<ENEMY_MEMORY_LEN*2; i+=2){
-			int msg1 = this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + channel + i);
-			int msg2 = this.myRC.readBroadcast(BaseRobot.SQUAD_BASE + channel + i + 1);
-			long msg = msg1; msg <<= 32; msg |= msg2 & 0xFFFFFFFFL;
-			if (msg == 0){
-				break;
-			}
-			else if (msg == -1){
-				continue;
-			}
-			else {
-				result.add(EnemyProfileMessage.decode(msg));
-			}
-		}
-		return result;
-	}
-
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);
 
@@ -443,9 +248,9 @@ public class SoldierPlayer extends BaseRobot {
 		int enemyCount = 0;
 		for (int i = 0; i < nearbyRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(nearbyRobots[i]);
-//			if (ri.location.distanceSquaredTo(this.myRC.getLocation()) > 10) {
-//				continue;
-//			}
+			//			if (ri.location.distanceSquaredTo(this.myRC.getLocation()) > 10) {
+			//				continue;
+			//			}
 			enemyCount++;
 			avgx += ri.location.x;
 			avgy += ri.location.y;
