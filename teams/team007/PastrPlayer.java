@@ -16,6 +16,7 @@ public class PastrPlayer extends BaseRobot{
     }
     
     protected void step() throws GameActionException{
+    	
     	Robot[] nearbyHerders = myRC.senseNearbyGameObjects(Robot.class, 5, myTeam);
     	
     	int robotOrder, channel, id;

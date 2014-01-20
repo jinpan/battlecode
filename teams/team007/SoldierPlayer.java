@@ -155,8 +155,7 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected void pasturize_step() throws GameActionException {
 		if (this.myRC.isActive()){
-			//handles all attacking actions
-
+			
 			if (!isSafe()) {
 				return;
 			}
@@ -242,7 +241,7 @@ public class SoldierPlayer extends BaseRobot {
 			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
 			if (ri.location.distanceSquaredTo(com) <= 35) myRobotCount++;
 		}
-		if (myRobotCount < enemyCount) {
+		if (myRobotCount < enemyCount - 1) {
 			Direction moveDirection = directionTo(com);
 			if (moveDirection != null) moveDirection = moveDirection.opposite();
 			if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {

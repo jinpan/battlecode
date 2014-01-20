@@ -48,6 +48,8 @@ public abstract class BaseRobot {
     public static final int PASTR_ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 3;
     public static final int PASTR_BUILDING_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 4;
     
+    public static final int PASTR_DISTRESS_CHANNEL = 50000;
+    
     protected int inbox;
     protected boolean underAttack;
     
