@@ -50,7 +50,7 @@ public class PastrPlayer extends BaseRobot{
     	double[][] cowGrowth = this.myRC.senseCowGrowth(); //cowGrowth[a][b] is growth at location (a, b)
     	MapLocation base = this.myRC.getLocation();
     	int timeStep = 0;
-    	int timeLim = Math.min(250, this.pastrBuffer*10);
+    	int timeLim = 250;
     	
     	for(int i = 0; i < 8; i++){
     		extrema[i] = base;

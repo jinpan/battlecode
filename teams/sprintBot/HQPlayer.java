@@ -281,7 +281,7 @@ public class HQPlayer extends BaseRobot {
     		//this.detectedVertices.add(vertex);
     		//System.out.println(this.detectedVertices.get(this.detectedVertices.size()-1));
     		vertex= new MapLocation(min(a+width*xadd, a), min(b+height*yadd, b));
-    		block= new PastureBlock(vertex, width-1, height-1);
+    		block= new PastureBlock(vertex, width-1, height-1, 10);
     		this.pastrBlocks.add(block);
         	block.pastrLocs(this.pastrLocs0);
     	} 

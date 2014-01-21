@@ -106,39 +106,18 @@ public class HQPlayer extends BaseRobot {
 		
 		//if there's a pasture to attack, do so
 		if(closestTarget != null && (totalAllies - pastrCount*2) >5){
-			for (Robot robot: allies) {
-				if (idToOrder(robot.getID()) == 0) {continue;}
-
-				order = idToOrder(robot.getID());
-				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
-				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-				
-				this.myRC.broadcast(channel, (int) action.encode());
-				
-				//System.out.println("sending squad to enemy pasture");
-				//this.myRC.setIndicatorString(2, "assigning to nearest pasture");
-			}
+			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
 		} else if (closestTarget == null && neighborAllies > 2 && pastrCount< MAX_PASTURES){ //if there are no pastures to attack, we build our own.
-			for (Robot robot: allies) {
-				if (idToOrder(robot.getID()) == 0) {continue;}
-
-				order = idToOrder(robot.getID());
-				if (pastrLoc!=null){
-					ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-					this.myRC.broadcast(channel, (int) action.encode());
-				}
-			}	 
+			if(pastrLoc != null){
+				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			}
+			
 		} else if (pastrCount >= MAX_PASTURES){ //rally at some point between our HQ and enemy HQ
 			MapLocation rallypoint= this.myHQLoc.add(toEnemy, 10);
-			for (Robot robot: allies) {
-				if (idToOrder(robot.getID()) == 0) {continue;}
-
-				order = idToOrder(robot.getID());
-				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, rallypoint);
-				channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-				this.myRC.broadcast(channel, (int) action.encode());
-			}	 
+			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, rallypoint);
+			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());	 
 		}
 	}
 
@@ -280,19 +259,6 @@ public class HQPlayer extends BaseRobot {
 			block.pastrLocs(this.pastrLocs0);
 		} 
 		return block;
-	}
-
-
-	public void assign_pasture(int order, int counter) throws GameActionException {
-		int channel= BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-		MapLocation pastr=null;
-		if (counter>=0){
-			pastr= this.pastrLocs0.remove(0);
-		} else {
-			pastr= this.pastrLocs0.get(0);
-		}
-		ActionMessage msg= new ActionMessage(BaseRobot.State.DEFEND, 0, pastr);
-		this.myRC.broadcast(channel, (int) msg.encode());
 	}
 
 }

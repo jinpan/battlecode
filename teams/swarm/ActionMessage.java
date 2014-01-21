@@ -49,9 +49,6 @@ public class ActionMessage {
         return result;
     }
     
-    public Action toAction(){
-        return new Action(this.state, this.targetLocation, this.targetID);
-    }
     
     public static ActionMessage decode(long message){
         int y_pos = (int) (message % 0x100); message >>>= 8;

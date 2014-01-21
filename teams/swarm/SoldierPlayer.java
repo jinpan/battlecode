@@ -9,6 +9,8 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation targetLoc; //the previous target we were assigned to
 	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
 	MapLocation ourNoiseLoc;
+	ActionMessage HQMessage;
+	
 	boolean voteRetreat;
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
@@ -24,19 +26,15 @@ public class SoldierPlayer extends BaseRobot {
 	protected void setup() throws GameActionException {
 		super.setup();
 
-		if (this.newAction != null){
-			this.actionQueue.addFirst(this.newAction);
-			this.myState = this.newAction.state;
-			this.newAction = null;
-		}
 	}
 
 	@Override
 	protected void step() throws GameActionException {
+		//TODO: read HQMessage
 
-		this.myRC.setIndicatorString(2, this.myState.name());
-
-		switch (this.myState) {
+		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
+		
+		switch (HQMessage.state) {
 		case ATTACK: this.attack_step(); break;
 		case DEFEND: this.defend_step(); break;
 		}
@@ -51,7 +49,6 @@ public class SoldierPlayer extends BaseRobot {
 			this.myRC.setIndicatorString(2, "Going to aid distressed pasture");
 		}*/
 		
-		Action action = this.actionQueue.getFirst();
 
 		if (!isSafe()) {
 			return;
@@ -63,25 +60,12 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		//if there's nothing we can attack, do a move step
-		if ((this.myRC.canSenseSquare(action.targetLocation) && this.myRC.senseObjectAtLocation(action.targetLocation) == null) || action.targetLocation.equals(this.enemyHQLoc)) {
-			// target was destroyed
-			this.actionQueue.removeFirst();
-			if (this.actionQueue.size() > 0){
-				this.myState = this.actionQueue.getFirst().state;
-				return;
-			} else {
-				MapLocation[] enemies= this.myRC.sensePastrLocations(this.enemyTeam);
-				Action newAction;
-				if(enemies.length != 0){
-					newAction = new Action(BaseRobot.State.ATTACK, enemies[0], 0);
-				} else {
-					newAction = new Action(BaseRobot.State.ATTACK, this.enemyHQLoc, 0);
-				}
-				this.actionQueue.addFirst(newAction);
-				return;
-			}
+		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) 
+				&& this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null) 
+				|| HQMessage.targetLocation.equals(this.enemyHQLoc)) {
+			return;
 		} else {
-			move_to_target(action.targetLocation, false);
+			move_to_target(HQMessage.targetLocation, false);
 			//System.out.println(action.targetLocation);
 			this.myRC.setIndicatorString(1,  "going to enemy pasture");
 		}
@@ -104,7 +88,7 @@ public class SoldierPlayer extends BaseRobot {
 				} else if (moveDirection == null){
 					curPath = Navigation.pathFind(myRC.getLocation(), target, this);
 				}
-				yield();
+				this.myRC.yield();
 			} 
 		} else {
 			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
@@ -125,7 +109,7 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation ourLoc = this.myRC.getLocation();
 		int maxHeur = 0;
 		if(defending)
-			maxHeur = ourLoc.distanceSquaredTo(this.actionQueue.getFirst().targetLocation);
+			maxHeur = ourLoc.distanceSquaredTo(HQMessage.targetLocation);
 		RobotInfo bestRobotInfo = null;
 		
 		for(int i = 0; i < nearbyEnemies.length; i++){
@@ -175,8 +159,7 @@ public class SoldierPlayer extends BaseRobot {
 				return;
 			}
 			
-			Action action = this.actionQueue.getFirst();
-			MapLocation target = action.targetLocation;
+			MapLocation target = HQMessage.targetLocation;
 			
 			boolean atPastr = false;
 			if(this.myRC.canSenseSquare(target) && this.myRC.senseObjectAtLocation(target) != null)
