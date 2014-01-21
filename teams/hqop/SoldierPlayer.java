@@ -1,4 +1,4 @@
-package team007;
+package hqop;
 
 import java.util.LinkedList;
 
@@ -9,6 +9,7 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation targetLoc; //the previous target we were assigned to
 	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
 	MapLocation ourNoiseLoc;
+	boolean voteRetreat;
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
 
@@ -42,13 +43,13 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected void attack_step() throws GameActionException {
-		ActionMessage pastrDistress= ActionMessage.decode(this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL));
+		/*ActionMessage pastrDistress= ActionMessage.decode(this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL));
 		
 		if (pastrDistress.targetID > 0){
 			this.actionQueue.clear();
 			this.actionQueue.add(pastrDistress.toAction());
 			this.myRC.setIndicatorString(2, "Going to aid distressed pasture");
-		}
+		}*/
 		
 		Action action = this.actionQueue.getFirst();
 
@@ -81,6 +82,8 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		} else {
 			move_to_target(action.targetLocation, false);
+			//System.out.println(action.targetLocation);
+			this.myRC.setIndicatorString(1,  "going to enemy pasture");
 		}
 	}
 
@@ -234,38 +237,70 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected boolean isSafe() throws GameActionException {
+		int retreaters= this.myRC.readBroadcast(SQUAD_RETREAT_CHANNEL);
+		
 		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 10000000, myTeam);
 		Robot[] nearbyRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, enemyTeam);
+		
 		int avgx = 0;
 		int avgy = 0;
 		int enemyCount = 0;
+		int enemyHealth = 0;
+		
 		for (int i = 0; i < nearbyRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(nearbyRobots[i]);
-			//			if (ri.location.distanceSquaredTo(this.myRC.getLocation()) > 10) {
-			//				continue;
-			//			}
-			enemyCount++;
-			avgx += ri.location.x;
-			avgy += ri.location.y;
+			if (ri.type== RobotType.SOLDIER){
+				enemyHealth+= ri.health;
+				enemyCount++;
+				avgx += ri.location.x;
+				avgy += ri.location.y;	
+			}
 		}
-		avgx /= (double) nearbyRobots.length;
-		avgy /= (double) nearbyRobots.length;
+		avgx /= (double) enemyCount;
+		avgy /= (double) enemyCount;
 		MapLocation com = new MapLocation(avgx, avgy);
 		int myRobotCount = 0;
+		int myRobotHealth = 0;
+		
 		for (int i = 0; i < myRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
-			if (ri.location.distanceSquaredTo(com) <= 35) myRobotCount++;
-		}
-		if (myRobotCount < enemyCount - 1) {
-			//MapLocation[] enemyPastrs= this.myRC.sensePastrLocations(enemyTeam);
-			if (this.myRC.getLocation().distanceSquaredTo(com)<= 4){
-				this.myRC.selfDestruct(); 
-				return false;
+			if (ri.location.distanceSquaredTo(com) <= 35) {
+				myRobotCount++;
+				myRobotHealth+= ri.health;
+				
 			}
-			Direction moveDirection = directionTo(com);
-			if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-				myRC.move(moveDirection);
-				return false;
+		}
+		
+		//double myHeuristic= myRobotCount*50 + myRobotHealth;
+		//double enemyHeuristic= enemyCount*50 + enemyHealth;
+
+		if (myRobotHealth < 0.8*enemyHealth && myRobotCount < 0.8*enemyCount) {
+			if (!voteRetreat){
+				retreaters++;
+				voteRetreat= true;
+				this.myRC.broadcast(SQUAD_RETREAT_CHANNEL, retreaters);
+			}
+			
+			int allies = this.myRC.readBroadcast(ALLY_NUMBERS);
+			if (retreaters> 0.8*allies){
+				if (this.myRC.getHealth() < 25){
+					if (this.myRC.getLocation().distanceSquaredTo(com)<= 9){
+						this.myRC.selfDestruct(); 
+						return false;
+					}
+
+					Direction moveDirection = directionTo(com);
+					if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+						myRC.move(moveDirection);
+						return false;
+					}
+				} else {
+					Direction moveDirection = this.myRC.getLocation().directionTo(com.add(com.directionTo(myHQLoc), 10));
+					if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+						myRC.move(moveDirection);
+						return false;
+					}
+				}
 			}
 		}
 		return true;
