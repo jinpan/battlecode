@@ -95,9 +95,10 @@ public class HQPlayer extends BaseRobot {
 		Robot[] closeAllies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam);
 		int totalAllies = allies.length;
 		int neighborAllies = closeAllies.length;
+		int alliesInAction = totalAllies - neighborAllies;
 
 		//if there's a pasture to attack, do so
-		if(closestTarget != null && totalAllies > 5 && neighborAllies > 2){
+		if(closestTarget != null && ((alliesInAction > 3 && neighborAllies > 2) || (neighborAllies > 5))){
 			for (Robot robot: allies) {
 				if (idToOrder(robot.getID()) == 0) {continue;}
 
@@ -110,7 +111,7 @@ public class HQPlayer extends BaseRobot {
 					this.myRC.broadcast(channel, (int) action.encode());
 				}
 			}
-		} else if(neighborAllies > 2){ //if there are no pastures to attack, we build our own.
+		} else if((alliesInAction > 5 && neighborAllies > 2) || (neighborAllies > 5)){ //if there are no pastures to attack, we build our own.
 			for (Robot robot: allies) {
 				if (idToOrder(robot.getID()) == 0) {continue;}
 

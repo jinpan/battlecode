@@ -16,8 +16,10 @@ public class NoisePlayer extends BaseRobot{
 	}
 
 	protected void step() throws GameActionException{
-		if(this.myRC.isActive()){
-			if(curLoc.equals(this.myRC.getLocation())){
+		sense_enemies();
+
+		if(this.myRC.isActive()){			
+			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
 				cur = (cur+1)%8;
 				curLoc = extrema[cur];
 			} else {
@@ -30,8 +32,12 @@ public class NoisePlayer extends BaseRobot{
 	
 	protected void sense_enemies() throws GameActionException{
 		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*2, this.enemyTeam);
+		MapLocation pastrLoc= this.myRC.getLocation().add(this.myRC.getLocation().directionTo(this.enemyHQLoc), -1);
+		ActionMessage msg= new ActionMessage(BaseRobot.State.PASTURIZE, enemies.length, pastrLoc);
+		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, (int) msg.encode());
+		
 		if (enemies.length>0){
-			this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, enemies.length);
+			this.myRC.setIndicatorString(2, "Sending distress signal");
 		}
 	}
 

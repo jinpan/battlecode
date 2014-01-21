@@ -43,6 +43,7 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected void attack_step() throws GameActionException {
+		
 		Action action = this.actionQueue.getFirst();
 
 		if (!isSafe()) {

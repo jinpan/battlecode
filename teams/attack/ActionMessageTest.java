@@ -5,7 +5,7 @@ import attack.BaseRobot.State;
 
 public class ActionMessageTest {
 
-	@Test
+	//@Test
 	public void encodeDecodeTest() {
 		
 		int[] ids = {0, 1, 5, 16, 4095};
