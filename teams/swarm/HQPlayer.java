@@ -54,7 +54,7 @@ public class HQPlayer extends BaseRobot {
 		}    	
 
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
-		//	this.spawn();
+			this.spawn();
 			++this.numRobots;
 		}
 
