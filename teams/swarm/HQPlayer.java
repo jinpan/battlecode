@@ -1,5 +1,7 @@
 package swarm;
 
+import swarm.Comms;
+
 import java.util.ArrayList;
 
 import battlecode.common.*;
@@ -18,6 +20,7 @@ public class HQPlayer extends BaseRobot {
 	double[][] spawnRates;
 	double bestSpawnRate;
 	int numBestSpawn;
+	BreadthFirst bfs;
 	
 	int pastrCount = 0;
 
@@ -37,6 +40,7 @@ public class HQPlayer extends BaseRobot {
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
 		this.distToEnemy= this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
+		bfs = new BreadthFirst(myRC, BIG_BOX_SIZE);
 
 		/*double best= 0;
 		int counter=0;
@@ -103,21 +107,32 @@ public class HQPlayer extends BaseRobot {
 		//int alliesInAction = totalAllies - neighborAllies;
 
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
-		
 		//if there's a pasture to attack, do so
-		if(closestTarget != null && (totalAllies - pastrCount*2) >5){
+		if(closestTarget != null && (totalAllies - pastrCount*2) > 5){
 			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			MapLocation allyLocation = findAverageAllyLocation(allies);
+			myRC.setIndicatorString(1, "Posting new path " + allyLocation + " to " + closestTarget);
+			Comms.findPathAndBroadcast(1, allyLocation, closestTarget, BIG_BOX_SIZE, 2, bfs);
+			myRC.setIndicatorString(1, "Posted new path");
 		} else if (closestTarget == null && neighborAllies > 2 && pastrCount< MAX_PASTURES){ //if there are no pastures to attack, we build our own.
 			if(pastrLoc != null){
 				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+				MapLocation allyLocation = findAverageAllyLocation(allies);
+				myRC.setIndicatorString(1, "Posting new path " + allyLocation + " to " + pastrLoc);
+				Comms.findPathAndBroadcast(1, allyLocation, pastrLoc, BIG_BOX_SIZE, 2, bfs);
+				myRC.setIndicatorString(1, "Posted new path");
 			}
 			
 		} else if (pastrCount >= MAX_PASTURES){ //rally at some point between our HQ and enemy HQ
-			MapLocation rallypoint= this.myHQLoc.add(toEnemy, 10);
-			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, rallypoint);
-			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());	 
+			MapLocation rallyPoint= this.myHQLoc.add(toEnemy, 10);
+			MapLocation allyLocation = findAverageAllyLocation(allies);
+			myRC.setIndicatorString(1, "Posting new path " + allyLocation + " to " + rallyPoint);
+			Comms.findPathAndBroadcast(1, allyLocation, rallyPoint, BIG_BOX_SIZE, 2, bfs);
+			myRC.setIndicatorString(1, "Posted new path");
+			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, rallyPoint);
+			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
 		}
 	}
 

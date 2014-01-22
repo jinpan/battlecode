@@ -1,6 +1,12 @@
 package swarm;
 
-import java.util.LinkedList;
+import swarm.BasicPathing;
+
+import swarm.BreadthFirst;
+import swarm.Comms;
+import swarm.VectorFunctions;
+
+import java.util.*;
 
 import battlecode.common.*;
 
@@ -10,16 +16,20 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
 	MapLocation ourNoiseLoc;
 	ActionMessage HQMessage;
+	public int myBand = 100;
+	BreadthFirst bfs;
+	int pathCreatedRound;
 	
 	boolean voteRetreat;
 	protected int soldier_order;
-	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
+	ArrayList<MapLocation> curPath = new ArrayList<MapLocation>();
 
 	public SoldierPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
 
 		this.soldier_order = this.myRC.readBroadcast(BaseRobot.SOLDIER_ORDER_CHANNEL);
 		this.myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
+		bfs = new BreadthFirst(myRC, BIG_BOX_SIZE);
 	}
 
 	@Override
@@ -58,6 +68,7 @@ public class SoldierPlayer extends BaseRobot {
 		if(respond_to_threat(false)){
 			return;
 		}
+		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
 
 		//if there's nothing we can attack, do a move step
 		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) 
@@ -65,8 +76,9 @@ public class SoldierPlayer extends BaseRobot {
 				|| HQMessage.targetLocation.equals(this.enemyHQLoc)) {
 			return;
 		} else {
-			move_to_target(HQMessage.targetLocation, false);
+			//move_to_target(HQMessage.targetLocation, false);
 			//System.out.println(action.targetLocation);
+			navigateByPath(allies);
 			this.myRC.setIndicatorString(1,  "going to enemy pasture");
 		}
 	}
@@ -76,29 +88,18 @@ public class SoldierPlayer extends BaseRobot {
 			return;
 		}
 		if (target.equals(targetLoc)) {
-			if (myRC.getLocation().equals(curPath.getFirst())) {
-				curPath.remove();
-			} else {
-				Direction moveDirection = directionTo(curPath.getFirst());
-				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					if(!sneak)
-						myRC.move(moveDirection);
-					else
-						myRC.sneak(moveDirection);
-				} else if (moveDirection == null){
-					curPath = Navigation.pathFind(myRC.getLocation(), target, this);
-				}
-				this.myRC.yield();
-			} 
+			Direction moveDirection = bfs.getNextDirection(curPath, BIG_BOX_SIZE);
+			BasicPathing.tryToMove(moveDirection, true,true, false, this);
 		} else {
-			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
-			myRC.setIndicatorString(1, curPath.toString());
-			targetLoc = target;
+			//curPath = Navigation.pathFind(myRC.getLocation(), target, this);
+//			curPath = bfs.pathTo(VectorFunctions.mldivide(this.myRC.getLocation(), BIG_BOX_SIZE), VectorFunctions.mldivide(target, BIG_BOX_SIZE), 100000);
+			//myRC.setIndicatorString(1, curPath.toString());
+//			targetLoc = target;
 		}
 	}
 
 	protected boolean respond_to_threat(boolean defending) throws GameActionException{
-		if(this.myRC.getActionDelay() > 1)
+		if(this.myRC.getActionDelay() >= 1)
 			return false;
 
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 36, this.enemyTeam);
@@ -217,6 +218,33 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		return null;        
+	}
+	
+	protected void navigateByPath(Robot[] alliedRobots) throws GameActionException{
+		if(curPath.size()<=1){//
+			//check if a new path is available
+			int broadcastCreatedRound = myRC.readBroadcast(myBand+PATH_CHANNEL);
+			if(pathCreatedRound<broadcastCreatedRound){//download new place to go
+				pathCreatedRound = broadcastCreatedRound;
+				curPath = Comms.downloadPath(this);
+				myRC.setIndicatorString(1, "Downloaded new path");
+			}else{//just waiting around. Consider building a pastr
+//				considerBuildingPastr(alliedRobots);
+			}
+		}
+		if(curPath.size()>0){
+			//follow breadthFirst path...
+			Direction bdir = bfs.getNextDirection(curPath, BIG_BOX_SIZE);
+			//...except if you are getting too far from your allies
+			MapLocation[] alliedRobotLocations = VectorFunctions.robotsToLocations(alliedRobots, myRC, true);
+			if(alliedRobotLocations.length>0){
+				MapLocation allyCenter = VectorFunctions.meanLocation(alliedRobotLocations);
+				if(myRC.getLocation().distanceSquaredTo(allyCenter)>16){
+					bdir = myRC.getLocation().directionTo(allyCenter);
+				}
+			}
+			BasicPathing.tryToMove(bdir, true,true, false, this);
+		}
 	}
 
 	protected boolean isSafe() throws GameActionException {

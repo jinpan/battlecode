@@ -1,5 +1,7 @@
 package swarm;
 
+import swarm.VectorFunctions;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 
@@ -20,6 +22,7 @@ public abstract class BaseRobot {
     protected int ID;
     protected int order;
     protected int pastrBuffer;
+    protected MapLocation rallyPoint;
    
     public static final int IDBOX_BASE = 10000; //store this robot's order in the array
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
@@ -28,6 +31,10 @@ public abstract class BaseRobot {
     public static final int SQUAD_RETREAT_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 10;
     public static final int ALLY_NUMBERS = GameConstants.BROADCAST_MAX_CHANNELS - 15;
     public static final int HQ_BROADCAST_CHANNEL = 0;
+    public static final int PATH_CHANNEL = 30000; // TODO PLEASE FIX ONLY TEMPORARY.
+	public static int directionalLooks[] = new int[]{0,1,-1,2,-2,3,-3,4};
+	public static Direction allDirections[] = Direction.values();
+	public static final int BIG_BOX_SIZE = 5;
     
     protected double[][] spawnRates;
     protected double[][] locScores;
@@ -123,4 +130,18 @@ public abstract class BaseRobot {
     		return a;
     	else return b;
     }
+    
+    protected MapLocation findAverageAllyLocation(Robot[] alliedRobots) throws GameActionException {
+		//find average soldier location
+		MapLocation[] alliedRobotLocations = VectorFunctions.robotsToLocations(alliedRobots, myRC, true);
+		MapLocation startPoint;
+		if(alliedRobotLocations.length>0){
+			startPoint = VectorFunctions.meanLocation(alliedRobotLocations);
+			if(Clock.getRoundNum()%100==0)//update rally point from time to time
+				rallyPoint=startPoint;
+		}else{
+			startPoint = myRC.senseHQLocation();
+		}
+		return startPoint;
+	}
 }
