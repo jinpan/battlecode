@@ -12,7 +12,7 @@ public class Navigation {
 
 	public static SearchNode bugSearch(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
 		thisBot = theBot;
-		boolean debug = true;
+		boolean debug = false;
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);

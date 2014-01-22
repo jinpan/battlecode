@@ -10,6 +10,8 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
 	MapLocation ourNoiseLoc;
 	ActionMessage HQMessage;
+	MapLocation rallyPasture;
+	boolean pastureBuilt = false;
 	
 	boolean voteRetreat;
 	protected int soldier_order;
@@ -35,8 +37,9 @@ public class SoldierPlayer extends BaseRobot {
 		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
 		
 		switch (HQMessage.state) {
-		case ATTACK: this.attack_step(); break;
-		case DEFEND: this.defend_step(); break;
+		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
+		case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
+		default: myRC.setIndicatorString(2, "DEFAULT");
 		}
 	}
 
@@ -63,6 +66,10 @@ public class SoldierPlayer extends BaseRobot {
 		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) 
 				&& this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null) 
 				|| HQMessage.targetLocation.equals(this.enemyHQLoc)) {
+			if (rallyPasture != null)
+				move_to_target(rallyPasture.add(rallyPasture.directionTo(enemyHQLoc), 5), false);
+			else
+				move_to_target(myHQLoc.add(myHQLoc.directionTo(myHQLoc), 5), false);
 			return;
 		} else {
 			move_to_target(HQMessage.targetLocation, false);
@@ -160,6 +167,8 @@ public class SoldierPlayer extends BaseRobot {
 			}
 			
 			MapLocation target = HQMessage.targetLocation;
+			if (target != null)
+				rallyPasture = target;
 			
 			boolean atPastr = false;
 			if(this.myRC.canSenseSquare(target) && this.myRC.senseObjectAtLocation(target) != null)
@@ -188,7 +197,14 @@ public class SoldierPlayer extends BaseRobot {
 			if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
 				sneak = true;
 			}
-			move_to_target(target, sneak);
+			if (pastureBuilt) {
+				move_to_target(target.add(target.directionTo(enemyHQLoc), 5), sneak);
+			}
+			else {
+				move_to_target(target, sneak);
+				pastureBuilt = true;
+			}
+				
 		}
 	}    
 
