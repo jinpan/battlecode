@@ -54,7 +54,7 @@ public class HQPlayer extends BaseRobot {
 		}    	
 
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
-		//	this.spawn();
+			this.spawn();
 			++this.numRobots;
 		}
 
@@ -173,9 +173,10 @@ public class HQPlayer extends BaseRobot {
 	
 	public MapLocation findBestPastureLoc(){
 		MapLocation candidate;
-		while (true){
+		for (int i=0; ; ++i){
+			int standard = 3 - i/10;
 			candidate = findRandomPastureLoc();
-			if (this.spawnRates[candidate.x][candidate.y] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			if (this.spawnRates[candidate.x][candidate.y] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				// high spawn rate and not a void square
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -185,44 +186,7 @@ public class HQPlayer extends BaseRobot {
 				}
 			}
 			
-			else if (this.spawnRates[candidate.x+1][candidate.y+1] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
-				candidate = new MapLocation(candidate.x+1, candidate.y+1);
-				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
-					return candidate;
-				}
-				else {
-					return reflect(candidate);
-				}
-			}
-			else if (this.spawnRates[candidate.x+1][candidate.y-1] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
-				candidate = new MapLocation(candidate.x+1, candidate.y-1);
-				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
-					return candidate;
-				}
-				else {
-					return reflect(candidate);
-				}
-			}
-			else if (this.spawnRates[candidate.x-1][candidate.y-1] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
-				candidate = new MapLocation(candidate.x-1, candidate.y-1);
-				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
-					return candidate;
-				}
-				else {
-					return reflect(candidate);
-				}
-			}
-			else if (this.spawnRates[candidate.x-1][candidate.y+1] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
-				candidate = new MapLocation(candidate.x-1, candidate.y+1);
-				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
-					return candidate;
-				}
-				else {
-					return reflect(candidate);
-				}
-			}
-			
-			else if (this.spawnRates[candidate.x+2][candidate.y+2] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x+2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				candidate = new MapLocation(candidate.x+2, candidate.y+2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -231,7 +195,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x+2][candidate.y-2] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x+2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				candidate = new MapLocation(candidate.x+2, candidate.y-2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -240,7 +204,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x-2][candidate.y-2] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x-2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				candidate = new MapLocation(candidate.x-2, candidate.y-2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -249,7 +213,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x-2][candidate.y+2] >= 3 && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x-2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				candidate = new MapLocation(candidate.x-2, candidate.y+2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
