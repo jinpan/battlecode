@@ -198,7 +198,7 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation target = ourNoiseLoc;
 		if (this.myRC.getLocation().equals(ourNoiseLoc)){
 			//wait for sufficient reinforcements before building shit
-			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 3)
+			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 5)
 				this.myRC.construct(RobotType.NOISETOWER);
 		}
 
