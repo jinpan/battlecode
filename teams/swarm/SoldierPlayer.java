@@ -6,13 +6,11 @@ import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
 
-	MapLocation targetLoc; //the previous target we were assigned to
-	MapLocation ourPastrLoc; //the location of the PASTR we're herding, if any
+	MapLocation targetLoc;
+	MapLocation ourPastrLoc;
 	MapLocation ourNoiseLoc;
-	ActionMessage myAction;
-	MapLocation rallyPasture;
-	boolean pastureBuilt = false;
-	
+	ActionMessage HQMessage;
+
 	boolean voteRetreat;
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
@@ -26,68 +24,50 @@ public class SoldierPlayer extends BaseRobot {
 
 	@Override
 	protected void setup() throws GameActionException {
-		ActionMessage hqmessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
-		/*if (!hqmessage.equals(myAction)) {
-			myAction = hqmessage;
-		}*/ myAction = hqmessage;
+		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
+		ourPastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
+		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
 	}
 
 	@Override
 	protected void step() throws GameActionException {
-		//TODO: read myAction
-		
-		switch (myAction.state) {
-		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
-		case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
-		default: myRC.setIndicatorString(2, "DEFAULT");
+		if(this.myRC.isActive()){
+			switch (HQMessage.state) {
+			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
+			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
+			default: myRC.setIndicatorString(2, "DEFAULT");
+			}
 		}
 	}
 
 	protected void attack_step() throws GameActionException {
-		/*ActionMessage pastrDistress= ActionMessage.decode(this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL));
-		
-		if (pastrDistress.targetID > 0){
-			this.actionQueue.clear();
-			this.actionQueue.add(pastrDistress.toAction());
-			this.myRC.setIndicatorString(2, "Going to aid distressed pasture");
-		}*/
-		
-
-		if (!isSafe()) {
-			return;
-		}
-
-		//handles all attacking actions
-		if(respond_to_threat(false)){
-			return;
-		}
+		if (!isSafe()) { return; }
+		if (respond_to_threat(false)){ return; }
 
 		//if there's nothing we can attack, do a move step
-		if ((this.myRC.canSenseSquare(myAction.targetLocation) 
-				&& this.myRC.senseObjectAtLocation(myAction.targetLocation) == null) 
-				|| myAction.targetLocation.equals(this.enemyHQLoc)) {
-			if (rallyPasture != null)
-				move_to_target(rallyPasture.add(rallyPasture.directionTo(enemyHQLoc), 5), false);
-			else
-				move_to_target(myHQLoc.add(myHQLoc.directionTo(myHQLoc), 5), false);
-			return;
+		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) && this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null)) {
+			move_to_target(ourPastrLoc, false);
 		} else {
-			move_to_target(myAction.targetLocation, false);
-			//System.out.println(action.targetLocation);
-			this.myRC.setIndicatorString(1,  "going to enemy pasture");
+			move_to_target(HQMessage.targetLocation, false);
 		}
 	}
 
 	protected void move_to_target(MapLocation target, boolean sneak) throws GameActionException{
+		System.out.println("moving");
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
 		if (target.equals(targetLoc)) {
+			System.out.println(curPath.getFirst());
 			if (myRC.getLocation().equals(curPath.getFirst())) {
+				System.out.println("here");
 				curPath.remove();
 			} else {
 				Direction moveDirection = directionTo(curPath.getFirst());
+				System.out.println(moveDirection);
+				this.myRC.setIndicatorString(0, moveDirection.toString());
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+					this.myRC.setIndicatorString(0,  "going to pasture");
 					if(!sneak)
 						myRC.move(moveDirection);
 					else
@@ -98,6 +78,7 @@ public class SoldierPlayer extends BaseRobot {
 				this.myRC.yield();
 			} 
 		} else {
+			System.out.println("calculating path " + target);
 			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
 			myRC.setIndicatorString(1, curPath.toString());
 			targetLoc = target;
@@ -109,16 +90,16 @@ public class SoldierPlayer extends BaseRobot {
 			return false;
 
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 36, this.enemyTeam);
-		
+
 		if(nearbyEnemies.length == 0)
 			return false;
 
 		MapLocation ourLoc = this.myRC.getLocation();
 		int maxHeur = 0;
 		if(defending)
-			maxHeur = ourLoc.distanceSquaredTo(myAction.targetLocation);
+			maxHeur = ourLoc.distanceSquaredTo(HQMessage.targetLocation);
 		RobotInfo bestRobotInfo = null;
-		
+
 		for(int i = 0; i < nearbyEnemies.length; i++){
 			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
 			int thisHeur = getHeuristic(cur, ourLoc);
@@ -138,70 +119,58 @@ public class SoldierPlayer extends BaseRobot {
 			}
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	protected int getHeuristic(RobotInfo r, MapLocation orig){
 		int health = (int)r.health;
 		int dist = orig.distanceSquaredTo(r.location);
 		RobotType type = r.type;
-		
+
 		int heuristic = 200;
 		if(type == RobotType.PASTR)
 			heuristic -= health * 7 / 10;
 		else
 			heuristic -= health;
 		heuristic -= dist * 4;
-		
-		
+
+
 		return heuristic;
 	}
 
 	protected void defend_step() throws GameActionException {		
-		if (this.myRC.isActive()){
-			//handles all attacking actions
+		if (!isSafe()) { return; }
 
-			if (!isSafe()) {
-				return;
-			}
-			
-			MapLocation target = myAction.targetLocation;
-			if (target != null)
-				rallyPasture = target;
-			
-			boolean atPastr = false;
-			if(this.myRC.canSenseSquare(target) && this.myRC.senseObjectAtLocation(target) != null)
-				atPastr = true;
+		boolean atPastr = false;
+		if(this.myRC.canSenseSquare(ourPastrLoc) && this.myRC.senseObjectAtLocation(ourPastrLoc) != null)
+			atPastr = true;
+		if(respond_to_threat(atPastr)){ return; }
 
-			if(respond_to_threat(atPastr)){
-				return;
-			}
-
-			if (this.myRC.getLocation().equals(target)){
+		MapLocation target = ourNoiseLoc;
+		if (this.myRC.getLocation().equals(ourNoiseLoc)){
+			//wait for sufficient reinforcements before building shit
+			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 5)
 				this.myRC.construct(RobotType.NOISETOWER);
-			}
+		}
+		
+		if (this.myRC.canSenseSquare(target)){
+			GameObject squattingRobot = this.myRC.senseObjectAtLocation(target);
+			if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
+				target = ourPastrLoc;
 
-			if (this.myRC.canSenseSquare(target)){
-				GameObject squattingRobot = this.myRC.senseObjectAtLocation(target);
-				if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
-					ourNoiseLoc = target.add(target.directionTo(this.enemyHQLoc), -1);
-					target = ourNoiseLoc;
-
-					if(this.myRC.getLocation().equals(ourNoiseLoc) && this.myRC.senseRobotInfo((Robot)squattingRobot).isConstructing 
-						&& this.myRC.senseRobotInfo((Robot)squattingRobot).constructingRounds <= 50) {
-							this.myRC.construct(RobotType.PASTR);
-					} 
+				RobotInfo pastrInfo = this.myRC.senseRobotInfo((Robot)squattingRobot);
+				if(this.myRC.getLocation().equals(ourPastrLoc) && pastrInfo.isConstructing && pastrInfo.constructingRounds <= 50) {
+					this.myRC.construct(RobotType.PASTR);
 				}
 			}
-
-			boolean sneak = false;
-			if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
-				sneak = true;
-			}
-			move_to_target(target, sneak);
-				
 		}
+
+		boolean sneak = false;
+		if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
+			sneak = true;
+		}
+		move_to_target(target, sneak);
 	}    
 
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
@@ -233,15 +202,15 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected boolean isSafe() throws GameActionException {
 		int retreaters= this.myRC.readBroadcast(SQUAD_RETREAT_CHANNEL);
-		
+
 		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 10000000, myTeam);
 		Robot[] nearbyRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, enemyTeam);
-		
+
 		int avgx = 0;
 		int avgy = 0;
 		int enemyCount = 0;
 		int enemyHealth = 0;
-		
+
 		for (int i = 0; i < nearbyRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(nearbyRobots[i]);
 			if (ri.type== RobotType.SOLDIER){
@@ -256,16 +225,16 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation com = new MapLocation(avgx, avgy);
 		int myRobotCount = 0;
 		int myRobotHealth = 0;
-		
+
 		for (int i = 0; i < myRobots.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
 			if (ri.location.distanceSquaredTo(com) <= 35) {
 				myRobotCount++;
 				myRobotHealth+= ri.health;
-				
+
 			}
 		}
-		
+
 		//double myHeuristic= myRobotCount*50 + myRobotHealth;
 		//double enemyHeuristic= enemyCount*50 + enemyHealth;
 
@@ -275,7 +244,7 @@ public class SoldierPlayer extends BaseRobot {
 				voteRetreat= true;
 				this.myRC.broadcast(SQUAD_RETREAT_CHANNEL, retreaters);
 			}
-			
+
 			int allies = this.myRC.readBroadcast(ALLY_NUMBERS);
 			if (retreaters> 0.8*allies){
 				if (this.myRC.getHealth() < 25){
