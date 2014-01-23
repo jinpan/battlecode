@@ -148,14 +148,18 @@ public class HQPlayer extends BaseRobot {
 	}
 
 	private boolean spawn() throws GameActionException {
-		if (this.myRC.senseObjectAtLocation(this.myHQLoc.add(this.toEnemy)) == null){
+		TerrainTile ter = this.myRC.senseTerrainTile(this.myHQLoc.add(this.toEnemy));
+		
+		if (this.myRC.senseObjectAtLocation(this.myHQLoc.add(this.toEnemy)) == null && (ter == TerrainTile.NORMAL || ter == TerrainTile.ROAD)){
 			this.myRC.spawn(this.toEnemy);
 			return true;
 		}
 		else {
 			for (Direction dir: BaseRobot.dirs){
-				if (dir != this.toEnemy
-						&& this.myRC.senseObjectAtLocation(this.myHQLoc.add(dir)) == null){
+				ter = this.myRC.senseTerrainTile(this.myHQLoc.add(dir));
+
+				if (dir != this.toEnemy && this.myRC.senseObjectAtLocation(this.myHQLoc.add(dir)) == null
+						&& (ter == TerrainTile.NORMAL || ter == TerrainTile.ROAD)){
 					this.myRC.spawn(dir);
 					return true;
 				}
