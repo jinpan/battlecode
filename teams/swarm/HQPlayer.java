@@ -50,6 +50,11 @@ public class HQPlayer extends BaseRobot {
 			}
 		}
 		this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
+		
+        ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+        this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
+        ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(pastrLoc.directionTo(this.enemyHQLoc)));
+        this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
 	}
 
 	@Override
