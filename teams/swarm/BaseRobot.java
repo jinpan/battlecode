@@ -28,6 +28,7 @@ public abstract class BaseRobot {
     public static final int SQUAD_RETREAT_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 10;
     public static final int ALLY_NUMBERS = GameConstants.BROADCAST_MAX_CHANNELS - 15;
     public static final int HQ_BROADCAST_CHANNEL = 0;
+    public static final int SQUAD_MESSAGE_CHANNEL = 100;
     
     protected double[][] spawnRates;
     protected double[][] locScores;

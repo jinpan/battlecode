@@ -69,6 +69,7 @@ public class HQPlayer extends BaseRobot {
 
 	@Override
 	protected void step() throws GameActionException {
+		
 		pastrCount = this.myRC.sensePastrLocations(myTeam).length;
 		
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
@@ -91,8 +92,6 @@ public class HQPlayer extends BaseRobot {
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
 				}
-				//EnemyProfileMessage enemyProf = new EnemyProfileMessage(0, 200, targets[i], Clock.getRoundNum());
-				//this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * i, enemyProf.encode());
 			}
 		}
 		
@@ -103,22 +102,20 @@ public class HQPlayer extends BaseRobot {
 		//int alliesInAction = totalAllies - neighborAllies;
 
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
-		
 		//if there's a pasture to attack, do so
 		if(closestTarget != null && (totalAllies - pastrCount*2) >5){
 			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
-		} else if (closestTarget == null && neighborAllies > 2 && pastrCount< MAX_PASTURES){ 
+		} else if (closestTarget == null && pastrCount< MAX_PASTURES){ 
 			//if there are no pastures to attack, we build our own.
 			if(pastrLoc != null){
 				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
-				System.out.println("broadcasting pasture loc " + pastrLoc);
 			}
 			
 		} else if (pastrCount >= MAX_PASTURES){ //rally at some point between our HQ and enemy HQ
 			//MapLocation rallypoint= this.myHQLoc.add(toEnemy, 10);
-			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, pastrLoc);
+			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, pastrLoc.add(pastrLoc.directionTo(enemyHQLoc), 2));
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());	 
 		}
 	}
