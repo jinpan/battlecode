@@ -34,9 +34,9 @@ public class SoldierPlayer extends BaseRobot {
 	protected void step() throws GameActionException {
 		if(this.myRC.isActive()){
 			switch (HQMessage.state) {
-			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
-			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
-			default: myRC.setIndicatorString(2, "DEFAULT");
+				case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
+				case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
+				default: myRC.setIndicatorString(2, "DEFAULT");
 			}
 		}
 	}
@@ -54,15 +54,13 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected void move_to_target(MapLocation target, boolean sneak) throws GameActionException{
-		System.out.println("moving");
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
 		myRC.setIndicatorString(2, Boolean.toString(straightMovement));
 		if (target.equals(targetLoc)) {
-			System.out.println(curPath.getFirst());
+			// System.out.println(curPath.getFirst());
 			if (myRC.getLocation().equals(curPath.getFirst())) {
-				System.out.println("here");
 				curPath.remove();
 				straightMovement = false;
 				myRC.setIndicatorString(2, Boolean.toString(straightMovement));
@@ -71,8 +69,7 @@ public class SoldierPlayer extends BaseRobot {
 				if (straightMovement && moveDirection == null) {
 					moveDirection = directionTo(target);
 				}
-				System.out.println(moveDirection);
-				//this.myRC.setIndicatorString(0, moveDirection.toString());
+				// System.out.println(moveDirection);
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
 					this.myRC.setIndicatorString(0, "going to pasture");
 					if(!sneak)
@@ -80,7 +77,6 @@ public class SoldierPlayer extends BaseRobot {
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					System.out.println("calculating path " + target);
 					LinkedList<MapLocation> newCurPath = Navigation.pathFind(myRC.getLocation(), target, this);
 					newCurPath.remove();
 					if (!curPath.equals(newCurPath)) {
@@ -92,10 +88,10 @@ public class SoldierPlayer extends BaseRobot {
 					myRC.setIndicatorString(1, curPath.toString());
 
 				}
-				this.myRC.yield();
+				//this.myRC.yield();
+				return;
 			}
 		} else {
-			System.out.println("calculating path " + target);
 			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
 			myRC.setIndicatorString(1, curPath.toString());
 			targetLoc = target;
@@ -156,19 +152,70 @@ public class SoldierPlayer extends BaseRobot {
 		return heuristic;
 	}
 
-	protected void defend_step() throws GameActionException {		
-		if (!isSafe()) { return; }
+	protected void defend_step() throws GameActionException {
+		Robot[] robots = this.myRC.senseNearbyGameObjects(Robot.class, 35);
+		MapLocation myCOM = this.calculateCOM(robots, this.myTeam);
+		MapLocation enemyCOM = this.calculateCOM(robots, this.enemyTeam);
 
-		boolean atPastr = false;
-		if(this.myRC.canSenseSquare(ourPastrLoc) && this.myRC.senseObjectAtLocation(ourPastrLoc) != null)
-			atPastr = true;
-		if(respond_to_threat(atPastr)){ return; }
+		if (enemyCOM != null && this.myRC.getLocation().distanceSquaredTo(HQMessage.targetLocation) < 50){
+			// ahoy! there are enemies in our midst
+			Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.enemyTeam);
+			
+			if (myCOM == null || this.myRC.getLocation().distanceSquaredTo(myCOM) > 0.8 * this.myRC.getLocation().distanceSquaredTo(enemyCOM)){
+				// I'm at the front of the battle
+				if (enemies.length > 0){
+					double minHealth = 101;
+					RobotInfo info;
+					MapLocation target = null;
+					
+					for (Robot enemy: enemies){
+						info = this.myRC.senseRobotInfo(enemy);
+						if (info.health < minHealth){
+							minHealth = info.health;
+							target = info.location;
+						}
+					}
+
+					if (this.myRC.isActive() && target != null)
+						this.myRC.attackSquare(target);
+				}
+			}
+			else {
+				if (enemies.length > 0){
+					// I'm in the back but I can still attack something
+					double minHealth = 101;
+					RobotInfo info;
+					MapLocation target = null;
+					
+					for (Robot enemy: enemies){
+						info = this.myRC.senseRobotInfo(enemy);
+						if (info.health < minHealth){
+							minHealth = info.health;
+							target = info.location;
+						}
+					}
+					
+					if (this.myRC.isActive() && target != null)
+						this.myRC.attackSquare(target);
+				}
+				else {
+					// I'm in the back but I want to move to the front
+					Direction dir = this.directionTo(enemyCOM);
+					if (dir != null){
+						this.myRC.move(dir);
+					}
+					
+				}
+			}
+		}
 
 		MapLocation target = ourNoiseLoc;
 		if (this.myRC.getLocation().equals(ourNoiseLoc)){
-			//wait for sufficient reinforcements before building shit
+			//wait for sufficient reinforcements before building
 			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 5)
-				this.myRC.construct(RobotType.NOISETOWER);
+				System.out.println("MAKING A NOISE TOWER");
+				if (this.myRC.isActive())
+					this.myRC.construct(RobotType.NOISETOWER);
 		}
 
 		if (this.myRC.canSenseSquare(target)){
@@ -178,17 +225,56 @@ public class SoldierPlayer extends BaseRobot {
 
 				RobotInfo pastrInfo = this.myRC.senseRobotInfo((Robot)squattingRobot);
 				if(this.myRC.getLocation().equals(ourPastrLoc) && pastrInfo.isConstructing && pastrInfo.constructingRounds <= 50) {
-					this.myRC.construct(RobotType.PASTR);
+					System.out.println("MAKING A PASTR");
+					if (this.myRC.isActive())
+						this.myRC.construct(RobotType.PASTR);
 				}
 			}
 		}
 
-		boolean sneak = false;
-		if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
-			sneak = true;
-		}
+		boolean sneak = this.myRC.getLocation().distanceSquaredTo(target) < 16;
 		move_to_target(target, sneak);
-	}    
+	}
+	
+	private MapLocation selfDestructSpot(Robot[] robots, MapLocation enemyCOM) throws GameActionException{
+		int[][] map = new int[this.myRC.getMapWidth()][this.myRC.getMapHeight()];
+		RobotInfo info;
+		for (Robot robot: robots){
+			info = this.myRC.senseRobotInfo(robot);
+			if (info.team == this.enemyTeam && info.type == RobotType.SOLDIER){
+				map[info.location.x][info.location.y] = 1;
+			}
+		}
+		if (map[enemyCOM.x][enemyCOM.y] != 1){
+			return enemyCOM;
+		}
+		MapLocation candidate;
+		for (Direction dir: BaseRobot.dirs){
+			candidate = enemyCOM.add(dir);
+			if (map[candidate.x][candidate.y] != 1){
+				return candidate;
+			}
+		}
+		return null;
+	}
+	
+	private MapLocation calculateCOM(Robot[] robots, Team team) throws GameActionException{
+		int x = 0, y = 0;
+		int count = 0;
+		RobotInfo info;
+		for (Robot robot: robots){
+			info = this.myRC.senseRobotInfo(robot);
+			if (info.team == team && info.type == RobotType.SOLDIER){
+				x += info.location.x;
+				y += info.location.y;
+				++count;
+			}
+		}
+		if (count == 0){
+			return null;
+		}
+		return new MapLocation(x/count, y/count);
+	}
 
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);
@@ -251,9 +337,6 @@ public class SoldierPlayer extends BaseRobot {
 
 			}
 		}
-
-		//double myHeuristic= myRobotCount*50 + myRobotHealth;
-		//double enemyHeuristic= enemyCount*50 + enemyHealth;
 
 		if (myRobotHealth < 0.5*enemyHealth && myRobotCount < 0.5*enemyCount) {
 			if (!voteRetreat){
