@@ -209,13 +209,7 @@ public class SoldierPlayer extends BaseRobot {
 			if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
 				sneak = true;
 			}
-			if (pastureBuilt) {
-				move_to_target(target.add(target.directionTo(enemyHQLoc), 5), sneak);
-			}
-			else {
-				move_to_target(target, sneak);
-				pastureBuilt = true;
-			}
+			move_to_target(target, sneak);
 				
 		}
 	}    
