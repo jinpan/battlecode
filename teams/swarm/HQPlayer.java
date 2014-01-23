@@ -5,16 +5,16 @@ import java.util.ArrayList;
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
-	
+
 	public static final int MAX_PASTURES = 1;
 
 	double[][] spawnRates;
 	int mapHeight; int mapWidth;
-	
+
 	Direction toEnemy;
 	int distToEnemy;
 	MapLocation defaultSpawnLoc;
-	
+
 	int pastrCount = 0;
 
 	MapLocation pastrLoc;
@@ -55,7 +55,7 @@ public class HQPlayer extends BaseRobot {
 	@Override
 	protected void step() throws GameActionException {
 		pastrCount = this.myRC.sensePastrLocations(myTeam).length;
-		
+
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
 		if (this.myRC.isActive() && nearbyEnemies.length != 0) {
 			this.shoot(nearbyEnemies);
@@ -69,37 +69,40 @@ public class HQPlayer extends BaseRobot {
 		int dist = maxDist;
 		MapLocation closestTarget = null;
 
-		//finds enemy pastures and posts locations on message board
+		//finds closest enemy pasture
 		MapLocation[] targets = this.myRC.sensePastrLocations(this.enemyTeam);
 		for (int i=0; i<targets.length; ++i){
 			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
-					dist = targets[i].distanceSquaredTo(this.myHQLoc);
 				}
 			}
 		}
-		
-		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
-		Robot[] closeAllies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam);
-		int totalAllies = allies.length;
-		int neighborAllies = closeAllies.length;
-		int soldierCount = totalAllies - 2 * pastrCount;
 
-		this.myRC.broadcast(ALLY_NUMBERS, soldierCount);
-		
-		//if there's a pasture to attack, do so
-		if(closestTarget != null && soldierCount > 5){
-			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
-			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
-		} else if (closestTarget == null && pastrCount < MAX_PASTURES){ //if there are no pastures to attack, we build our own.
-			ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, noiseDir.ordinal(), pastrLoc);
-			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
-			
-		} else if (pastrCount >= MAX_PASTURES){ //rally at some point between our HQ and enemy HQ
-			MapLocation rallypoint= this.pastrLoc;
-			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, rallypoint);
-			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());	 
+		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
+		int totalAllies = allies.length;
+		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
+
+		boolean pastrBuilt = (pastrCount > 0);
+		int nearEnemies = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
+
+		if(pastrBuilt){
+			//if we already built a pasture, don't leave it if enemies nearby
+			if(closestTarget != null && nearEnemies == 0){
+				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			} else {
+				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());                        
+			}
+		} else {
+			if(closestTarget != null && totalAllies > 8){
+				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			} else {
+				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			}
 		}
 	}
 
@@ -146,19 +149,19 @@ public class HQPlayer extends BaseRobot {
 
 		return false; //give up    	
 	}
-	
+
 	private MapLocation reflect(MapLocation loc){
 		int midX2 = (this.myHQLoc.x + this.enemyHQLoc.x), midY2 = (this.myHQLoc.y + this.enemyHQLoc.y);
 		return new MapLocation(midX2 - loc.x, midY2 - loc.y);
 	}
-	
+
 	private MapLocation findRandomPastureLoc(int standard){
 		// finds a random location.  returns a random location that is at least 2 units
 		// away from the edges.
 		int x, y;
 		x = (int) (this.random() * (this.mapWidth - 4)) + 2;
 		y = (int) (this.random() * (this.mapHeight - 4)) + 2;
-		
+
 		if (standard >= 2){
 			if (this.myHQLoc.x <= this.enemyHQLoc.x){
 				x = x/3 + 2;
@@ -173,18 +176,18 @@ public class HQPlayer extends BaseRobot {
 				y = this.mapHeight - y/3 - 3;
 			}
 		}
-		
+
 		return new MapLocation(x, y);
 	}
-	
+
 	public MapLocation findBestPastureLoc(){
 		MapLocation candidate;
-		
+
 		for (int i=0; ; ++i){
 			int standard = 3 - i/10;
 			candidate = findRandomPastureLoc(standard);
 			System.out.println(standard);
-			
+
 			if (this.spawnRates[candidate.x][candidate.y] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				// high spawn rate and not a void square
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
@@ -194,7 +197,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			
+
 			else if (this.spawnRates[candidate.x+2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				candidate = new MapLocation(candidate.x+2, candidate.y+2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
@@ -232,7 +235,7 @@ public class HQPlayer extends BaseRobot {
 				}
 			}
 		}
-		
+
 	}
 
 }
