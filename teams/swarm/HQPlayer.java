@@ -64,6 +64,8 @@ public class HQPlayer extends BaseRobot {
 		System.out.println(block==null);
 		pastrLoc = this.pastrLocs0.get(0);
 		System.out.println(pastrLoc);
+		
+		this.myRC.broadcast(arg0, arg1);
 
 	}
 
@@ -84,23 +86,18 @@ public class HQPlayer extends BaseRobot {
 		int dist = maxDist;
 		MapLocation closestTarget = null;
 
-		//finds enemy pastures and posts locations on message board
+		//finds closest enemy pasture
 		MapLocation[] targets = this.myRC.sensePastrLocations(this.enemyTeam);
 		for (int i=0; i<targets.length; ++i){
 			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
 				}
-				//EnemyProfileMessage enemyProf = new EnemyProfileMessage(0, 200, targets[i], Clock.getRoundNum());
-				//this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * i, enemyProf.encode());
 			}
 		}
 		
 		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
-		Robot[] closeAllies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam);
 		int totalAllies = allies.length;
-		int neighborAllies = closeAllies.length;
-		//int alliesInAction = totalAllies - neighborAllies;
 
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
 		

@@ -29,6 +29,9 @@ public abstract class BaseRobot {
     public static final int ALLY_NUMBERS = GameConstants.BROADCAST_MAX_CHANNELS - 15;
     public static final int HQ_BROADCAST_CHANNEL = 0;
     
+    public static final int PASTR_LOC_CHANNEL = 1;
+    public static final int NOISE_LOC_CHANNEL = 2;
+    
     protected double[][] spawnRates;
     protected double[][] locScores;
 
@@ -38,7 +41,6 @@ public abstract class BaseRobot {
     
     public BaseRobot(RobotController myRC) throws GameActionException {
         this.myRC = myRC;
-        
         this.construct_core();
     }
     
@@ -73,21 +75,12 @@ public abstract class BaseRobot {
         this.myRC.yield();
     }
     
-    /*
-     * Should be overridden in children
-     */
     protected void setup() throws GameActionException {
-    	
     }
     
     protected void step() throws GameActionException {
-        
     }
     
-    /*
-     * RobotController "overrides"
-     */
- 
     protected boolean canMove(Direction dir) {
     	MapLocation destination = this.myRC.getLocation().add(dir);
     	
@@ -97,8 +90,7 @@ public abstract class BaseRobot {
 
     public int idToOrder(int ID) throws GameActionException{
 		return this.myRC.readBroadcast(IDBOX_BASE + ID);
-	}
-	
+    }
 	
 	//Cheaper/better math functions
 	protected float random(){

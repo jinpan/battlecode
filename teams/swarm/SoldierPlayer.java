@@ -34,8 +34,6 @@ public class SoldierPlayer extends BaseRobot {
 
 	@Override
 	protected void step() throws GameActionException {
-		//TODO: read HQMessage
-		
 		switch (HQMessage.state) {
 		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
 		case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
