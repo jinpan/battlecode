@@ -30,7 +30,7 @@ public class NoisePlayer extends BaseRobot{
 	}
 	
 	protected void sense_enemies() throws GameActionException{
-		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*4, this.enemyTeam);
+		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*5, this.enemyTeam);
 		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, enemies.length);
 	}
 

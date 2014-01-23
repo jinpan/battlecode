@@ -4,6 +4,9 @@ import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
 	int strategy = 1; 
+	
+	boolean offensive;
+	int attackDist;
 
 	double[][] spawnRates;
 	int mapHeight; int mapWidth;
@@ -31,6 +34,20 @@ public class HQPlayer extends BaseRobot {
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
 		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
+		
+		if (distToEnemy> 30*30){
+			offensive = false;
+		} else {
+			offensive = true;
+		}
+		
+		System.out.println(offensive);
+		
+		if (offensive){
+			attackDist = maxDist;
+		} else {
+			attackDist = maxDist/4;
+		}
 
 		set_pastr_loc();
 		
@@ -78,7 +95,7 @@ public class HQPlayer extends BaseRobot {
 			++this.numRobots;
 		}
 
-		int dist = maxDist;
+		int dist = attackDist;
 		MapLocation closestTarget = null;
 
 		//finds closest enemy pasture
@@ -87,6 +104,7 @@ public class HQPlayer extends BaseRobot {
 			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
+					dist = targets[i].distanceSquaredTo(this.myHQLoc);
 				}
 			}
 		}
@@ -101,7 +119,7 @@ public class HQPlayer extends BaseRobot {
 		int totalAllies = allies.length;
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
 		
-		int nearEnemies = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
+		int threateningPastr = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
 
 		ActionMessage action = null;
 		
@@ -111,7 +129,7 @@ public class HQPlayer extends BaseRobot {
 			//if we don't have a pasture, attack if we have a big enough squad
 			boolean attack = false;
 			if(pastrBuilt){
-				if(closestTarget != null && nearEnemies == 0)
+				if(closestTarget != null && threateningPastr == 0)
 					attack = true;
 			} else {
 				if(closestTarget != null && totalAllies > 8)

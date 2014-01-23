@@ -139,10 +139,11 @@ public class SoldierPlayer extends BaseRobot {
 		if(nearbyEnemies.length == 0)
 			return false;
 
+		//MapLocation myLoc = this.myRC.getLocation();
 		MapLocation myLoc;
-		if (myCOM!= null)
+		if (myCOM!= null) {
 			myLoc = myCOM;
-		else
+		} else
 			myLoc = this.myRC.getLocation();
 		
 		int maxHeur = 0;
@@ -221,33 +222,7 @@ public class SoldierPlayer extends BaseRobot {
 		move_to_target(target, sneak);
 	}    
 
-	protected Direction directionTo(MapLocation loc) throws GameActionException {
-		Direction dir = this.myRC.getLocation().directionTo(loc);
-
-		if (this.myRC.canMove(dir)){
-			return dir;
-		}
-
-		Direction dirA, dirB;
-		if (this.random() < 0.5){
-			dirA = dir.rotateLeft();
-			dirB = dir.rotateRight();
-		}
-		else {
-			dirA = dir.rotateRight();
-			dirB = dir.rotateLeft();
-		}
-
-		if (this.myRC.canMove(dirA)){
-			return dirA;
-		}
-		else if (this.myRC.canMove(dirB)){
-			return dirB;
-		}
-
-		return null;        
-	}
-
+	
 	protected boolean isSafe() throws GameActionException {
 
 		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 10000000, myTeam);
@@ -307,7 +282,6 @@ public class SoldierPlayer extends BaseRobot {
 					moveDirection = this.myRC.getLocation().directionTo(com.add(com.directionTo(ourPastrLoc), 7));
 				
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					System.out.println("retreating to com " + myCOM);
 					myRC.move(moveDirection);
 					return false;
 				}
@@ -328,12 +302,38 @@ public class SoldierPlayer extends BaseRobot {
 		if (myCOM!= null) {
 			Direction dir = this.myRC.getLocation().directionTo(myCOM);
 			if (this.myRC.isActive()&& dir!= null && canMove(dir)) {
-				System.out.println("moving to center of mass, still safe");
 				this.myRC.move(dir);
 			}
 		}
 		return true;
 	}
 
+
+	protected Direction directionTo(MapLocation loc) throws GameActionException {
+		Direction dir = this.myRC.getLocation().directionTo(loc);
+
+		if (this.myRC.canMove(dir)){
+			return dir;
+		}
+
+		Direction dirA, dirB;
+		if (this.random() < 0.5){
+			dirA = dir.rotateLeft();
+			dirB = dir.rotateRight();
+		}
+		else {
+			dirA = dir.rotateRight();
+			dirB = dir.rotateLeft();
+		}
+
+		if (this.myRC.canMove(dirA)){
+			return dirA;
+		}
+		else if (this.myRC.canMove(dirB)){
+			return dirB;
+		}
+
+		return null;        
+	}
 
 }
