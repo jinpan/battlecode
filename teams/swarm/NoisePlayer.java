@@ -15,7 +15,7 @@ public class NoisePlayer extends BaseRobot{
 	}
 
 	protected void step() throws GameActionException{
-		//sense_enemies();
+		sense_enemies();
 
 		if(this.myRC.isActive()){			
 			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
@@ -31,17 +31,10 @@ public class NoisePlayer extends BaseRobot{
 	
 	protected void sense_enemies() throws GameActionException{
 		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*2, this.enemyTeam);
-		MapLocation pastrLoc= this.myRC.getLocation().add(this.myRC.getLocation().directionTo(this.enemyHQLoc), -1);
-		ActionMessage msg= new ActionMessage(BaseRobot.State.DEFEND, enemies.length, pastrLoc);
-		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, (int) msg.encode());
-		
-		if (enemies.length>1){
-			this.myRC.setIndicatorString(2, "Sending distress signal");
-		}
+		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, enemies.length);
 	}
 
 	protected void get_herding_extrema() throws GameActionException{ //this finds how far the robots can go in any direction
-		double[][] cowGrowth = this.myRC.senseCowGrowth(); //cowGrowth[a][b] is growth at location (a, b)
 		MapLocation base = this.myRC.getLocation();
 
 		for(int i = 0; i < 8; i++){

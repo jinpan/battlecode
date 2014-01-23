@@ -18,6 +18,7 @@ public class HQPlayer extends BaseRobot {
 	double[][] spawnRates;
 	double bestSpawnRate;
 	int numBestSpawn;
+	MapLocation notDeadZone;
 	
 	int pastrCount = 0;
 
@@ -38,6 +39,8 @@ public class HQPlayer extends BaseRobot {
 		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
 		
+		this.notDeadZone = this.myHQLoc.add(toEnemy.rotateLeft(), 10);
+
 		double best= 0;
 		int counter=0;
 
@@ -58,15 +61,16 @@ public class HQPlayer extends BaseRobot {
 		
 		this.pastrBlocks= new ArrayList<PastureBlock>();
 		this.pastrLocs0= new ArrayList<MapLocation>();
-
 		PastureBlock block = this.findPastureBlock();
-		
-		System.out.println(block==null);
-		pastrLoc = this.pastrLocs0.get(0);
-		System.out.println(pastrLoc);
-		
-		this.myRC.broadcast(arg0, arg1);
-
+		if (block!= null) {
+			pastrLoc = this.pastrLocs0.get(0);
+		} else {
+			pastrLoc = notDeadZone;
+		}
+		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
+		ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(pastrLoc.directionTo(this.enemyHQLoc)));
+		this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
 	}
 
 	@Override
@@ -98,9 +102,9 @@ public class HQPlayer extends BaseRobot {
 		
 		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
 		int totalAllies = allies.length;
-
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
 		
+		/*
 		//if there's a pasture to attack, do so
 		if(closestTarget != null && (totalAllies - pastrCount*2) >5){
 			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
@@ -115,8 +119,31 @@ public class HQPlayer extends BaseRobot {
 			
 		} else if (pastrCount >= MAX_PASTURES){ //rally at some point between our HQ and enemy HQ
 			//MapLocation rallypoint= this.myHQLoc.add(toEnemy, 10);
-			ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, pastrLoc);
+			ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());	 
+		}
+		*/
+		
+		boolean pastrBuilt = (pastrCount > 0);
+		int nearEnemies = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
+		
+		if(pastrBuilt){
+			//if we already built a pasture, don't leave it if enemies nearby
+			if(closestTarget != null && nearEnemies == 0){
+				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			} else {
+				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());			
+			}
+		} else {
+			if(closestTarget != null && totalAllies > 8){
+				ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			} else {
+				ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
+			}
 		}
 	}
 
@@ -296,6 +323,20 @@ public class HQPlayer extends BaseRobot {
 			int y2= this.myHQLoc.y+i;
 			int x1= this.myHQLoc.x-i; 
 			int x2= this.myHQLoc.x+i;
+			if (notDeadZone== null){
+				if (isGoodLoc(x1, y1) && spawnRates[x1][y1]>0) {
+					notDeadZone = new MapLocation(x1, y1);
+				} 	else
+				if (isGoodLoc(x2, y1) && spawnRates[x2][y1]>0) {
+					notDeadZone = new MapLocation(x2, y1);
+				} 	else
+				if (isGoodLoc(x1, y2) && spawnRates[x1][y2]>0) {
+					notDeadZone = new MapLocation(x1, y2);
+				} 	else
+				if (isGoodLoc(x2, y2) && spawnRates[x2][y2]>0) {
+					notDeadZone = new MapLocation(x2, y2);
+				} 	
+			}
 			//System.out.println(x1+" "+x2+" "+y1+" "+y2);
 			for (int j=0; j<2*i+1; j++){
 				//System.out.println(spawnRates[y1][x1+j]);
