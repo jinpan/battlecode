@@ -76,7 +76,7 @@ public class HQPlayer extends BaseRobot {
 			this.shoot(nearbyEnemies);
 		}    	
 
-		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS && this.numRobots < 1) {
+		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS && this.numRobots < 2) {
 			System.out.println("Spawning");
 			this.spawn();
 			++this.numRobots;

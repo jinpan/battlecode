@@ -12,6 +12,8 @@ public class SoldierPlayer extends BaseRobot {
 	ActionMessage HQMessage;
 	MapLocation rallyPasture;
 	boolean pastureBuilt = false;
+	boolean straightMovement = false;
+	boolean arrived = false; // TODO DEBUGGING ONLY
 	
 	boolean voteRetreat;
 	protected int soldier_order;
@@ -26,21 +28,28 @@ public class SoldierPlayer extends BaseRobot {
 
 	@Override
 	protected void setup() throws GameActionException {
-		ActionMessage actionmessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
-		if (!actionmessage.equals(HQMessage)) {
-			HQMessage = actionmessage;
-		}
+//		ActionMessage actionmessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
+//		if (!actionmessage.equals(HQMessage)) {
+//			HQMessage = actionmessage;
+//		}
 	}
 
 	@Override
 	protected void step() throws GameActionException {
 		//TODO: read HQMessage
-		
-		switch (HQMessage.state) {
-		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
-		case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
-		default: myRC.setIndicatorString(2, "DEFAULT");
+		if (myRC.getLocation().equals(new MapLocation(22, 37))) {
+			arrived = true;
 		}
+		if (arrived)
+			move_to_target(new MapLocation(22, 37), false);
+		else
+			move_to_target(new MapLocation(22, 37), false);
+
+//		switch (HQMessage.state) {
+//		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
+//		case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
+//		default: myRC.setIndicatorString(2, "DEFAULT");
+//		}
 	}
 
 	protected void attack_step() throws GameActionException {
@@ -83,15 +92,21 @@ public class SoldierPlayer extends BaseRobot {
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
+		myRC.setIndicatorString(2, Boolean.toString(straightMovement));
 		if (target.equals(targetLoc)) {
 			System.out.println(curPath.getFirst());
 			if (myRC.getLocation().equals(curPath.getFirst())) {
 				System.out.println("here");
 				curPath.remove();
+				straightMovement = false;
+				myRC.setIndicatorString(2, Boolean.toString(straightMovement));
 			} else {
 				Direction moveDirection = directionTo(curPath.getFirst());
+				if (straightMovement && moveDirection == null) {
+					moveDirection = directionTo(target);
+				}
 				System.out.println(moveDirection);
-				this.myRC.setIndicatorString(0, moveDirection.toString());
+				//this.myRC.setIndicatorString(0, moveDirection.toString());
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
 					this.myRC.setIndicatorString(0,  "going to pasture");
 					if(!sneak)
@@ -99,7 +114,17 @@ public class SoldierPlayer extends BaseRobot {
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					curPath = Navigation.pathFind(myRC.getLocation(), target, this);
+					System.out.println("calculating path " + target);
+					LinkedList<MapLocation> newCurPath = Navigation.pathFind(myRC.getLocation(), target, this);
+					newCurPath.remove();
+					if (!curPath.equals(newCurPath)) {
+						curPath = newCurPath;
+					} else {
+						straightMovement = true;
+						myRC.setIndicatorString(2, Boolean.toString(straightMovement));
+					}
+					myRC.setIndicatorString(1, curPath.toString());
+
 				}
 				this.myRC.yield();
 			} 
@@ -239,6 +264,11 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		return null;        
+//		if (myRC.senseTerrainTile(this.myRC.getLocation().add(this.myRC.getLocation().directionTo(loc))) == TerrainTile.NORMAL ||
+//				myRC.senseTerrainTile(this.myRC.getLocation().add(this.myRC.getLocation().directionTo(loc))) == TerrainTile.ROAD)
+//			return this.myRC.getLocation().directionTo(loc);
+//		else
+//			return null;
 	}
 
 	protected boolean isSafe() throws GameActionException {
