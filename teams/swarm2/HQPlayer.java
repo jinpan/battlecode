@@ -1,4 +1,4 @@
-package swarm;
+package swarm2;
 
 import battlecode.common.*;
 
