@@ -13,7 +13,7 @@ public class Navigation {
 	public static SearchNode bugSearch(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
 		System.out.println("CALCULATING PATH FROM " + start + " to " + target);
 		thisBot = theBot;
-		boolean debug = true;
+		boolean debug = false;
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
@@ -148,10 +148,10 @@ public class Navigation {
 		currentLeft.isPivot = true;
 		current.isPivot = true;
 		if (current.loc.equals(ehqloc)) {
-			System.out.println("Right bug");
+			if (debug) System.out.println("Right bug");
 			return current;
 		} else {
-			System.out.println("Left bug");
+			if (debug) System.out.println("Left bug");
 			return currentLeft;
 		}
 	}
