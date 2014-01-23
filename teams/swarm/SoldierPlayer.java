@@ -26,15 +26,15 @@ public class SoldierPlayer extends BaseRobot {
 
 	@Override
 	protected void setup() throws GameActionException {
-		super.setup();
-
+		ActionMessage actionmessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
+		if (!actionmessage.equals(HQMessage)) {
+			HQMessage = actionmessage;
+		}
 	}
 
 	@Override
 	protected void step() throws GameActionException {
 		//TODO: read HQMessage
-
-		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
 		
 		switch (HQMessage.state) {
 		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
@@ -79,15 +79,21 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected void move_to_target(MapLocation target, boolean sneak) throws GameActionException{
+		System.out.println("moving");
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
 		if (target.equals(targetLoc)) {
+			System.out.println(curPath.getFirst());
 			if (myRC.getLocation().equals(curPath.getFirst())) {
+				System.out.println("here");
 				curPath.remove();
 			} else {
 				Direction moveDirection = directionTo(curPath.getFirst());
+				System.out.println(moveDirection);
+				this.myRC.setIndicatorString(0, moveDirection.toString());
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+					this.myRC.setIndicatorString(0,  "going to pasture");
 					if(!sneak)
 						myRC.move(moveDirection);
 					else
@@ -98,6 +104,7 @@ public class SoldierPlayer extends BaseRobot {
 				this.myRC.yield();
 			} 
 		} else {
+			System.out.println("calculating path " + target);
 			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
 			myRC.setIndicatorString(1, curPath.toString());
 			targetLoc = target;
@@ -179,6 +186,7 @@ public class SoldierPlayer extends BaseRobot {
 			}
 
 			if (this.myRC.getLocation().equals(target)){
+				System.out.println("constructing noisetower");
 				this.myRC.construct(RobotType.NOISETOWER);
 			}
 
@@ -188,8 +196,12 @@ public class SoldierPlayer extends BaseRobot {
 					ourNoiseLoc = target.add(target.directionTo(this.enemyHQLoc), -1);
 					target = ourNoiseLoc;
 
-					if(this.myRC.getLocation().equals(ourNoiseLoc) && this.myRC.senseRobotInfo((Robot)squattingRobot).isConstructing && this.myRC.senseRobotInfo((Robot)squattingRobot).constructingRounds <= 50)
+					if(this.myRC.getLocation().equals(ourNoiseLoc) 
+							&& this.myRC.senseRobotInfo((Robot)squattingRobot).isConstructing 
+							&& this.myRC.senseRobotInfo((Robot)squattingRobot).constructingRounds <= 50) {
 						this.myRC.construct(RobotType.PASTR);
+						System.out.println("constructing pastr");
+					}
 				}
 			}
 

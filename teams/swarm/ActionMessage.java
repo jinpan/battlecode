@@ -32,6 +32,12 @@ public class ActionMessage {
         this.targetLocation = targetLocation;
     }
     
+    public boolean equals(ActionMessage other) {
+    	if (other != null) {
+    		return other.state.equals(this.state) && other.targetID == this.targetID && other.targetLocation.equals(this.targetLocation); 
+    	} return false;
+    }
+    
     public long encode(){
     	int result = 0;
     	int state;
