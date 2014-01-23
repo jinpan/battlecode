@@ -37,13 +37,13 @@ public class SoldierPlayer extends BaseRobot {
 	@Override
 	protected void step() throws GameActionException {
 		//TODO: read HQMessage
-		if (myRC.getLocation().equals(new MapLocation(22, 37))) {
+		if (myRC.getLocation().equals(new MapLocation(36, 9))) {
 			arrived = true;
 		}
 		if (arrived)
-			move_to_target(new MapLocation(22, 37), false);
+			move_to_target(new MapLocation(17, 26), false);
 		else
-			move_to_target(new MapLocation(22, 37), false);
+			move_to_target(new MapLocation(36, 9), false);
 
 //		switch (HQMessage.state) {
 //		case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;

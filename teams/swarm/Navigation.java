@@ -264,7 +264,7 @@ public class Navigation {
 		Direction curDir = current.loc.directionTo(ehqloc);
 		Direction curDirLeft = current.loc.directionTo(ehqloc);
 		while (!(current.loc.x == ehqloc.x && current.loc.y == ehqloc.y) && !(currentLeft.loc.x == ehqloc.x && currentLeft.loc.y == ehqloc.y)) {
-			if (debug) System.out.println(current.loc);
+			if (debug) System.out.println("Right " + current.loc + " Left " + currentLeft.loc);
 			if (!isTracing) {
 				curDir = directionTo(current.loc, ehqloc);
 				if (curDir != null /* && current.loc.distanceSquaredTo(ehqloc) <= closestRight*/) {
@@ -289,8 +289,8 @@ public class Navigation {
 					isTracing = false;
 					System.out.println("Not tracing anymore. Distance of " + current.loc.add(curDir).distanceSquaredTo(ehqloc));
 				} else {
-					curDir = current.loc.directionTo(current.prevLoc.loc).rotateLeft();
-					int i = 1;
+					curDir = current.loc.directionTo(current.prevLoc.loc).rotateLeft().rotateLeft();
+					int i = 2;
 					while (!isGood(current.loc.add(curDir))) {
 						curDir = curDir.rotateLeft();
 						i++;
@@ -309,7 +309,7 @@ public class Navigation {
 			if (!isTracingLeft) {
 				curDirLeft = directionTo(currentLeft.loc, ehqloc);
 				if (curDirLeft != null /* && current.loc.distanceSquaredTo(ehqloc) <= closestRight*/) {
-					if (debug) System.out.println("right step 1");
+					if (debug) System.out.println("left step 1");
 					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
@@ -319,7 +319,7 @@ public class Navigation {
 					while (!isGood(currentLeft.loc.add(curDirLeft))) {
 						curDirLeft = curDirLeft.rotateRight();
 					}
-					if (debug) System.out.println("right step 2");
+					if (debug) System.out.println("left step 2");
 					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
@@ -330,16 +330,16 @@ public class Navigation {
 					isTracingLeft = false;
 					System.out.println("Not tracing anymore. Distance of " + currentLeft.loc.add(curDirLeft).distanceSquaredTo(ehqloc));
 				} else {
-					curDirLeft = currentLeft.loc.directionTo(currentLeft.prevLoc.loc).rotateRight();
-					int i = 1;
+					curDirLeft = currentLeft.loc.directionTo(currentLeft.prevLoc.loc).rotateRight().rotateRight();
+					int j = 2;
 					while (!isGood(currentLeft.loc.add(curDirLeft))) {
-						curDirLeft = curDirLeft.rotateLeft();
-						i++;
+						curDirLeft = curDirLeft.rotateRight();
+						j++;
 					}
-					if (i < 4 || curDirLeft != Direction.EAST && curDirLeft != Direction.WEST && curDirLeft != Direction.NORTH && curDirLeft != Direction.SOUTH) {
+					if (j < 4 || curDirLeft != Direction.EAST && curDirLeft != Direction.WEST && curDirLeft != Direction.NORTH && curDirLeft != Direction.SOUTH) {
 						currentLeft.isPivot = true;
 					}
-					if (debug) System.out.println("right step 3");
+					if (debug) System.out.println("left step 3");
 					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
