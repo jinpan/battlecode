@@ -12,6 +12,7 @@ public class SoldierPlayer extends BaseRobot {
 	ActionMessage HQMessage;
 
 	boolean voteRetreat;
+	boolean straightMovement;
 	protected int soldier_order;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
 
@@ -57,26 +58,42 @@ public class SoldierPlayer extends BaseRobot {
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
+		myRC.setIndicatorString(2, Boolean.toString(straightMovement));
 		if (target.equals(targetLoc)) {
 			System.out.println(curPath.getFirst());
 			if (myRC.getLocation().equals(curPath.getFirst())) {
 				System.out.println("here");
 				curPath.remove();
+				straightMovement = false;
+				myRC.setIndicatorString(2, Boolean.toString(straightMovement));
 			} else {
 				Direction moveDirection = directionTo(curPath.getFirst());
+				if (straightMovement && moveDirection == null) {
+					moveDirection = directionTo(target);
+				}
 				System.out.println(moveDirection);
-				this.myRC.setIndicatorString(0, moveDirection.toString());
+				//this.myRC.setIndicatorString(0, moveDirection.toString());
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					this.myRC.setIndicatorString(0,  "going to pasture");
+					this.myRC.setIndicatorString(0, "going to pasture");
 					if(!sneak)
 						myRC.move(moveDirection);
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					curPath = Navigation.pathFind(myRC.getLocation(), target, this);
+					System.out.println("calculating path " + target);
+					LinkedList<MapLocation> newCurPath = Navigation.pathFind(myRC.getLocation(), target, this);
+					newCurPath.remove();
+					if (!curPath.equals(newCurPath)) {
+						curPath = newCurPath;
+					} else {
+						straightMovement = true;
+						myRC.setIndicatorString(2, Boolean.toString(straightMovement));
+					}
+					myRC.setIndicatorString(1, curPath.toString());
+
 				}
 				this.myRC.yield();
-			} 
+			}
 		} else {
 			System.out.println("calculating path " + target);
 			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
@@ -153,7 +170,7 @@ public class SoldierPlayer extends BaseRobot {
 			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 5)
 				this.myRC.construct(RobotType.NOISETOWER);
 		}
-		
+
 		if (this.myRC.canSenseSquare(target)){
 			GameObject squattingRobot = this.myRC.senseObjectAtLocation(target);
 			if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){

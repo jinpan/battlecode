@@ -11,24 +11,27 @@ public class Navigation {
 	static BaseRobot thisBot;
 
 	public static SearchNode bugSearch(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
+		System.out.println("CALCULATING PATH FROM " + start + " to " + target);
 		thisBot = theBot;
-		boolean debug = false;
+		boolean debug = true;
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
 		int closestLeft = curr.distanceSquaredTo(ehqloc);
 		// optimize, kinda slow right now. -> lol no it's good enough.
 		// Initialize mline array for easy lookup later
-//		while (!(curr.x == ehqloc.x && curr.y == ehqloc.y)) {
-//			mline[curr.x][curr.y] = true;
-//			curr = curr.add(curr.directionTo(ehqloc));
-//			System.out.println(curr);
-//		}
+		// while (!(curr.x == ehqloc.x && curr.y == ehqloc.y)) {
+		// mline[curr.x][curr.y] = true;
+		// curr = curr.add(curr.directionTo(ehqloc));
+		// System.out.println(curr);
+		// }
 		// Actual bug iteration
 		SearchNode current = new SearchNode(start, 1, null, thisBot);
 		SearchNode currentLeft = new SearchNode(start, 1, null, thisBot);
 		current.isPivot = true;
 		currentLeft.isPivot = true;
+		boolean isTracing = false;
+		boolean isTracingLeft = false;
 		Direction curDir = current.loc.directionTo(ehqloc);
 		Direction curDirLeft = current.loc.directionTo(ehqloc);
 		while (!(current.loc.x == ehqloc.x && current.loc.y == ehqloc.y) && !(currentLeft.loc.x == ehqloc.x && currentLeft.loc.y == ehqloc.y)) {
@@ -38,18 +41,22 @@ public class Navigation {
 					thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD);
 			boolean canMoveForwardLeft = (thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.NORMAL ||
 					thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.ROAD);
-			
 			// If on the m-line, and can move forward, move forward towards the enemy HQ.
 			if (directionTo(current.loc, ehqloc) != null && current.loc.distanceSquaredTo(ehqloc) <= closestRight) {
 				if (debug) System.out.println("right step 1");
+				if (isTracing) {
+					current.isPivot = true;
+					isTracing = false;
+				}
 				curDir = directionTo(current.loc, ehqloc);
 				current = new SearchNode(current.loc.add(curDir), current.length+1, current, thisBot);
+				curDir = current.loc.directionTo(ehqloc);
 				closestRight = current.loc.distanceSquaredTo(ehqloc);
 			}
 			// If can move forward, and right hand touching wall, move forward
 			else if (canMoveForward && thisBot.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.VOID) {
 				if (debug) System.out.println("right step 2");
-
+				isTracing = true;
 				current = new SearchNode(current.loc.add(curDir), current.length + 1, current, thisBot);
 				if (current.loc.distanceSquaredTo(ehqloc) < closestRight)
 					closestRight = current.loc.distanceSquaredTo(ehqloc);
@@ -58,6 +65,7 @@ public class Navigation {
 			else if (canMoveForward && (thisBot.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.NORMAL ||
 					thisBot.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight())) == TerrainTile.ROAD)) {
 				if (debug) System.out.println("right step 3");
+				isTracing = false;
 				curDir = curDir.rotateRight().rotateRight();
 				current.isPivot = true;
 				current = new SearchNode(current.loc.add(curDir), current.length + 1, current, thisBot);
@@ -68,15 +76,16 @@ public class Navigation {
 			// Only condition for this else should be that the robot cannot move forward and has a wall on the right. Therefore just turn left and move. Report corner.
 			else {
 				if (debug) System.out.println("right step 4");
+				isTracing = false;
 				curDir = curDir.rotateLeft();
-				if (!(thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
+				while (!(thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
 						thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD)) {
 					curDir = curDir.rotateLeft();
 				}
-				if (!(thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
-						thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD)) {
-					curDir = curDir.rotateLeft();
-				}
+				// if (!(thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.NORMAL ||
+				// thisBot.myRC.senseTerrainTile(current.loc.add(curDir)) == TerrainTile.ROAD)) {
+				// curDir = curDir.rotateLeft();
+				// }
 				if (thisBot.myRC.senseTerrainTile(current.loc.add(curDir.rotateRight().rotateRight().rotateRight().rotateRight())) == TerrainTile.VOID) {
 					//System.out.println("Corner found at " + current.loc);
 				}
@@ -86,14 +95,20 @@ public class Navigation {
 			}
 			if (directionTo(currentLeft.loc, ehqloc) != null && currentLeft.loc.distanceSquaredTo(ehqloc) <= closestLeft) {
 				if (debug) System.out.println("left step 1");
+				if (isTracingLeft) {
+					currentLeft.isPivot = true;
+					isTracingLeft = false;
+				}
 				curDirLeft = directionTo(currentLeft.loc, ehqloc);
 				currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
+				curDirLeft = currentLeft.loc.directionTo(ehqloc);
 				if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 					closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
 			}
 			// If can move forward, and right hand touching wall, move forward
 			else if (canMoveForwardLeft && thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft.rotateLeft().rotateLeft())) == TerrainTile.VOID) {
 				if (debug) System.out.println("left step 2");
+				isTracingLeft = true;
 				currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length + 1, currentLeft, thisBot);
 				if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 					closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
@@ -102,6 +117,7 @@ public class Navigation {
 			else if (canMoveForwardLeft && (thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft.rotateLeft().rotateLeft())) == TerrainTile.NORMAL ||
 					thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft.rotateLeft().rotateLeft())) == TerrainTile.ROAD)) {
 				if (debug) System.out.println("left step 3");
+				isTracingLeft = false;
 				curDirLeft = curDirLeft.rotateLeft().rotateLeft();
 				currentLeft.isPivot = true;
 				currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length + 1, currentLeft, thisBot);
@@ -111,15 +127,16 @@ public class Navigation {
 			// Only condition for this else should be that the robot cannot move forward and has a wall on the right. Therefore just turn left and move. Report corner.
 			else {
 				if (debug) System.out.println("left step 4");
+				isTracingLeft = false;
 				curDirLeft = curDirLeft.rotateRight();
-				if (!(thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.NORMAL ||
+				while (!(thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.NORMAL ||
 						thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.ROAD)) {
 					curDirLeft = curDirLeft.rotateRight();
 				}
-				if (!(thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.NORMAL ||
-						thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.ROAD)) {
-					curDirLeft = curDirLeft.rotateRight();
-				}
+				// if (!(thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.NORMAL ||
+				// thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft)) == TerrainTile.ROAD)) {
+				// curDirLeft = curDirLeft.rotateRight();
+				// }
 				if (thisBot.myRC.senseTerrainTile(currentLeft.loc.add(curDirLeft.rotateLeft().rotateLeft().rotateLeft().rotateLeft())) == TerrainTile.VOID) {
 					//System.out.println("Corner found at " + currentLeft.loc);
 				}
@@ -130,10 +147,13 @@ public class Navigation {
 		}
 		currentLeft.isPivot = true;
 		current.isPivot = true;
-		if (current.loc.equals(ehqloc))
+		if (current.loc.equals(ehqloc)) {
+			System.out.println("Right bug");
 			return current;
-		else
+		} else {
+			System.out.println("Left bug");
 			return currentLeft;
+		}
 	}
 	public static LinkedList<MapLocation> pathFind(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException {
 		thisBot = theBot;
@@ -190,35 +210,40 @@ public class Navigation {
 		}
 		return true;
 	}
-	
 	protected static Direction directionTo(MapLocation curr, MapLocation loc) throws GameActionException {
-		Direction dir = curr.directionTo(loc);
+		// Direction dir = curr.directionTo(loc);
+		//
+		// if (thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.NORMAL ||
+		// thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.ROAD){
+		// return dir;
+		// }
+		//
+		// Direction dirA, dirB;
+		// if (thisBot.random() < 0.5){
+		// dirA = dir.rotateLeft();
+		// dirB = dir.rotateRight();
+		// }
+		// else {
+		// dirA = dir.rotateRight();
+		// dirB = dir.rotateLeft();
+		// }
+		//
+		// if (thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.NORMAL ||
+		// thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.ROAD){
+		// return dirA;
+		// }
+		// else if (thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.NORMAL ||
+		// thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.ROAD){
+		// return dirB;
+		// }
+		//
+		// return null;
+		if (thisBot.myRC.senseTerrainTile(curr.add(curr.directionTo(loc))) == TerrainTile.NORMAL ||
+				thisBot.myRC.senseTerrainTile(curr.add(curr.directionTo(loc))) == TerrainTile.ROAD)
+			return curr.directionTo(loc);
+		else
+			return null;
 
-		if (thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.NORMAL ||
-				thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.ROAD){
-			return dir;
-		}
-
-		Direction dirA, dirB;
-		if (thisBot.random() < 0.5){
-			dirA = dir.rotateLeft();
-			dirB = dir.rotateRight();
-		}
-		else {
-			dirA = dir.rotateRight();
-			dirB = dir.rotateLeft();
-		}
-
-		if (thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.NORMAL ||
-				thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.ROAD){
-			return dirA;
-		}
-		else if (thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.NORMAL ||
-				thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.ROAD){
-			return dirB;
-		}
-
-		return null;        
 	}
 
 }
