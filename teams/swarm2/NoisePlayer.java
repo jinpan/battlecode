@@ -5,6 +5,7 @@ import battlecode.common.*;
 public class NoisePlayer extends BaseRobot{
 	
 	int cur = 0; //current direction
+	int[] dirPro = {0, 2, 4, 6, 7, 1, 3, 5};
 	MapLocation[] extrema = new MapLocation[8];
 	MapLocation curLoc;
 
@@ -16,16 +17,26 @@ public class NoisePlayer extends BaseRobot{
 
 	protected void step() throws GameActionException{
 		sense_enemies();
+		
+		MapLocation ourNoise = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
 
-		if(this.myRC.isActive()){			
-			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
-				cur = (cur+1)%8;
-				curLoc = extrema[cur];
-			} else {
-				curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
+		if(this.myRC.isActive()){	
+			if (!this.myRC.getLocation().equals(ourNoise)) {
+				MapLocation enemyPastr = ActionMessage.decode(this.myRC.readBroadcast(NOISE_OFFENSE_CHANNEL)).targetLocation;
+				if (enemyPastr.distanceSquaredTo(this.myRC.getLocation())<=300) {
+					this.myRC.attackSquare(enemyPastr);
+				}
 			}
+			else {
+				if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
+					cur = (cur+1)%8;
+					curLoc = extrema[dirPro[cur]];
+				} else {
+					curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
+				}
 
-			this.myRC.attackSquare(curLoc);
+				this.myRC.attackSquare(curLoc);
+			}
 		}
 	}
 	

@@ -29,8 +29,7 @@ public abstract class BaseRobot {
     public static final int ALLY_NUMBERS = GameConstants.BROADCAST_MAX_CHANNELS - 15;
     public static final int HQ_BROADCAST_CHANNEL = 0;
     public static final int SQUAD_MESSAGE_CHANNEL = 100;
-    public static final int ALIVE_OR_DEAD = 500;
-    
+    public static final int NOISE_OFFENSE_CHANNEL = 1000;
     public static final int PASTR_LOC_CHANNEL = 1;
     public static final int NOISE_LOC_CHANNEL = 2;
     

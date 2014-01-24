@@ -46,7 +46,7 @@ public class HQPlayer extends BaseRobot {
 			offensive = true;
 		}
 
-		System.out.println(offensive);
+		//System.out.println(offensive);
 
 		set_pastr_loc(find_pastr_loc());
 
@@ -79,7 +79,6 @@ public class HQPlayer extends BaseRobot {
 		return loc;
 	}
 
-
 	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
 		pastrLoc = loc;
 
@@ -87,7 +86,7 @@ public class HQPlayer extends BaseRobot {
 
 		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
-		ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(noiseDir));
+		ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(dirs[0]));
 		this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
 	}
 	
@@ -120,12 +119,13 @@ public class HQPlayer extends BaseRobot {
 
 		MapLocation[] pastrs = this.myRC.sensePastrLocations(myTeam);
 		pastrCount = pastrs.length;
+		pastrBuilt = (pastrCount > 0);
+
 		if(pastrBuilt && pastrCount == 0){
 			//if we got blown up, might as well make pasture somewhere else
 			defeatCount++;
 			set_pastr_loc(find_pastr_loc());
 		}
-		pastrBuilt = (pastrCount > 0);
 
 		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
 		int totalAllies = allies.length;
@@ -155,7 +155,9 @@ public class HQPlayer extends BaseRobot {
 				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
 			else
 				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-			
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
 		}
 
 		if(strategy == 2){
@@ -163,14 +165,16 @@ public class HQPlayer extends BaseRobot {
 			//make a noisetower in some random place and have it attack a pasture
 			//when group is big enough, go attack
 			
-			MapLocation pastr= this.myHQLoc.add(toEnemy.opposite(), 2);
-			if (!isGoodLoc(pastr)) {
-				pastr = this.myHQLoc.add(toEnemy, 2);
-			} if (!isGoodLoc(pastr)) {
-				pastr = this.myHQLoc.add(toEnemy);
-			}
+			MapLocation pastr = this.myHQLoc.add(toEnemy, 2);
+//			if (!isGoodLoc(pastr)) {
+//				pastr = this.myHQLoc.add(toEnemy, 2);
+//			} if (!isGoodLoc(pastr)) {
+//				pastr = this.myHQLoc.add(toEnemy);
+//			}
 			
 			set_pastr_loc(pastr);
+						
+			attack = false;
 			
 			if(totalAllies > 6 && closestTarget != null)
 				attack = true;
@@ -179,8 +183,13 @@ public class HQPlayer extends BaseRobot {
 			
 			if(attack)
 				action = new ActionMessage(BaseRobot.State.ATTACK, 2, closestTarget);
-			else
-				action = new ActionMessage(BaseRobot.State.DEFEND, 2, pastrLoc);
+			else {
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				//System.out.println("Strategy 2 broadcasted " + pastrLoc);
+			}
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
 		}
 		
 		if(strategy == 3){
@@ -190,14 +199,13 @@ public class HQPlayer extends BaseRobot {
 			}
 			
 			double enemyMilk = this.myRC.senseTeamMilkQuantity(enemyTeam);
-			double enemyMilkChange = enemyMilk - enemyPrevMilk;
 			double myMilk = this.myRC.senseTeamMilkQuantity(myTeam);
+			double enemyMilkChange = enemyMilk - enemyPrevMilk;
 			double myMilkChange = myMilk- myPrevMilk;
 			double myExpectedWin = (GameConstants.WIN_QTY - myMilk)/myMilkChange;
 			double enemyExpectedWin = (GameConstants.WIN_QTY - enemyMilk)/enemyMilkChange;
 			boolean losing = (enemyMilk - myMilk) > 10000;
 			
-			//System.out.println("losing? " + losing);
 			myPrevMilk = myMilk;
 			enemyPrevMilk = enemyMilk;
 			
@@ -214,10 +222,10 @@ public class HQPlayer extends BaseRobot {
 				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
 			else
 				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-			
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
 		}
-
-		this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int)action.encode());
 		
 	}
 
