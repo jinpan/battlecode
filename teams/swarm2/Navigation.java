@@ -52,8 +52,8 @@ public class Navigation {
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
 		int closestLeft = curr.distanceSquaredTo(ehqloc);
-		SearchNode current = new SearchNode(start, 1, null, thisBot);
-		SearchNode currentLeft = new SearchNode(start, 1, null, thisBot);
+		SearchNode current = new SearchNode(start, 1, null);
+		SearchNode currentLeft = new SearchNode(start, 1, null);
 		current.isPivot = true;
 		currentLeft.isPivot = true;
 		boolean isTracing = false;
@@ -66,7 +66,7 @@ public class Navigation {
 				curDir = directionTo(current.loc, ehqloc);
 				if (curDir != null /* && current.loc.distanceSquaredTo(ehqloc) <= closestRight*/) {
 					if (debug) System.out.println("right step 1");
-					current = new SearchNode(current.loc.add(curDir), current.length+1, current, thisBot);
+					current = new SearchNode(current.loc.add(curDir), current.length+1, current);
 					if (current.loc.distanceSquaredTo(ehqloc) < closestRight)
 						closestRight = current.loc.distanceSquaredTo(ehqloc);
 				} else {
@@ -76,7 +76,7 @@ public class Navigation {
 						curDir = curDir.rotateLeft();
 					}
 					if (debug) System.out.println("right step 2");
-					current = new SearchNode(current.loc.add(curDir), current.length+1, current, thisBot);
+					current = new SearchNode(current.loc.add(curDir), current.length+1, current);
 					if (current.loc.distanceSquaredTo(ehqloc) < closestRight)
 						closestRight = current.loc.distanceSquaredTo(ehqloc);
 				}
@@ -96,7 +96,7 @@ public class Navigation {
 						current.isPivot = true;
 					}
 					if (debug) System.out.println("right step 3");
-					current = new SearchNode(current.loc.add(curDir), current.length+1, current, thisBot);
+					current = new SearchNode(current.loc.add(curDir), current.length+1, current);
 					if (current.loc.distanceSquaredTo(ehqloc) < closestRight)
 						closestRight = current.loc.distanceSquaredTo(ehqloc);
 				}
@@ -111,7 +111,7 @@ public class Navigation {
 				curDirLeft = directionTo(currentLeft.loc, ehqloc);
 				if (curDirLeft != null /* && current.loc.distanceSquaredTo(ehqloc) <= closestRight*/) {
 					if (debug) System.out.println("left step 1");
-					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
+					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
 				} else {
@@ -121,7 +121,7 @@ public class Navigation {
 						curDirLeft = curDirLeft.rotateRight();
 					}
 					if (debug) System.out.println("left step 2");
-					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
+					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
 				}
@@ -140,7 +140,7 @@ public class Navigation {
 						currentLeft.isPivot = true;
 					}
 					if (debug) System.out.println("left step 3");
-					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft, thisBot);
+					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
 				}
