@@ -4,6 +4,9 @@ import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
 	int strategy = 1; 
+	
+	double enemyPrevMilk = 0; 
+	double myPrevMilk = 0;
 
 	double[][] spawnRates;
 	int mapHeight; int mapWidth;
@@ -20,6 +23,7 @@ public class HQPlayer extends BaseRobot {
 	Direction noiseDir = null;
 
 	int numRobots;
+	boolean attack = false;
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
@@ -32,37 +36,47 @@ public class HQPlayer extends BaseRobot {
 		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
 
-		set_pastr_loc();
-		
+		set_pastr_loc(find_pastr_loc());
+
 		//change one of these to let us play against ourselves
 		if(this.myTeam == Team.A)
-			strategy = 1;
+			strategy = 3;
 		else
 			strategy = 1;
-		
+
 	}
 
-	protected void set_pastr_loc() throws GameActionException{
+	protected MapLocation find_pastr_loc() throws GameActionException{
 		// Randomly try to find a pastr location.  If we find one that does not have a
 		// location for a noise tower, we retry.
+		MapLocation loc;
+
 		findPastr: {
-		pastrLoc = this.findBestPastureLoc();
-		for (Direction dir: BaseRobot.dirs){
-			if (this.myRC.senseTerrainTile(pastrLoc.add(dir)).ordinal() < 2){
-				this.noiseDir = dir;
-				break;
+			loc = this.findBestPastureLoc();
+			for (Direction dir: BaseRobot.dirs){
+				if (this.myRC.senseTerrainTile(loc.add(dir)).ordinal() < 2){
+					this.noiseDir = dir;
+					break;
+				}
+			}
+			if (noiseDir == null){
+				break findPastr;
 			}
 		}
-		if (noiseDir == null){
-			break findPastr;
-		}
+		
+		return loc;
 	}
-	this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
 
-	ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-	this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
-	ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(noiseDir));
-	this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
+
+	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
+		pastrLoc = loc;
+
+		this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
+
+		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
+		ActionMessage action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(noiseDir));
+		this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
 	}
 
 	@Override
@@ -71,7 +85,7 @@ public class HQPlayer extends BaseRobot {
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
 		if (this.myRC.isActive() && nearbyEnemies.length != 0) {
 			this.shoot(nearbyEnemies);
-		}    	
+		}
 
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
 			this.spawn();
@@ -87,29 +101,33 @@ public class HQPlayer extends BaseRobot {
 			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
+					dist = targets[i].distanceSquaredTo(this.myHQLoc);
 				}
 			}
 		}
 
 		MapLocation[] pastrs = this.myRC.sensePastrLocations(myTeam);
 		pastrCount = pastrs.length;
-		if(pastrBuilt && pastrCount == 0)
+		if(pastrBuilt && pastrCount == 0){
+			//if we got blown up, might as well make pasture somewhere else
 			defeatCount++;
+			set_pastr_loc(find_pastr_loc());
+		}
 		pastrBuilt = (pastrCount > 0);
 
 		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
 		int totalAllies = allies.length;
 		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
-		
+
 		int nearEnemies = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
 
 		ActionMessage action = null;
-		
+
 		if(strategy == 1){
 			//the original strategy.
 			//don't leave pastures alone if they're built and have incoming threats
 			//if we don't have a pasture, attack if we have a big enough squad
-			boolean attack = false;
+			attack = false;
 			if(pastrBuilt){
 				if(closestTarget != null && nearEnemies == 0)
 					attack = true;
@@ -117,6 +135,22 @@ public class HQPlayer extends BaseRobot {
 				if(closestTarget != null && totalAllies > 8)
 					attack = true;
 			}
+
+			if(attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			else
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+		}
+
+		if(strategy == 2){
+			//the extreme defensive strategy; make pasture right next to our HQ
+			//when group is big enough, go attack
+			set_pastr_loc(this.myHQLoc.add(this.myHQLoc.directionTo(this.enemyHQLoc)));
+			
+			if(totalAllies > 10 && closestTarget != null)
+				attack = true;
+			if(attack && totalAllies < 4)
+				attack = false;
 			
 			if(attack)
 				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
@@ -124,11 +158,31 @@ public class HQPlayer extends BaseRobot {
 				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 		}
 		
-		if(strategy == 2){
+		if(strategy == 3){
+			double enemyMilk = this.myRC.senseTeamMilkQuantity(enemyTeam);
+			double enemyMilkChange = enemyMilk - enemyPrevMilk;
+			double myMilk = this.myRC.senseTeamMilkQuantity(myTeam);
+			double myMilkChange = myMilk- myPrevMilk;
+			double myExpectedWin = (GameConstants.WIN_QTY - myMilk)/myMilkChange;
+			double enemyExpectedWin = (GameConstants.WIN_QTY - enemyMilk)/enemyMilkChange;
+			boolean losing = enemyExpectedWin < myExpectedWin + 50;
 			
+			myPrevMilk = myMilk;
+			enemyPrevMilk = enemyMilk;
 			
-			
-			
+			attack = false;
+			if(pastrBuilt){
+				if(closestTarget != null && nearEnemies == 0 && losing)
+					attack = true;
+			} else {
+				if(closestTarget != null && totalAllies > 8 && losing)
+					attack = true;
+			}
+
+			if(attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			else
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 			
 		}
 
