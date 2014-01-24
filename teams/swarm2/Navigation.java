@@ -2,6 +2,7 @@ package swarm2;
 
 import java.util.LinkedList;
 
+import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
@@ -16,11 +17,27 @@ public class Navigation {
 		SearchNode bugSearch = bugSearchNew(start, target, theBot);
 		SearchNode[] nodes = new SearchNode[bugSearch.length];
 		int counter = bugSearch.length-1;
-		while (!bugSearch.loc.equals(start)) {
+		//while (!bugSearch.loc.equals(start)) {
+		while (bugSearch.prevLoc != null){
+			if (theBot.ID == 153 && Clock.getRoundNum() < 20){
+				System.out.println(bugSearch.loc + " " + bugSearch.isPivot);
+			}
 			nodes[counter] = bugSearch;
 			bugSearch = bugSearch.prevLoc;
 			counter--;
 		}
+		/*
+		if (theBot.ID == 153 && Clock.getRoundNum() < 20){
+			for (int i=0; i<nodes.length; ++i){
+				if (nodes[i] == null){
+					System.out.println(i + " " + null);
+				}
+				else {
+					System.out.println(i + " " + nodes[i].loc);
+				}
+			}
+		}*/
+		
 		nodes[0] = bugSearch;
 		LinkedList<MapLocation> pivots = new LinkedList<MapLocation>();
 		pivots.add(nodes[0].loc);
@@ -48,6 +65,7 @@ public class Navigation {
 	}
 	public static SearchNode bugSearchNew(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
 		thisBot = theBot;
+		debug = (theBot.ID == 153);
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
@@ -76,6 +94,7 @@ public class Navigation {
 						curDir = curDir.rotateLeft();
 					}
 					if (debug) System.out.println("right step 2");
+					current.isPivot = true;
 					current = new SearchNode(current.loc.add(curDir), current.length+1, current);
 					if (current.loc.distanceSquaredTo(ehqloc) < closestRight)
 						closestRight = current.loc.distanceSquaredTo(ehqloc);
@@ -84,6 +103,7 @@ public class Navigation {
 				curDir = directionTo(current.loc, ehqloc);
 				if (curDir != null && current.loc.add(curDir).distanceSquaredTo(ehqloc) < closestRight) {
 					isTracing = false;
+					current.isPivot = true;
 					if (debug) System.out.println("Not tracing anymore. Distance of " + current.loc.add(curDir).distanceSquaredTo(ehqloc));
 				} else {
 					curDir = current.loc.directionTo(current.prevLoc.loc).rotateLeft().rotateLeft();
@@ -121,6 +141,7 @@ public class Navigation {
 						curDirLeft = curDirLeft.rotateRight();
 					}
 					if (debug) System.out.println("left step 2");
+					currentLeft.isPivot = true;
 					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft);
 					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
 						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
@@ -129,6 +150,10 @@ public class Navigation {
 				curDirLeft = directionTo(currentLeft.loc, ehqloc);
 				if (curDirLeft != null && currentLeft.loc.add(curDirLeft).distanceSquaredTo(ehqloc) < closestLeft) {
 					isTracingLeft = false;
+					currentLeft.isPivot = true;
+					currentLeft = new SearchNode(currentLeft.loc.add(curDirLeft), currentLeft.length+1, currentLeft);
+					if (currentLeft.loc.distanceSquaredTo(ehqloc) < closestLeft)
+						closestLeft = currentLeft.loc.distanceSquaredTo(ehqloc);
 				} else {
 					curDirLeft = currentLeft.loc.directionTo(currentLeft.prevLoc.loc).rotateRight().rotateRight();
 					int j = 2;
