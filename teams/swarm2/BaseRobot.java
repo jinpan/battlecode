@@ -32,6 +32,8 @@ public abstract class BaseRobot {
     public static final int NOISE_OFFENSE_CHANNEL = 1000;
     public static final int PASTR_LOC_CHANNEL = 1;
     public static final int NOISE_LOC_CHANNEL = 2;
+    public static final int CAUTION_CHANNEL = 3;
+    public static final int SELF_DESTRUCT_CHANNEL = 4;
     
     protected double[][] spawnRates;
     protected double[][] locScores;

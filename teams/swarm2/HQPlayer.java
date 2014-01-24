@@ -227,6 +227,11 @@ public class HQPlayer extends BaseRobot {
 			}
 		}
 		
+		int caution = this.myRC.readBroadcast(CAUTION_CHANNEL);
+		if (Clock.getRoundNum() > caution + 2){
+			this.myRC.broadcast(CAUTION_CHANNEL, 0);
+		}
+		
 	}
 
 	private boolean spawn() throws GameActionException {
@@ -309,7 +314,6 @@ public class HQPlayer extends BaseRobot {
 		for (int i=0; ; ++i){
 			int standard = 3 - i/10;
 			candidate = findRandomPastureLoc(standard);
-			System.out.println(standard);
 
 			if (this.spawnRates[candidate.x][candidate.y] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				// high spawn rate and not a void square

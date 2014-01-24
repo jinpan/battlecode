@@ -20,6 +20,7 @@ public class SoldierPlayer extends BaseRobot {
 	boolean voteRetreat;
 	boolean straightMovement;
 	protected int soldier_order;
+	Robot[] allies, enemies;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
 
 	public SoldierPlayer(RobotController myRC) throws GameActionException {
@@ -29,16 +30,14 @@ public class SoldierPlayer extends BaseRobot {
 		this.myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
 		
 		int mapSize = this.myRC.getMapWidth() * this.myRC.getMapHeight();
-		if(mapSize > 3600){
+		if (mapSize > 1600){
 			this.reinforcementReq = 5;
-		} else if(mapSize > 2500){
+		}
+		else if (mapSize > 900){
 			this.reinforcementReq = 7;
-		} else if(mapSize > 1600){
+		}
+		else {
 			this.reinforcementReq = 9;
-		} else if(mapSize > 900){
-			this.reinforcementReq = 11;
-		} else {
-			this.reinforcementReq = 13;
 		}
 		
 	}
@@ -48,6 +47,8 @@ public class SoldierPlayer extends BaseRobot {
 		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
 		ourPastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
 		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
+		
+		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 35, this.enemyTeam);
 	}
 
 	@Override
@@ -171,9 +172,7 @@ public class SoldierPlayer extends BaseRobot {
 		if(this.myRC.getActionDelay() > 1)
 			return false;
 
-		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 36, this.enemyTeam);
-
-		if(nearbyEnemies.length == 0)
+		if(enemies.length == 0)
 			return false;
 
 		//MapLocation myLoc = this.myRC.getLocation();
@@ -186,21 +185,21 @@ public class SoldierPlayer extends BaseRobot {
 		int maxHeur = 0;
 		if(defending)
 			maxHeur = myLoc.distanceSquaredTo(HQMessage.targetLocation);
+		
 		RobotInfo bestRobotInfo = null;
-
-		for(int i = 0; i < nearbyEnemies.length; i++){
-			RobotInfo cur = this.myRC.senseRobotInfo(nearbyEnemies[i]);
-			int thisHeur = getHeuristic(cur, myLoc);
+		for(int i = 0; i < enemies.length; i++){
+			RobotInfo info = this.myRC.senseRobotInfo(enemies[i]);
+			int thisHeur = getHeuristic(info, myLoc);
 			if(thisHeur > maxHeur){
 				maxHeur = thisHeur;
-				bestRobotInfo = cur;
+				bestRobotInfo = info;
 			}
 		}
 
 		if(bestRobotInfo != null){
 			if(this.myRC.canAttackSquare(bestRobotInfo.location)){
 				this.myRC.attackSquare(bestRobotInfo.location);
-			}else{
+			}else if (true){
 				Direction dir = directionTo(bestRobotInfo.location);
 				if(dir != null && canMove(dir))
 					this.myRC.move(dir);
@@ -226,6 +225,12 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected void defend_step() throws GameActionException {
+		if (HQMessage.state == BaseRobot.State.DEFEND && this.myRC.getLocation().distanceSquaredTo(HQMessage.targetLocation) < 30){
+			if (enemies.length > 2){
+				this.myRC.broadcast(CAUTION_CHANNEL, Clock.getRoundNum());
+			}
+		}
+
 		if (!isSafe()) { return; }
 
 		boolean atPastr = false;
@@ -237,7 +242,8 @@ public class SoldierPlayer extends BaseRobot {
 		if (this.myRC.getLocation().equals(ourNoiseLoc)){
 			//wait for sufficient reinforcements before building shit
 			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > reinforcementReq){
-				this.myRC.construct(RobotType.NOISETOWER);
+				if (this.myRC.readBroadcast(CAUTION_CHANNEL) == 0)
+					this.myRC.construct(RobotType.NOISETOWER);
 			}
 		}
 
@@ -246,9 +252,12 @@ public class SoldierPlayer extends BaseRobot {
 			if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
 				target = ourPastrLoc;
 
-				RobotInfo pastrInfo = this.myRC.senseRobotInfo((Robot)squattingRobot);
-				if(this.myRC.getLocation().equals(ourPastrLoc) && pastrInfo.isConstructing && pastrInfo.constructingRounds <= 50) {
-					this.myRC.construct(RobotType.PASTR);
+				RobotInfo pastrInfo = this.myRC.senseRobotInfo((Robot) squattingRobot);
+				if(this.myRC.getLocation().equals(ourPastrLoc)) {
+					if ((pastrInfo.isConstructing && pastrInfo.constructingRounds <= 55) || pastrInfo.type == RobotType.NOISETOWER){
+						if (this.myRC.readBroadcast(CAUTION_CHANNEL) == 0)
+							this.myRC.construct(RobotType.PASTR);
+					}
 				}
 			}
 		}
@@ -262,17 +271,15 @@ public class SoldierPlayer extends BaseRobot {
 
 
 	protected boolean isSafe() throws GameActionException {
-
-		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
-		Robot[] nearbyRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, enemyTeam);
-
+		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
+		
 		int avgx = 0;
 		int avgy = 0;
 		int enemyCount = 0;
 		int enemyHealth = 0;
 
-		for (int i = 0; i < nearbyRobots.length; i++) {
-			RobotInfo ri = this.myRC.senseRobotInfo(nearbyRobots[i]);
+		for (int i = 0; i < enemies.length; i++) {
+			RobotInfo ri = this.myRC.senseRobotInfo(enemies[i]);
 			if (ri.type== RobotType.SOLDIER){
 				enemyHealth+= ri.health;
 				enemyCount++;
@@ -282,16 +289,17 @@ public class SoldierPlayer extends BaseRobot {
 		}
 		avgx /= (double) enemyCount;
 		avgy /= (double) enemyCount;
-		MapLocation com = new MapLocation(avgx, avgy);
-
+		enemyCOM = new MapLocation(avgx, avgy);
+		
 		int myRobotCount = 0;
 		int myRobotHealth = 0;
 		int myx = 0; int myy = 0;
 		myCOM = null;
 
-		for (int i = 0; i < myRobots.length; i++) {
-			RobotInfo ri = this.myRC.senseRobotInfo(myRobots[i]);
-			if (ri.location.distanceSquaredTo(com) <= 35 && ri.type== RobotType.SOLDIER) {
+
+		for (int i = 0; i < allies.length; i++) {
+			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
+			if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
 				myRobotCount++;
 				myRobotHealth+= ri.health;
 				myx+= ri.location.x; myy+= ri.location.y;
@@ -321,8 +329,7 @@ public class SoldierPlayer extends BaseRobot {
 				if (myCOM!= null)
 					moveDirection = this.myRC.getLocation().directionTo(myCOM);
 				else 
-					moveDirection = this.myRC.getLocation().directionTo(com.add(com.directionTo(ourPastrLoc), 7));
-
+					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(ourPastrLoc), 7));
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
 					myRC.move(moveDirection);
 					return false;
