@@ -102,6 +102,10 @@ public class Navigation {
 				}
 			}
 			
+			if ((current.loc.x == ehqloc.x && current.loc.y == ehqloc.y) || (currentLeft.loc.x == ehqloc.x && currentLeft.loc.y == ehqloc.y)){
+				break;
+			}
+			
 			if (debug) System.out.println(currentLeft.loc);
 			if (!isTracingLeft) {
 				curDirLeft = directionTo(currentLeft.loc, ehqloc);
