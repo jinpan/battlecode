@@ -17,7 +17,6 @@ public class Navigation {
 		SearchNode bugSearch = bugSearchNew(start, target, theBot);
 		SearchNode[] nodes = new SearchNode[bugSearch.length];
 		int counter = bugSearch.length-1;
-		//while (!bugSearch.loc.equals(start)) {
 		while (bugSearch.prevLoc != null){
 			if (theBot.ID == 153 && Clock.getRoundNum() < 20){
 				System.out.println(bugSearch.loc + " " + bugSearch.isPivot);
@@ -26,17 +25,6 @@ public class Navigation {
 			bugSearch = bugSearch.prevLoc;
 			counter--;
 		}
-		/*
-		if (theBot.ID == 153 && Clock.getRoundNum() < 20){
-			for (int i=0; i<nodes.length; ++i){
-				if (nodes[i] == null){
-					System.out.println(i + " " + null);
-				}
-				else {
-					System.out.println(i + " " + nodes[i].loc);
-				}
-			}
-		}*/
 		
 		nodes[0] = bugSearch;
 		LinkedList<MapLocation> pivots = new LinkedList<MapLocation>();
@@ -65,7 +53,6 @@ public class Navigation {
 	}
 	public static SearchNode bugSearchNew(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
 		thisBot = theBot;
-		debug = (theBot.ID == 153);
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
