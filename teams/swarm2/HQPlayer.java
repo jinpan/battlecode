@@ -1,5 +1,7 @@
 package swarm2;
 
+import java.util.LinkedList;
+
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
@@ -14,7 +16,7 @@ public class HQPlayer extends BaseRobot {
 	int attackDist;
 
 	double[][] spawnRates;
-	int mapHeight; int mapWidth;
+	int mapWidth; int mapHeight;
 
 	Direction toEnemy;
 	int distToEnemy;
@@ -32,9 +34,9 @@ public class HQPlayer extends BaseRobot {
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
 
-		this.spawnRates = this.myRC.senseCowGrowth();
-		this.mapHeight = this.myRC.getMapHeight();
 		this.mapWidth = this.myRC.getMapWidth();
+		this.mapHeight = this.myRC.getMapHeight();
+		this.spawnRates = this.myRC.senseCowGrowth();
 
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
 		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
@@ -55,7 +57,6 @@ public class HQPlayer extends BaseRobot {
 			strategy = 1;
 		else
 			strategy = 3;
-
 	}
 
 	protected MapLocation find_pastr_loc() throws GameActionException{
@@ -80,6 +81,7 @@ public class HQPlayer extends BaseRobot {
 	}
 
 	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
+		System.out.println(loc);
 		pastrLoc = loc;
 
 		this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
@@ -282,38 +284,49 @@ public class HQPlayer extends BaseRobot {
 		int midX2 = (this.myHQLoc.x + this.enemyHQLoc.x), midY2 = (this.myHQLoc.y + this.enemyHQLoc.y);
 		return new MapLocation(midX2 - loc.x, midY2 - loc.y);
 	}
+	
+	
+	private double distToMidline(MapLocation loc){
+		int x1 = (this.myHQLoc.x + this.enemyHQLoc.x) / 2, y1 = (this.myHQLoc.y + this.enemyHQLoc.y)/ 2;
+		int x2 = this.myHQLoc.y - y1, y2 = this.myHQLoc.x - x1;
+		
+		int num = abs((x2 - x1) * (y1 - loc.y) - (x1 - loc.x)* (y2 - y1));
+		double denom = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+		
+		return num / denom;
+	}
+	
 
-	private MapLocation findRandomPastureLoc(int standard){
+	private MapLocation findRandomPastureLoc(int standard) throws GameActionException{
 		// finds a random location.  returns a random location that is at least 2 units
 		// away from the edges.
 		int x, y;
+		MapLocation candidate;
+		
 		x = (int) (this.random() * (this.mapWidth - 4)) + 2;
 		y = (int) (this.random() * (this.mapHeight - 4)) + 2;
+		
+		candidate = new MapLocation(x, y);
+		
 
-		if (standard >= 2){
-			if (this.myHQLoc.x <= this.enemyHQLoc.x){
-				x = x/3 + 2;
-			}
-			else {
-				x = this.mapWidth - x/3 - 3;
-			}
-			if (this.myHQLoc.y <= this.enemyHQLoc.y){
-				y = y/3 + 2;
-			}
-			else {
-				y = this.mapHeight - y/3 - 3;
-			}
+		if (distToMidline(candidate) > standard * (this.mapHeight + this.mapWidth) / 30){
+			return new MapLocation(x, y);
 		}
-
-		return new MapLocation(x, y);
+		return null;
 	}
 
 	public MapLocation findBestPastureLoc(){
 		MapLocation candidate;
 
 		for (int i=0; ; ++i){
-			int standard = 3 - i/10;
-			candidate = findRandomPastureLoc(standard);
+			int standard = 3 - i/100;
+			
+			try {
+				candidate = findRandomPastureLoc(standard);
+			} catch (GameActionException e) {
+				continue;
+			}
+			if (candidate == null) continue;
 
 			if (this.spawnRates[candidate.x][candidate.y] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 				// high spawn rate and not a void square
@@ -325,7 +338,7 @@ public class HQPlayer extends BaseRobot {
 				}
 			}
 
-			else if (this.spawnRates[candidate.x+2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x+2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate.add(Direction.SOUTH_EAST, 2)).ordinal() < 2){
 				candidate = new MapLocation(candidate.x+2, candidate.y+2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -334,7 +347,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x+2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x+2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate.add(Direction.NORTH_EAST, 2)).ordinal() < 2){
 				candidate = new MapLocation(candidate.x+2, candidate.y-2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -343,7 +356,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x-2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x-2][candidate.y-2] >= standard && this.myRC.senseTerrainTile(candidate.add(Direction.NORTH_WEST, 2)).ordinal() < 2){
 				candidate = new MapLocation(candidate.x-2, candidate.y-2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
@@ -352,7 +365,7 @@ public class HQPlayer extends BaseRobot {
 					return reflect(candidate);
 				}
 			}
-			else if (this.spawnRates[candidate.x-2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate).ordinal() < 2){
+			else if (this.spawnRates[candidate.x-2][candidate.y+2] >= standard && this.myRC.senseTerrainTile(candidate.add(Direction.SOUTH_WEST, 2)).ordinal() < 2){
 				candidate = new MapLocation(candidate.x-2, candidate.y+2);
 				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
 					return candidate;
