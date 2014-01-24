@@ -9,6 +9,7 @@ import battlecode.common.TerrainTile;
 
 public class Navigation {
 	static BaseRobot thisBot;
+	static boolean debug;
 
 	public static LinkedList<MapLocation> pathFind(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException {
 		thisBot = theBot;
@@ -29,34 +30,6 @@ public class Navigation {
 			}
 		}
 		return pivots;
-		 // Get rid of some pivots cause we can. MUCH IMPROVEMENT. SUCH WOW. :')
-//		 MapLocation pivotArray[] = new MapLocation[pivots.size()];
-//		 int temp = 0;
-//		 for (MapLocation pivot: pivots) {
-//		 pivotArray[temp] = pivot;
-//		 temp++;
-//		 }
-//		 int first = 0;
-//		 LinkedList<MapLocation> finalList = new LinkedList<MapLocation>();
-//		 finalList.add(pivotArray[first]);
-//		 for (int i = pivots.size()-1; i > first; i--) {
-//		 if (first == pivots.size()-1) {
-//		 break;
-//		 }
-//		 if (canTravel(pivotArray[first], pivotArray[i])) {
-//		 finalList.add(pivotArray[i]);
-//		 first = i;
-//		 i = pivots.size();
-//		 } else if (i - first == 1) {
-//		 LinkedList<MapLocation> newpath = pathFind(pivotArray[first], pivotArray[i], theBot);
-//		 newpath.remove();
-//		 finalList.addAll(newpath);
-//		 first = i;
-//		 i = pivots.size();
-//		 }
-//		 }
-//		
-//		 return finalList;
 	}
 	public static boolean canTravel(MapLocation start, MapLocation target) {
 		while (!(start.x == target.x && start.y == target.y)) {
@@ -67,33 +40,6 @@ public class Navigation {
 	}
 	
 	protected static Direction directionTo(MapLocation curr, MapLocation loc) throws GameActionException {
-//		Direction dir = curr.directionTo(loc);
-//
-//		if (thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.NORMAL ||
-//				thisBot.myRC.senseTerrainTile(curr.add(dir)) == TerrainTile.ROAD){
-//			return dir;
-//		}
-//
-//		Direction dirA, dirB;
-//		if (thisBot.random() < 0.5){
-//			dirA = dir.rotateLeft();
-//			dirB = dir.rotateRight();
-//		}
-//		else {
-//			dirA = dir.rotateRight();
-//			dirB = dir.rotateLeft();
-//		}
-//
-//		if (thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.NORMAL ||
-//				thisBot.myRC.senseTerrainTile(curr.add(dirA)) == TerrainTile.ROAD){
-//			return dirA;
-//		}
-//		else if (thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.NORMAL ||
-//				thisBot.myRC.senseTerrainTile(curr.add(dirB)) == TerrainTile.ROAD){
-//			return dirB;
-//		}
-//
-//		return null;        
 		if (thisBot.myRC.senseTerrainTile(curr.add(curr.directionTo(loc))) == TerrainTile.NORMAL ||
 					thisBot.myRC.senseTerrainTile(curr.add(curr.directionTo(loc))) == TerrainTile.ROAD)
 			return curr.directionTo(loc);
@@ -102,7 +48,6 @@ public class Navigation {
 	}
 	public static SearchNode bugSearchNew(MapLocation start, MapLocation target, BaseRobot theBot) throws GameActionException{
 		thisBot = theBot;
-		boolean debug = false;
 		MapLocation ehqloc = target;
 		MapLocation curr = start;
 		int closestRight = curr.distanceSquaredTo(ehqloc);
