@@ -10,7 +10,9 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation ourPastrLoc;
 	MapLocation ourNoiseLoc;
 	ActionMessage HQMessage;
-	MapLocation myCOM; 
+	MapLocation myCOM;
+	MapLocation enemyCOM;
+	int reinforcementReq;
 
 	boolean noiseTowerOffense = false;
 	MapLocation dispNoiseLoc = null;
@@ -25,6 +27,20 @@ public class SoldierPlayer extends BaseRobot {
 
 		this.soldier_order = this.myRC.readBroadcast(BaseRobot.SOLDIER_ORDER_CHANNEL);
 		this.myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
+		
+		int mapSize = this.myRC.getMapWidth() * this.myRC.getMapHeight();
+		if(mapSize > 3600){
+			this.reinforcementReq = 5;
+		} else if(mapSize > 2500){
+			this.reinforcementReq = 7;
+		} else if(mapSize > 1600){
+			this.reinforcementReq = 9;
+		} else if(mapSize > 900){
+			this.reinforcementReq = 11;
+		} else {
+			this.reinforcementReq = 13;
+		}
+		
 	}
 
 	@Override
@@ -220,7 +236,7 @@ public class SoldierPlayer extends BaseRobot {
 		MapLocation target = ourNoiseLoc;
 		if (this.myRC.getLocation().equals(ourNoiseLoc)){
 			//wait for sufficient reinforcements before building shit
-			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > 5){
+			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > reinforcementReq){
 				this.myRC.construct(RobotType.NOISETOWER);
 			}
 		}
@@ -247,7 +263,7 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected boolean isSafe() throws GameActionException {
 
-		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 10000000, myTeam);
+		Robot[] myRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
 		Robot[] nearbyRobots = this.myRC.senseNearbyGameObjects(Robot.class, 35, enemyTeam);
 
 		int avgx = 0;
@@ -315,6 +331,29 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		return true;
+	}
+	
+	private int calculateCOM(Robot[] robots, Team team) throws GameActionException{
+		int x = 0, y = 0;
+		int count = 0, health = 0;
+		RobotInfo info;
+		for(Robot robot : robots){
+			info = this.myRC.senseRobotInfo(robot);
+			if(info.team == team && info.type == RobotType.SOLDIER){
+				x += info.location.x;
+				y += info.location.y;
+				health += info.health;
+				++count;
+			}
+		}
+		
+		if(team == this.myTeam){
+			this.myCOM = new MapLocation(x/count, y/count);
+		} else {
+			this.enemyCOM = new MapLocation(x/count, y/count);
+		}
+		return health;
+		
 	}
 
 
