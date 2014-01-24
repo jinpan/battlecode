@@ -75,9 +75,7 @@ public class NoisePlayer extends BaseRobot{
 					}
 				} else {
 					extrema[i]= tempext;
-				}
-				
-				
+				}	
 			}
 
 			

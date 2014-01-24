@@ -30,8 +30,6 @@ public abstract class BaseRobot {
     public static final int HQ_BROADCAST_CHANNEL = 0;
     public static final int SQUAD_MESSAGE_CHANNEL = 100;
     public static final int ALIVE_OR_DEAD = 500;
-    public static final int SOLDIER_COM_CHANNEL = 1000;
-    public static final int SOLDIER_INPUTS = 1200;
     
     public static final int PASTR_LOC_CHANNEL = 1;
     public static final int NOISE_LOC_CHANNEL = 2;
@@ -92,6 +90,10 @@ public abstract class BaseRobot {
     			&& destination.distanceSquaredTo(this.enemyHQLoc) >= 25);
     }
 
+    public boolean isGoodLoc(MapLocation loc) {
+    	return (this.myRC.senseTerrainTile(loc)==TerrainTile.NORMAL || this.myRC.senseTerrainTile(loc) == TerrainTile.ROAD);
+    }
+    
     public int idToOrder(int ID) throws GameActionException{
 		return this.myRC.readBroadcast(IDBOX_BASE + ID);
     }
