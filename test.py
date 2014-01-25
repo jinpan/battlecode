@@ -1,12 +1,16 @@
 #! /usr/bin/python
 
-from re import search
 from Queue import Empty
 from Queue import Queue
-from subprocess import Popen
+from curses import echo
+from curses import endwin
+from curses import initscr
+from curses import nocbreak
+from curses import noecho
+from re import search
 from subprocess import PIPE
+from subprocess import Popen
 from sys import argv
-from sys import stdout
 from threading import Thread
 
 
@@ -16,15 +20,18 @@ def enqueue_output(out, queue):
     out.close()
 
 
-def output(robot_a, robot_b, a_wins, b_wins, left):
-    return '%s won on %d maps; %s won on %d maps.  %d more maps to simulate' % (robot_a, a_wins, robot_b, b_wins, left)
+def output(robot_a, robot_b, a_win_maps, b_win_maps, left):
+    return ('%s won on %d maps (%s); %s won on %d maps (%s).  %d more maps to simulate'
+            % (robot_a, len(a_win_maps), str(a_win_maps), robot_b, len(b_win_maps), str(b_win_maps), left))
 
 
 if __name__ == '__main__':
+    stdscr = initscr()
+    noecho()
+
     robot_a = argv[1]
     robot_b = argv[2]
 
-    a_wins, b_wins = 0, 0
     max_maps = 30
     a_win_maps, b_win_maps = [], []
 
@@ -37,7 +44,9 @@ if __name__ == '__main__':
     t.daemon = True
     t.start()
 
-    output_msg = ''
+    output_msg = output(robot_a, robot_b, a_win_maps, b_win_maps, max_maps - len(a_win_maps) - len(b_win_maps))
+    stdscr.addstr(0, 0, output_msg)
+    stdscr.refresh()
 
     while True:
         try:
@@ -50,17 +59,16 @@ if __name__ == '__main__':
                 last_map = search(map_regex, line).group(1)
             elif search(result_regex, line):
                 if search(result_regex, line).group(1) == 'A':
-                    a_wins += 1
                     a_win_maps.append(last_map)
                 else:
-                    b_wins += 1
                     b_win_maps.append(last_map)
-            stdout.write('\r' + ' ' * len(output_msg))
-            output_msg = output(robot_a, robot_b, a_wins, b_wins, max_maps - a_wins - b_wins)
-            stdout.write('\r' + output_msg)
-            stdout.flush()
+            output_msg = output(robot_a, robot_b, a_win_maps, b_win_maps, max_maps - len(a_win_maps) - len(b_win_maps))
+            stdscr.addstr(0, 0, output_msg)
+            stdscr.refresh()
 
-    print ''
-    print '%s won on %s' % (robot_a, sorted(a_win_maps))
-    print '%s won on %s' % (robot_b, sorted(b_win_maps))
+    nocbreak()
+    echo()
+    endwin()
+
+    print output_msg
 
