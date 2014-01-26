@@ -13,6 +13,8 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation myCOM;
 	MapLocation enemyCOM;
 	int reinforcementReq;
+	
+	Navigation navigator;
 
 	boolean noiseTowerOffense = false;
 	MapLocation dispNoiseLoc = null;
@@ -39,6 +41,7 @@ public class SoldierPlayer extends BaseRobot {
 		else {
 			this.reinforcementReq = 9;
 		}
+		this.navigator = new Navigation(myRC);
 		
 	}
 
@@ -149,7 +152,7 @@ public class SoldierPlayer extends BaseRobot {
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					LinkedList<MapLocation> newCurPath = Navigation.pathFind(myRC.getLocation(), target, this);
+					LinkedList<MapLocation> newCurPath = navigator.pathFind(myRC.getLocation(), target);
 					newCurPath.remove();
 					if (!curPath.equals(newCurPath)) {
 						curPath = newCurPath;
@@ -162,7 +165,7 @@ public class SoldierPlayer extends BaseRobot {
 				this.myRC.yield();
 			}
 		} else {
-			curPath = Navigation.pathFind(myRC.getLocation(), target, this);
+			curPath = navigator.pathFind(myRC.getLocation(), target);
 			myRC.setIndicatorString(1, curPath.toString());
 			targetLoc = target;
 		}

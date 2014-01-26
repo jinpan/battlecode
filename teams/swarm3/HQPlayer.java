@@ -17,7 +17,6 @@ public class HQPlayer extends BaseRobot {
 
 	double[][] spawnRates;
 	double[][] groupSpawnRates;
-	int mapWidth; int mapHeight;
 
 	Direction toEnemy;
 	int distToEnemy;
@@ -34,9 +33,8 @@ public class HQPlayer extends BaseRobot {
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
+		this.spawn();
 
-		this.mapWidth = this.myRC.getMapWidth();
-		this.mapHeight = this.myRC.getMapHeight();
 		this.spawnRates = this.myRC.senseCowGrowth();
 		this.groupSpawnRates = new double[this.mapWidth][this.mapHeight];
 
@@ -270,7 +268,7 @@ public class HQPlayer extends BaseRobot {
 	}
 
 	private boolean spawn() throws GameActionException {
-		if (this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
+		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
 				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
 			this.myRC.spawn(this.myHQLoc.directionTo(this.defaultSpawnLoc));
 			return true;

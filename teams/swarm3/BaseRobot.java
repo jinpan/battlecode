@@ -20,6 +20,7 @@ public abstract class BaseRobot {
     protected int ID;
     protected int order;
     protected int pastrBuffer;
+	int mapWidth; int mapHeight;
    
     public static final int IDBOX_BASE = 10000; //store this robot's order in the array
     public static final int ORDER_CHANNEL = GameConstants.BROADCAST_MAX_CHANNELS - 1;
@@ -44,12 +45,11 @@ public abstract class BaseRobot {
     
     public BaseRobot(RobotController myRC) throws GameActionException {
         this.myRC = myRC;
-        this.construct_core();
-    }
-    
-    protected void construct_core() throws GameActionException {        
+        
         this.myTeam = this.myRC.getTeam();
         this.enemyTeam = this.myTeam.opponent();
+		this.mapWidth = this.myRC.getMapWidth();
+		this.mapHeight = this.myRC.getMapHeight();
         this.pastrBuffer = 10;
         
         this.myHQLoc = this.myRC.senseHQLocation();
