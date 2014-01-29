@@ -1,72 +1,111 @@
 package team007;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
-import team007.ActionMessage;
-import team007.BaseRobot;
-import team007.PastureBlock;
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
+	int strategy = 1; 
+
+	double enemyPrevMilk = 0; 
+	double myPrevMilk = 0;
+
+	boolean attack = false; 
+	
+	boolean offensive;
+	int attackDist;
+
+	double[][] spawnRates;
+	double[][] groupSpawnRates;
 
 	Direction toEnemy;
 	int distToEnemy;
-	MapLocation[] myCorners;
-	ArrayList<MapLocation> pastrLocs0;
-	ArrayList<PastureBlock> pastrBlocks;
-	double spawnThresh;
-	int mapHeight; int mapWidth;
-	double[][] spawnRates;
-	double bestSpawnRate;
-	int numBestSpawn;
+	MapLocation defaultSpawnLoc;
+
+	int pastrCount = 0;
+	boolean pastrBuilt = false;
+	int defeatCount = 0; //how many times we made a pastr and it got blown up
 
 	MapLocation pastrLoc;
-
-	boolean offensive = false; //adjust this smart
+	Direction noiseDir = null;
 
 	int numRobots;
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
+		this.spawn();
 
-		this.spawnRates= this.myRC.senseCowGrowth();
-		this.mapHeight= this.myRC.getMapHeight();
-		this.mapWidth= this.myRC.getMapWidth();
+		this.spawnRates = this.myRC.senseCowGrowth();
+		this.groupSpawnRates = new double[this.mapWidth][this.mapHeight];
 
 		this.toEnemy = this.myHQLoc.directionTo(this.enemyHQLoc);
-		this.distToEnemy= this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
+		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
 
-		double best= 0;
-		int counter=0;
-
-		for (int i=0; i<spawnRates.length; i++){
-			for (int j=0; j<spawnRates[i].length; j++){
-				if (best<spawnRates[i][j]){
-					best= spawnRates[i][j];
-					counter=0;
-				} if (best==spawnRates[i][j]){
-					counter++;
-				}
-			}
+		if (distToEnemy> 30*30){
+			offensive = false;
+		} else {
+			offensive = true;
 		}
-		this.bestSpawnRate= best;
-		this.spawnThresh= best*0.6;
 
-		this.numBestSpawn= counter;
-		this.pastrBlocks= new ArrayList<PastureBlock>();
-		this.pastrLocs0= new ArrayList<MapLocation>();
+		//System.out.println(offensive);
 
-		this.findPastureBlock();
-		pastrLoc = this.pastrLocs0.get(0);
+		set_pastr_loc(find_pastr_loc());
+		findBestPastureLoc2();
+
+		//change one of these to let us play against ourselves
+		if(this.myTeam == Team.A)
+			strategy = 1;
+		else
+			strategy = 3;
 	}
 
+	protected MapLocation find_pastr_loc() throws GameActionException{
+		// Randomly try to find a pastr location.  If we find one that does not have a
+		// location for a noise tower, we retry.
+		MapLocation loc;
+
+		findPastr: {
+			loc = this.findBestPastureLoc();
+			for (Direction dir: BaseRobot.dirs){
+				if (this.myRC.senseTerrainTile(loc.add(dir)).ordinal() < 2){
+					this.noiseDir = dir;
+					break;
+				}
+			}
+			if (noiseDir == null){
+				break findPastr;
+			}
+		}
+		
+		return loc;
+	}
+
+	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
+		System.out.println(loc);
+		pastrLoc = loc;
+
+		this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
+
+		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
+		ActionMessage action2 = null;
+		for (Direction dir: dirs){
+			if (this.myRC.senseTerrainTile(pastrLoc.add(dir)).ordinal() < 2){
+				action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(dir));
+				break;
+			}
+		}
+		this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
+	}
+	
 	@Override
 	protected void step() throws GameActionException {
+
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemyTeam);
 		if (this.myRC.isActive() && nearbyEnemies.length != 0) {
 			this.shoot(nearbyEnemies);
-		}    	
+		}
 
 		if (this.myRC.isActive() && this.myRC.senseRobotCount() < GameConstants.MAX_ROBOTS) {
 			this.spawn();
@@ -76,67 +115,171 @@ public class HQPlayer extends BaseRobot {
 		int dist = maxDist;
 		MapLocation closestTarget = null;
 
-		//finds enemy pastures and posts locations on message board
+		//finds closest enemy pasture
 		MapLocation[] targets = this.myRC.sensePastrLocations(this.enemyTeam);
 		for (int i=0; i<targets.length; ++i){
-			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 24){
+			if (targets[i].distanceSquaredTo(this.enemyHQLoc) > 15){
 				if ((targets[i].distanceSquaredTo(this.myHQLoc) < dist)){
 					closestTarget = targets[i];
+					dist = targets[i].distanceSquaredTo(this.myHQLoc);
 				}
-				EnemyProfileMessage enemyProf = new EnemyProfileMessage(0, 200, targets[i], Clock.getRoundNum());
-				this.squad_send(BaseRobot.SQUAD_BLDG_HITLIST + 2 * i, enemyProf.encode());
 			}
 		}
 
-		int order, channel;
-		StateMessage state;
-		
+		MapLocation[] pastrs = this.myRC.sensePastrLocations(myTeam);
+		pastrCount = pastrs.length;
+		pastrBuilt = (pastrCount > 0);
+
+		if(pastrBuilt && pastrCount == 0){
+			//if we got blown up, might as well make pasture somewhere else
+			defeatCount++;
+			set_pastr_loc(find_pastr_loc());
+		}
+
 		Robot[] allies = this.myRC.senseNearbyGameObjects(Robot.class, 100000, this.myTeam);
-		Robot[] closeAllies = this.myRC.senseNearbyGameObjects(Robot.class, 10, this.myTeam);
 		int totalAllies = allies.length;
-		int neighborAllies = closeAllies.length;
-		int alliesInAction = totalAllies - neighborAllies;
+		this.myRC.broadcast(ALLY_NUMBERS, totalAllies - pastrCount*2);
 
-		//if there's a pasture to attack, do so
-		if(closestTarget != null && ((alliesInAction > 3 && neighborAllies > 2) || (neighborAllies > 5))){
-			for (Robot robot: allies) {
-				if (idToOrder(robot.getID()) == 0) {continue;}
+		int nearEnemies = this.myRC.readBroadcast(PASTR_DISTRESS_CHANNEL);
 
-				order = idToOrder(robot.getID());
-				channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-				state = StateMessage.decode(this.myRC.readBroadcast(channel));
-				if (true){
-					ActionMessage action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
-					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-					this.myRC.broadcast(channel, (int) action.encode());
-				}
+		ActionMessage action = null;
+
+		if(strategy == 1){
+			//the original strategy.
+			//don't leave pastures alone if they're built and have incoming threats
+			//if we don't have a pasture, attack if we have a big enough squad
+			if(defeatCount >=3)
+				strategy = 2;
+			
+			attack = false;
+			if(pastrBuilt){
+				if(closestTarget != null && nearEnemies == 0)
+					attack = true;
+			} else {
+				if(closestTarget != null && totalAllies > 8)
+					attack = true;
 			}
-		} else if((alliesInAction > 5 && neighborAllies > 2) || (neighborAllies > 5)){ //if there are no pastures to attack, we build our own.
-			for (Robot robot: allies) {
-				if (idToOrder(robot.getID()) == 0) {continue;}
 
-				order = idToOrder(robot.getID());
-				channel = BaseRobot.get_outbox_channel(order, BaseRobot.OUTBOX_STATE_CHANNEL);
-				state = StateMessage.decode(this.myRC.readBroadcast(channel));
-				if (pastrLoc!=null){
-					ActionMessage action = new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastrLoc);
-					channel = BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-					this.myRC.broadcast(channel, (int) action.encode());
-				}
+			if(attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			else
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
 			}
-			 
 		}
+
+		if(strategy == 2){
+			//the extreme defensive strategy; make pasture right next to our HQ
+			//make a noisetower in some random place and have it attack a pasture
+			//when group is big enough, go attack
+			
+			MapLocation pastr = this.myHQLoc.add(toEnemy, 2);
+//			if (!isGoodLoc(pastr)) {
+//				pastr = this.myHQLoc.add(toEnemy, 2);
+//			} if (!isGoodLoc(pastr)) {
+//				pastr = this.myHQLoc.add(toEnemy);
+//			}
+			
+			set_pastr_loc(pastr);
+						
+			attack = false;
+			
+			if(totalAllies > 6 && closestTarget != null)
+				attack = true;
+			if(attack && totalAllies < 3)
+				attack = false;
+			
+			if(attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 2, closestTarget);
+			else {
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+				//System.out.println("Strategy 2 broadcasted " + pastrLoc);
+			}
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
+		}
+		
+		if(strategy == 3){
+			
+			if (defeatCount>=3){
+				strategy = 2;
+			}
+			
+			double enemyMilk = this.myRC.senseTeamMilkQuantity(enemyTeam);
+			double myMilk = this.myRC.senseTeamMilkQuantity(myTeam);
+			double enemyMilkChange = enemyMilk - enemyPrevMilk;
+			double myMilkChange = myMilk- myPrevMilk;
+			double myExpectedWin = (GameConstants.WIN_QTY - myMilk)/myMilkChange;
+			double enemyExpectedWin = (GameConstants.WIN_QTY - enemyMilk)/enemyMilkChange;
+			boolean losing = (enemyMilk - myMilk) > 10000;
+			
+			myPrevMilk = myMilk;
+			enemyPrevMilk = enemyMilk;
+			
+			attack = false;
+			if(pastrBuilt){
+				if(closestTarget != null && nearEnemies == 0 && losing)
+					attack = true;
+			} else {
+				if(closestTarget != null && totalAllies > 8 && losing)
+					attack = true;
+			}
+
+			if(attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			else
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
+		}
+		
+		if(strategy == 4){
+			// modification of original strategy - don't necessarily attack enemy pastr
+			if (defeatCount >=3)
+				strategy = 2;
+			
+			attack = false;
+			if(pastrBuilt && targets.length > 1){
+				if(closestTarget != null && nearEnemies == 0)
+					attack = true;
+			} else {
+				if(closestTarget != null && totalAllies > 8)
+					attack = true;
+			}
+
+			if (attack)
+				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
+			else
+				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
+			if (action!= null) {
+				this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+			}
+		}
+		
+		int caution = this.myRC.readBroadcast(CAUTION_CHANNEL);
+		if (Clock.getRoundNum() > caution + 2){
+			this.myRC.broadcast(CAUTION_CHANNEL, 0);
+		}
+		
+		
 	}
 
 	private boolean spawn() throws GameActionException {
-		if (this.myRC.senseObjectAtLocation(this.myHQLoc.add(this.toEnemy)) == null){
-			this.myRC.spawn(this.toEnemy);
+		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
+				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
+			this.myRC.spawn(this.myHQLoc.directionTo(this.defaultSpawnLoc));
 			return true;
 		}
 		else {
+			MapLocation candidate;
 			for (Direction dir: BaseRobot.dirs){
+				candidate = this.myHQLoc.add(dir);
 				if (dir != this.toEnemy
-						&& this.myRC.senseObjectAtLocation(this.myHQLoc.add(dir)) == null){
+						&& this.myRC.senseObjectAtLocation(candidate) == null
+						&& this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 					this.myRC.spawn(dir);
 					return true;
 				}
@@ -168,117 +311,135 @@ public class HQPlayer extends BaseRobot {
 		return false; //give up    	
 	}
 
-	public int numPastures(){
-		return this.numBestSpawn/200;
+	private MapLocation reflect(MapLocation loc){
+		int midX2 = (this.myHQLoc.x + this.enemyHQLoc.x), midY2 = (this.myHQLoc.y + this.enemyHQLoc.y);
+		return new MapLocation(midX2 - loc.x, midY2 - loc.y);
 	}
-
-	public boolean isGoodLoc(int x, int y){
-		boolean xokay= x>=0 && x<this.mapWidth;
-		boolean yokay= y>=0 && y<this.mapHeight;
-		boolean inEnemySquare= abs(x-this.enemyHQLoc.x) <= this.mapWidth/5 && abs(y-this.enemyHQLoc.y)<= this.mapHeight/5;
-		return xokay && yokay && !inEnemySquare;
+	
+	
+	private double distToMidline(MapLocation loc){
+		int x1 = (this.myHQLoc.x + this.enemyHQLoc.x) / 2, y1 = (this.myHQLoc.y + this.enemyHQLoc.y)/ 2;
+		int x2 = this.myHQLoc.y - y1, y2 = this.myHQLoc.x - x1;
+		
+		int num = abs((x2 - x1) * (y1 - loc.y) - (x1 - loc.x)* (y2 - y1));
+		double denom = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+		
+		return num / denom;
 	}
+	
 
-	public boolean notOverlapping(MapLocation loc){
-		for (PastureBlock block: this.pastrBlocks){
-			if (block.contains(loc)){
-				return false;
-			}
-		} return true;
+	private MapLocation findRandomPastureLoc() {
+		// finds a random location.  returns a random location that is at least 2 units
+		// away from the edges.
+		int x, y;
+		
+		x = (int) (this.random() * (this.mapWidth - 4)) + 2;
+		y = (int) (this.random() * (this.mapHeight - 4)) + 2;
+		
+		return new MapLocation(x, y);
 	}
-
-	public PastureBlock findPastureBlock(){
-		int width=0; int height=0; 
-		int xadd=0; int yadd=0;
-		MapLocation vertex=null;
-		PastureBlock block = null;
-
-		int i=1; 
-
-		while (vertex==null && i<(int)this.mapHeight/2){
-			int y1= this.myHQLoc.y-i; 
-			int y2= this.myHQLoc.y+i;
-			int x1= this.myHQLoc.x-i; 
-			int x2= this.myHQLoc.x+i;
-			//System.out.println(x1+" "+x2+" "+y1+" "+y2);
-			for (int j=0; j<2*i+1; j++){
-				//System.out.println(spawnRates[y1][x1+j]);
-				//System.out.println(isGoodLoc(x1+j, y1));
-				if ((width==0&&height==0) && isGoodLoc(x1+j, y1) && spawnRates[x1+j][y1]>=spawnThresh){
-					MapLocation temp = new MapLocation(x1+j, y1);
-					if (notOverlapping(temp)){
-						xadd= 1; yadd= -1; 
-						width=1; height=1;
-						vertex= temp;
-					} else {
-						vertex=null;
-					}
-				} else if ((width==0&&height==0) && isGoodLoc(x1+j, y2) && spawnRates[x1+j][y2]>=spawnThresh){
-					MapLocation temp= new MapLocation(x1+j, y2);
-					if (notOverlapping(temp)){
-						xadd= 1; yadd= 1; 
-						width=1; height=1;
-						vertex= temp;
-					} else {
-						vertex=null;
-					}
-				} else if ((width==0&&height==0) && isGoodLoc(x1, y1+j) && spawnRates[x1][y1+j]>=spawnThresh){
-					MapLocation temp = new MapLocation(x1, y1+j);
-					if (notOverlapping(temp)){
-						xadd= -1; yadd= 1; 
-						width=1; height=1;
-						vertex= temp;
-					} else {
-						vertex=null;
-					}
-				} else if ((width==0&&height==0) && isGoodLoc(x2, y1+j) && spawnRates[x2][y1+j]>=spawnThresh){
-					MapLocation temp= new MapLocation(x2, y1+j);
-					if (notOverlapping(temp)){
-						xadd= 1; yadd= 1; 
-						width=1; height=1;
-						vertex= temp;
-					} else {
-						vertex=null;
-					}
-				}
-			}i++;
+	
+	private boolean acceptPastrLoc(MapLocation candidate, int idx){
+		if (this.myRC.senseTerrainTile(candidate).ordinal() > 1){
+			return false;
 		}
-		if (vertex!= null){
-			int a= vertex.x; int b= vertex.y;
-			for (int j=0; j<this.mapHeight/2; j++){
-				if (isGoodLoc(a, b+yadd*j) && spawnRates[a][b+yadd*j]>=spawnThresh){
-					height++;
-				} else {
-					j= this.mapHeight;
-				}
-			} for (int k=0; k<this.mapWidth/2; k++){
-				if (isGoodLoc(a+ xadd*k, b)&& spawnRates[a+xadd*k][b]>=spawnThresh){
-					width++;
-				} else{
-					k= this.mapWidth;
+		int standard = (idx < 100) ? 3 : (idx < 200) ? 2: 1;
+		
+		double spawnRate = this.spawnRates[candidate.x][candidate.y];
+		double distToMid = distToMidline(candidate);
+		
+		if (spawnRate >= standard && distToMid > standard * (this.mapHeight + this.mapWidth) / 30){
+			return true;
+		}
+		return false;
+	}
+	
+
+	public MapLocation findBestPastureLoc2(){
+		
+		double totalSpawn = 0;
+		int maxSpawn = 0;
+		for (int i=0; i<mapWidth; ++i){
+			for (int j=0; j<=mapHeight/2; ++j){
+				totalSpawn += spawnRates[i][j];
+				maxSpawn = max(maxSpawn, (int) spawnRates[i][j]);
+			}
+		}
+		
+		System.out.println("TOTAL SPAWN " + totalSpawn);
+		
+		LinkedList<MapLocation> candidatesUL = new LinkedList<MapLocation>();
+		LinkedList<MapLocation> candidatesBR = new LinkedList<MapLocation>();
+		
+		for (int i=1; i<mapWidth-1; ++i){
+			for (int j=1; j<mapHeight-1; ++j){
+				if (spawnRates[i][j] >= maxSpawn){
+					if (spawnRates[i-1][j] < maxSpawn && spawnRates[i][j-1] < maxSpawn){
+						candidatesUL.add(new MapLocation(i, j));
+					}
+					if (spawnRates[i+1][j] < maxSpawn && spawnRates[i][j+1] < maxSpawn){
+						candidatesBR.add(new MapLocation(i, j));
+					}
 				}
 			}
-			//this.detectedVertices.add(vertex);
-			//System.out.println(this.detectedVertices.get(this.detectedVertices.size()-1));
-			vertex= new MapLocation(min(a+width*xadd, a), min(b+height*yadd, b));
-			block= new PastureBlock(vertex, width-1, height-1, pastrBuffer);
-			this.pastrBlocks.add(block);
-			block.pastrLocs(this.pastrLocs0);
-		} 
-		return block;
+		}
+		System.out.println("SIZE " + candidatesUL.size() + " " + candidatesBR.size());
+		return null;
 	}
 
+	public MapLocation findBestPastureLoc(){
+		MapLocation candidate;
 
-	public void assign_pasture(int order, int counter) throws GameActionException {
-		int channel= BaseRobot.get_inbox_channel(order, BaseRobot.INBOX_ACTIONMESSAGE_CHANNEL);
-		MapLocation pastr=null;
-		if (counter>=0){
-			pastr= this.pastrLocs0.remove(0);
-		} else {
-			pastr= this.pastrLocs0.get(0);
+		for (int i=0; ; ++i){
+			candidate = findRandomPastureLoc();
+
+			if (acceptPastrLoc(candidate, i)){
+				// high spawn rate and not a void square
+				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
+					return candidate;
+				}
+				else {
+					return reflect(candidate);
+				}
+			}
+			else if (acceptPastrLoc(candidate.add(Direction.SOUTH_EAST, 2), i)){
+				candidate = candidate.add(Direction.SOUTH_EAST, 2);
+				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
+					return candidate;
+				}
+				else {
+					return reflect(candidate);
+				}
+			}
+			else if (acceptPastrLoc(candidate.add(Direction.NORTH_EAST, 2), i)){
+				candidate = candidate.add(Direction.NORTH_EAST, 2);
+				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
+					return candidate;
+				}
+				else {
+					return reflect(candidate);
+				}
+			}
+			else if (acceptPastrLoc(candidate.add(Direction.NORTH_WEST, 2), i)){
+				candidate = candidate.add(Direction.NORTH_WEST, 2);
+				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
+					return candidate;
+				}
+				else {
+					return reflect(candidate);
+				}
+			}
+			else if (acceptPastrLoc(candidate.add(Direction.SOUTH_WEST, 2), i)){
+				candidate = candidate.add(Direction.SOUTH_WEST, 2);
+				if (candidate.distanceSquaredTo(this.enemyHQLoc) > candidate.distanceSquaredTo(this.myHQLoc)){
+					return candidate;
+				}
+				else {
+					return reflect(candidate);
+				}
+			}
 		}
-		ActionMessage msg= new ActionMessage(BaseRobot.State.PASTURIZE, 0, pastr);
-		this.myRC.broadcast(channel, (int) msg.encode());
+
 	}
 
 }

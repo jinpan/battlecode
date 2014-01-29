@@ -13,8 +13,6 @@ public class RobotPlayer {
 	            case SOLDIER: myRobot = new SoldierPlayer(rc); break;
 	            case PASTR: myRobot = new PastrPlayer(rc); break;
 	            case NOISETOWER: myRobot = new NoisePlayer(rc); break;
-	        default:
-	            myRobot = new DefaultPlayer(rc); break;
 	        }
 	        
 	        myRobot.run();

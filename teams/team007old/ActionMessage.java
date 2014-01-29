@@ -1,4 +1,4 @@
-package swarm3;
+package team007;
 
 import battlecode.common.MapLocation;
 
@@ -20,7 +20,7 @@ import battlecode.common.MapLocation;
  *   Seventh through Eighth bytes are used for the vertical map position (0 - 255)
  */
 
-public class ActionMessage {
+public class ActionMessage implements Message {
     
     protected BaseRobot.State state;
     protected int targetID;
@@ -32,12 +32,6 @@ public class ActionMessage {
         this.targetLocation = targetLocation;
     }
     
-    public boolean equals(ActionMessage other) {
-    	if (other != null) {
-    		return other.state.equals(this.state) && other.targetID == this.targetID && other.targetLocation.equals(this.targetLocation); 
-    	} return false;
-    }
-    
     public long encode(){
     	int result = 0;
     	int state;
@@ -45,6 +39,8 @@ public class ActionMessage {
         	case DEFAULT: state = 0x0; break;
         	case ATTACK: state = 0x1; break;
         	case DEFEND: state = 0x2; break;
+        	case HERD: state = 0x3; break;
+        	case PASTURIZE: state = 0x4; break;
         	default: state = 0x0;
         }
         result += state; result <<= 12;
@@ -55,6 +51,9 @@ public class ActionMessage {
         return result;
     }
     
+    public Action toAction(){
+        return new Action(this.state, this.targetLocation, this.targetID);
+    }
     
     public static ActionMessage decode(long message){
         int y_pos = (int) (message % 0x100); message >>>= 8;
@@ -69,6 +68,8 @@ public class ActionMessage {
         	case 0x0: myState = BaseRobot.State.DEFAULT; break;
         	case 0x1: myState = BaseRobot.State.ATTACK; break;
         	case 0x2: myState = BaseRobot.State.DEFEND; break;
+        	case 0x3: myState = BaseRobot.State.HERD; break;
+        	case 0x4: myState = BaseRobot.State.PASTURIZE; break;
         	default: myState = BaseRobot.State.DEFAULT; break;
         }
         

@@ -1,11 +1,11 @@
 package team007;
 
-import team007.BaseRobot;
 import battlecode.common.*;
 
 public class NoisePlayer extends BaseRobot{
 	
 	int cur = 0; //current direction
+	int[] dirPro = {0, 2, 4, 6, 7, 1, 3, 5};
 	MapLocation[] extrema = new MapLocation[8];
 	MapLocation curLoc;
 
@@ -17,32 +17,35 @@ public class NoisePlayer extends BaseRobot{
 
 	protected void step() throws GameActionException{
 		sense_enemies();
+		
+		MapLocation ourNoise = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
 
-		if(this.myRC.isActive()){			
-			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
-				cur = (cur+1)%8;
-				curLoc = extrema[cur];
-			} else {
-				curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
+		if(this.myRC.isActive()){	
+			if (!this.myRC.getLocation().equals(ourNoise)) {
+				MapLocation enemyPastr = ActionMessage.decode(this.myRC.readBroadcast(NOISE_OFFENSE_CHANNEL)).targetLocation;
+				if (enemyPastr.distanceSquaredTo(this.myRC.getLocation())<=300) {
+					this.myRC.attackSquare(enemyPastr);
+				}
 			}
+			else {
+				if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
+					cur = (cur+1)%8;
+					curLoc = extrema[dirPro[cur]];
+				} else {
+					curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
+				}
 
-			this.myRC.attackSquare(curLoc);
+				this.myRC.attackSquare(curLoc);
+			}
 		}
 	}
 	
 	protected void sense_enemies() throws GameActionException{
-		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*2, this.enemyTeam);
-		MapLocation pastrLoc= this.myRC.getLocation().add(this.myRC.getLocation().directionTo(this.enemyHQLoc), -1);
-		ActionMessage msg= new ActionMessage(BaseRobot.State.PASTURIZE, enemies.length, pastrLoc);
-		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, (int) msg.encode());
-		
-		if (enemies.length>0){
-			this.myRC.setIndicatorString(2, "Sending distress signal");
-		}
+		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*5, this.enemyTeam);
+		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, enemies.length);
 	}
 
 	protected void get_herding_extrema() throws GameActionException{ //this finds how far the robots can go in any direction
-		double[][] cowGrowth = this.myRC.senseCowGrowth(); //cowGrowth[a][b] is growth at location (a, b)
 		MapLocation base = this.myRC.getLocation();
 
 		for(int i = 0; i < 8; i++){
@@ -50,7 +53,7 @@ public class NoisePlayer extends BaseRobot{
 			TerrainTile curTerrain = this.myRC.senseTerrainTile(extrema[i]);
 			
 			while(curTerrain == TerrainTile.NORMAL || curTerrain == TerrainTile.ROAD){
-				if(cowGrowth[extrema[i].x][extrema[i].y] == 0 || !this.myRC.canAttackSquare(extrema[i]))
+				if(!this.myRC.canAttackSquare(extrema[i]))
 					break;
 
 				MapLocation tempext = extrema[i].add(dirs[i]);
@@ -83,9 +86,7 @@ public class NoisePlayer extends BaseRobot{
 					}
 				} else {
 					extrema[i]= tempext;
-				}
-				
-				
+				}	
 			}
 
 			
