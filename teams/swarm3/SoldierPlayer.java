@@ -6,9 +6,12 @@ import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
 
-	MapLocation targetLoc;
-	MapLocation ourPastrLoc;
-	MapLocation ourNoiseLoc;
+	BaseRobot.State state;
+	MapLocation target_loc;
+	MapLocation pastr_loc;
+	MapLocation noise_loc;
+	MapLocation[] pastr_locs = new MapLocation[4];
+	MapLocation[] noise_locs = new MapLocation[4];
 	ActionMessage HQMessage;
 	MapLocation myCOM;
 	MapLocation enemyCOM;
@@ -16,20 +19,25 @@ public class SoldierPlayer extends BaseRobot {
 	
 	Navigation navigator;
 
-	boolean noiseTowerOffense = false;
 	MapLocation dispNoiseLoc = null;
 
 	boolean voteRetreat;
 	boolean straightMovement;
 	protected int soldier_order;
-	Robot[] allies, enemies;
+	Robot[] allies, enemies, nearby_enemies;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
+	
+	public static final int WAIT_TIME = 2;
+	public static final int ENEMY_COW_LIMIT = 1000;
+	public static final int COWVERT_NOISE_CONSTRUCT_ROUND = 50;
+	public static final int COWVERT_PASTR_CONSTRUCT_ROUND = 25;
+	
 
 	public SoldierPlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
 
-		this.soldier_order = this.myRC.readBroadcast(BaseRobot.SOLDIER_ORDER_CHANNEL);
-		this.myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
+		soldier_order = myRC.readBroadcast(BaseRobot.SOLDIER_ORDER_CHANNEL);
+		myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
 		
 		int mapSize = this.myRC.getMapWidth() * this.myRC.getMapHeight();
 		if (mapSize > 1600){
@@ -48,74 +56,193 @@ public class SoldierPlayer extends BaseRobot {
 	@Override
 	protected void setup() throws GameActionException {
 		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
-		ourPastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
-		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
+		enemies = myRC.senseNearbyGameObjects(Robot.class, 35, enemy_team);
 		
-		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 35, this.enemyTeam);
+		if (strategy == null){
+			int strategy_ord = myRC.readBroadcast(STRATEGY_CHANNEL);
+			if (strategy_ord != 0){
+				strategy = Strategy.values()[strategy_ord - 1];
+			}
+		}
+		
+		if (strategy != null){
+			switch (strategy){
+				case COWVERT: {
+					LocationMessage locMsg = LocationMessage.decode(this.myRC.readBroadcast(LOC_CHANNELS[0]));
+					if (locMsg != null){
+						noise_locs[0] = locMsg.noise_loc;
+						pastr_locs[0] = locMsg.pastr_loc;
+					}
+					LocationMessage locMsg1 = LocationMessage.decode(this.myRC.readBroadcast(LOC_CHANNELS[1]));
+					if (locMsg1 != null){
+						noise_locs[1] = locMsg1.noise_loc;
+						pastr_locs[1] = locMsg1.pastr_loc;
+					}
+					break;
+				}
+				case FARMVILLE: {
+					break;
+				}
+				default: {
+					LocationMessage locMsg = LocationMessage.decode(this.myRC.readBroadcast(LOC_CHANNEL));
+					if (locMsg != null){
+						noise_loc = locMsg.noise_loc;
+						pastr_loc = locMsg.pastr_loc;
+					}
+					
+					if (myRC.readBroadcast(NOISE_DIBS_CHANNEL) == 0){
+						myRC.broadcast(NOISE_DIBS_CHANNEL, 1);
+						state = State.NOISE;
+						System.out.println("DIBS");
+					}
+				}
+			}
+		}
 	}
 
 	@Override
 	protected void step() throws GameActionException {
-		if(this.myRC.isActive()){
-			//this.myRC.broadcast(ALIVE_OR_DEAD, 0);
-			if (HQMessage.targetID == 2 || noiseTowerOffense) {
-				this.noise_tower_offense();
-				return;
-			}
-
-			switch (HQMessage.state) {
-			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
-			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
-			default: myRC.setIndicatorString(2, "DEFAULT");
-			}
+		if (strategy == null){
+			chillStep();
 		}
-	}
-
-
-	protected void noise_tower_offense() throws GameActionException {
-		int noisebuilt = this.myRC.readBroadcast(NOISE_OFFENSE_CHANNEL);
-
-		if (noisebuilt==0 || noiseTowerOffense){			
-			if(!noiseTowerOffense){
-				ActionMessage noiseAction = new ActionMessage(BaseRobot.State.DEFEND, 2, HQMessage.targetLocation);
-				this.myRC.broadcast(NOISE_OFFENSE_CHANNEL, (int)noiseAction.encode());
-				
-				this.noiseTowerOffense = true;
-				dispNoiseLoc = HQMessage.targetLocation;
-				for(Direction d: dirs){
-					int shift = 0;
-					if(d.isDiagonal()){
-						shift = 12;
-					} else {
-						shift = 17;
+		else {
+			switch (strategy){
+				case COWVERT: {
+					cowvertStep(); break;
+				}
+				case FARMVILLE: {
+					break;
+				}
+				default: {
+					if (state == State.NOISE) {
+						noiseStep(); myRC.setIndicatorString(2, "NOISE");
+						return;
 					}
-
-					dispNoiseLoc = dispNoiseLoc.add(d, shift);
-					if(isGoodLoc(dispNoiseLoc) && dispNoiseLoc.distanceSquaredTo(ourPastrLoc)>100 && dispNoiseLoc.distanceSquaredTo(this.enemyHQLoc)> 50 )
-						break;
-					else
-						dispNoiseLoc = dispNoiseLoc.add(d, -shift);
+					switch (HQMessage.state) {
+						case ATTACK: attackStep(); myRC.setIndicatorString(2, "ATTACK"); break;
+						case DEFEND: defendStep(); myRC.setIndicatorString(2, "DEFEND"); break;
+						default: defendStep(); myRC.setIndicatorString(2, "DEFAULT");
+					}
 				}
 			}
-
-
-			if (this.myRC.getLocation().equals(dispNoiseLoc)){
-				this.myRC.construct(RobotType.NOISETOWER);
-			} else {
-				move_to_target(dispNoiseLoc, false);
+		}
+	}
+	
+	void cowvertStep() throws GameActionException {
+		if (!myRC.isActive()){
+			return;
+		}
+		
+		if (enemies.length > 0){
+			nearby_enemies = myRC.senseNearbyGameObjects(Robot.class, 10, this.enemy_team);
+			if (nearby_enemies.length > 0){
+				double min_health = 101;
+				RobotInfo best_info = null, info = null;
+				for (Robot enemy: nearby_enemies){
+					info = myRC.senseRobotInfo(enemy);
+					if (info.health < min_health){
+						best_info = info;
+					}
+				}
+				if (myRC.isActive()){
+					myRC.attackSquare(best_info.location);
+				}
+				return;
 			}
+		}
+		
+		if (myRC.getLocation().equals(pastr_locs[0])){
+			if (Clock.getRoundNum() > COWVERT_PASTR_CONSTRUCT_ROUND){
+				myRC.construct(RobotType.PASTR);
+			}
+			else {
+				return;
+			}
+		}
+		if (myRC.getLocation().equals(pastr_locs[1])){
+			if (Clock.getRoundNum() > COWVERT_PASTR_CONSTRUCT_ROUND){
+				myRC.construct(RobotType.PASTR);
+			}
+			else {
+				return;
+			}
+		}
+		if (myRC.getLocation().equals(noise_locs[0])){
+			if (Clock.getRoundNum() > COWVERT_NOISE_CONSTRUCT_ROUND){
+				myRC.construct(RobotType.NOISETOWER);
+			}
+			else {
+				return;
+			}
+		}
+		if (myRC.getLocation().equals(noise_locs[1])){
+			if (Clock.getRoundNum() > COWVERT_NOISE_CONSTRUCT_ROUND){
+				//myRC.construct(RobotType.NOISETOWER);
+			}
+			else {
+				return;
+			}
+		}
+		
+		Direction dir;
+		if (myRC.canSenseSquare(pastr_locs[0]) && myRC.senseObjectAtLocation(pastr_locs[0]) == null){
+			dir = directionTo(pastr_locs[0]);
+			if (dir != null){
+				myRC.move(dir);
+			}
+		}
+		else if (myRC.canSenseSquare(pastr_locs[1]) && myRC.senseObjectAtLocation(pastr_locs[1]) == null){
+			dir = directionTo(pastr_locs[1]);
+			if (dir != null){
+				myRC.move(dir);
+			}
+		}
+		else if (myRC.canSenseSquare(noise_locs[0]) && myRC.senseObjectAtLocation(noise_locs[0]) == null){
+			dir = directionTo(noise_locs[0]);
+			if (dir != null){
+				myRC.move(dir);
+			}
+		}
+		else if (myRC.canSenseSquare(noise_locs[1]) && myRC.senseObjectAtLocation(noise_locs[1]) == null){
+			dir = directionTo(noise_locs[1]);
+			if (dir != null){
+				myRC.move(dir);
+			}
+		}
+		else {
+			chillStep();
+		}
+	}
+	
 
-		} else {
-			this.attack_step();
+	void chillStep() throws GameActionException {
+		// don't block anyone.
+		if (myRC.canSenseSquare(my_hq_loc)){
+			boolean hq_blocked = true;
+			MapLocation candidate;
+			for (Direction dir: dirs){
+				candidate = my_hq_loc.add(dir);
+				if (!navigator.isGood(candidate)
+						|| (myRC.canSenseSquare(candidate) && myRC.senseObjectAtLocation(candidate) == null)){
+					hq_blocked = false;
+					break;
+				}
+			}
+			if (hq_blocked && myRC.isActive()){
+				moveTo(HQMessage.targetLocation, true);
+			}
+		}
+		else {
+			return;
 		}
 	}
 
-	protected void attack_step() throws GameActionException {
+	void attackStep() throws GameActionException {
 		if (!isSafe()) { return; }
-		if (respond_to_threat(false)){ return; }
+		if (respondToThreat(false)){ return; }
 
 		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) && this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null)) {
-			move_to_target(ourPastrLoc, false);
+			moveTo(pastr_loc, false);
 		} else {
 			if (myCOM!= null && HQMessage.state == BaseRobot.State.ATTACK ) {
 				if (myCOM.distanceSquaredTo(HQMessage.targetLocation) 
@@ -128,16 +255,62 @@ public class SoldierPlayer extends BaseRobot {
 					}
 				}
 			}
-			move_to_target(HQMessage.targetLocation, false);
+			moveTo(HQMessage.targetLocation, false);
 
 		}
 	}
+	
+	void defendStep() throws GameActionException {
+		if (pastr_loc == null){
+			
+		}
+		else {
+			if (myRC.getLocation().distanceSquaredTo(pastr_loc) < 30){
+				if (enemies.length > 2){
+					myRC.broadcast(CAUTION_CHANNEL, Clock.getRoundNum());
+				}
+			}
+			if (!isSafe()) { return; }
+	
+			boolean atPastr = false;
+			if(myRC.canSenseSquare(pastr_loc) && this.myRC.senseObjectAtLocation(pastr_loc) != null)
+				atPastr = true;
+			if (respondToThreat(atPastr)){ return; }
+	
+			if (this.myRC.getLocation().equals(pastr_loc)){
+				//wait for sufficient reinforcements before building shit
+				if(myRC.senseNearbyGameObjects(Robot.class, 35, this.my_team).length > reinforcementReq
+						&& myRC.readBroadcast(NOISE_DIBS_CHANNEL) == 2
+						&& myRC.readBroadcast(CAUTION_CHANNEL) == 0){
+					myRC.construct(RobotType.PASTR);
+				}
+			}
+	
+			boolean sneak = (this.myRC.getLocation().distanceSquaredTo(pastr_loc) < 16);
+			moveTo(pastr_loc, sneak);
+		}
+	}
+	
+	void noiseStep() throws GameActionException {
+		if (noise_loc == null){
+			
+		}
+		else {
+			if (!isSafe()){ return;}
+			
+			if (this.myRC.getLocation().equals(noise_loc) && myRC.isActive()){
+				this.myRC.construct(RobotType.NOISETOWER);
+			}
+			
+			moveTo(noise_loc, false);
+		}
+	}
 
-	protected void move_to_target(MapLocation target, boolean sneak) throws GameActionException{
+	void moveTo(MapLocation target, boolean sneak) throws GameActionException{
 		if (target.equals(this.myRC.getLocation())){
 			return;
 		}
-		if (target.equals(targetLoc)) {
+		if (target.equals(target_loc)) {
 			if (myRC.getLocation().equals(curPath.getFirst())) {
 				curPath.remove();
 				straightMovement = false;
@@ -152,7 +325,7 @@ public class SoldierPlayer extends BaseRobot {
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					LinkedList<MapLocation> newCurPath = navigator.pathFind(myRC.getLocation(), target);
+					LinkedList<MapLocation> newCurPath = navigator.findPath(myRC.getLocation(), target);
 					newCurPath.remove();
 					if (!curPath.equals(newCurPath)) {
 						curPath = newCurPath;
@@ -165,13 +338,13 @@ public class SoldierPlayer extends BaseRobot {
 				this.myRC.yield();
 			}
 		} else {
-			curPath = navigator.pathFind(myRC.getLocation(), target);
+			curPath = navigator.findPath(myRC.getLocation(), target);
 			myRC.setIndicatorString(1, curPath.toString());
-			targetLoc = target;
+			target_loc = target;
 		}
 	}
 
-	protected boolean respond_to_threat(boolean defending) throws GameActionException{
+	boolean respondToThreat(boolean defending) throws GameActionException{
 		if(this.myRC.getActionDelay() > 1)
 			return false;
 
@@ -213,7 +386,7 @@ public class SoldierPlayer extends BaseRobot {
 		return false;
 	}
 
-	protected int getHeuristic(RobotInfo r, MapLocation orig){
+	int getHeuristic(RobotInfo r, MapLocation orig){
 		int health = (int)r.health;
 		int dist = orig.distanceSquaredTo(r.location);
 		RobotType type = r.type;
@@ -227,53 +400,9 @@ public class SoldierPlayer extends BaseRobot {
 		return heuristic;
 	}
 
-	protected void defend_step() throws GameActionException {
-		if (HQMessage.state == BaseRobot.State.DEFEND && this.myRC.getLocation().distanceSquaredTo(HQMessage.targetLocation) < 30){
-			if (enemies.length > 2){
-				this.myRC.broadcast(CAUTION_CHANNEL, Clock.getRoundNum());
-			}
-		}
-		if (!isSafe()) { return; }
 
-		boolean atPastr = false;
-		if(this.myRC.canSenseSquare(ourPastrLoc) && this.myRC.senseObjectAtLocation(ourPastrLoc) != null)
-			atPastr = true;
-		if(respond_to_threat(atPastr)){ return; }
-
-		MapLocation target = ourNoiseLoc;
-		if (this.myRC.getLocation().equals(ourNoiseLoc)){
-			//wait for sufficient reinforcements before building shit
-			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > reinforcementReq){
-				if (this.myRC.readBroadcast(CAUTION_CHANNEL) == 0)
-					this.myRC.construct(RobotType.NOISETOWER);
-			}
-		}
-
-		if (this.myRC.canSenseSquare(target)){
-			GameObject squattingRobot = this.myRC.senseObjectAtLocation(target);
-			if (squattingRobot != null && squattingRobot.getTeam() == this.myTeam){
-				target = ourPastrLoc;
-
-				RobotInfo pastrInfo = this.myRC.senseRobotInfo((Robot) squattingRobot);
-				if(this.myRC.getLocation().equals(ourPastrLoc)) {
-					if ((pastrInfo.isConstructing && pastrInfo.constructingRounds <= 55) || pastrInfo.type == RobotType.NOISETOWER){
-						if (this.myRC.readBroadcast(CAUTION_CHANNEL) == 0)
-							this.myRC.construct(RobotType.PASTR);
-					}
-				}
-			}
-		}
-
-		boolean sneak = false;
-		if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
-			sneak = true;
-		}
-		move_to_target(target, sneak);
-	}    
-
-
-	protected boolean isSafe() throws GameActionException {
-		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
+	boolean isSafe() throws GameActionException {
+		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, my_team);
 		
 		int avgx = 0;
 		int avgy = 0;
@@ -330,7 +459,7 @@ public class SoldierPlayer extends BaseRobot {
 				if (myCOM!= null)
 					moveDirection = this.myRC.getLocation().directionTo(myCOM);
 				else 
-					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(ourPastrLoc), 7));
+					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(pastr_loc), 7));
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
 					myRC.move(moveDirection);
 					return false;
@@ -342,28 +471,21 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 
-	protected Direction directionTo(MapLocation loc) throws GameActionException {
+	Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);
 
 		if (this.myRC.canMove(dir)){
 			return dir;
 		}
 
-		Direction dirA, dirB;
-		if (this.random() < 0.5){
-			dirA = dir.rotateLeft();
-			dirB = dir.rotateRight();
-		}
-		else {
-			dirA = dir.rotateRight();
-			dirB = dir.rotateLeft();
-		}
+		Direction candidate = dir.rotateLeft();
 
-		if (this.myRC.canMove(dirA)){
-			return dirA;
+		if (this.myRC.canMove(candidate)){
+			return candidate;
 		}
-		else if (this.myRC.canMove(dirB)){
-			return dirB;
+		candidate = dir.rotateRight();
+		if (this.myRC.canMove(candidate)){
+			return candidate;
 		}
 
 		return null;        

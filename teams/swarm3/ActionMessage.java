@@ -22,9 +22,9 @@ import battlecode.common.MapLocation;
 
 public class ActionMessage {
     
-    protected BaseRobot.State state;
-    protected int targetID;
-    protected MapLocation targetLocation;
+    BaseRobot.State state;
+    int targetID;
+    MapLocation targetLocation;
     
     public ActionMessage(BaseRobot.State state, int targetID, MapLocation targetLocation){
         this.state = state;
@@ -38,7 +38,7 @@ public class ActionMessage {
     	} return false;
     }
     
-    public long encode(){
+    public int encode(){
     	int result = 0;
     	int state;
         switch (this.state) {
@@ -56,11 +56,11 @@ public class ActionMessage {
     }
     
     
-    public static ActionMessage decode(long message){
+    public static ActionMessage decode(int message){
         int y_pos = (int) (message % 0x100); message >>>= 8;
         int x_pos = (int) (message % 0x100); message >>>= 8;
         int target_id = (int) (message % 0x1000); message >>>= 12;
-        int state = (int) (message % 0x10); assert(state == message);
+        int state = (int) (message % 0x10);
         
         MapLocation loc = new MapLocation(x_pos, y_pos);
 

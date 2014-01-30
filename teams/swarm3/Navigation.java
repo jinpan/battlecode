@@ -10,21 +10,29 @@ import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
 import battlecode.common.TerrainTile;
 
+
 public class Navigation {
 	RobotController rc;
 	boolean debug;
 	
-	int[][] map;
+	public double[][] map;
+	int map_width;
+	int map_height;
 	
 	
 	public Navigation(RobotController rc){
 		this.rc = rc;
-		map = new int[rc.getMapWidth()][rc.getMapHeight()];
+		map = rc.senseCowGrowth();
+		map_width = rc.getMapWidth();
+		map_height = rc.getMapHeight();
 	}
 
-	public LinkedList<MapLocation> pathFind(MapLocation start, MapLocation target) throws GameActionException {
-		int x = Clock.getRoundNum();
+	public LinkedList<MapLocation> findPath(MapLocation start, MapLocation target) throws GameActionException {
 		SearchNode bugSearch = bugSearch(start, target);
+		if (bugSearch == null){
+			return null;
+		}
+		
 		SearchNode[] nodes = new SearchNode[bugSearch.length];
 		int counter = bugSearch.length-1;
 		while (bugSearch.prevLoc != null){
@@ -57,17 +65,59 @@ public class Navigation {
 			 }
 			 li1.next();
 		}
-		
-		System.out.println(Clock.getRoundNum() - x);
 		return pivots;
 	}
 	
-	public boolean canTravel(MapLocation source, MapLocation target) {
-		 while (!(source.x == target.x && source.y == target.y)) {
-			source = source.add(source.directionTo(target));
-			if (!isGood(source)) return false;
+	MapLocation[] getExtrema(MapLocation loc){
+		MapLocation[] result = new MapLocation[8];
+		Direction dir;
+		for (int i=0; i<NoisePlayer.direction_order_ext.length; ++i){
+			dir = NoisePlayer.direction_order_ext[i];
+			int j = 1;
+			for (; isGood(loc.add(dir, j)) && j<5; ++j);
+			result[i] = loc.add(dir, j);
 		}
-		return true;
+		return result;
+	}
+	
+	public MapLocation[] expandPath(LinkedList<MapLocation> path) throws GameActionException{
+		LinkedList<MapLocation> expandedPath = new LinkedList<MapLocation>();
+		
+		MapLocation current = path.removeFirst();
+		expandedPath.add(current);
+		Direction dir;
+		while (!path.isEmpty()){
+			dir = directionTo(current, path.getFirst());
+			current = current.add(dir);
+			expandedPath.add(current);
+			
+			if (current.equals(path.getFirst())){
+				path.removeFirst();
+			}
+		}
+		
+		return expandedPath.toArray(new MapLocation[0]);
+	}
+	
+	/*
+	 * Given a spawncenter, this method finds a location to build a noise tower such that 
+	 * 1) the location is between the center and HQ and
+	 * 2) the noise tower can adequately farm the spawn center from multiple directions
+	 * Returns null if the spawn center and the HQ are not connected
+	 */
+	public MapLocation getNoiseTowerPosition(MapLocation center) throws GameActionException{
+		MapLocation[] extrema = getExtrema(center);
+		LinkedList<MapLocation> path = findPath(center, rc.senseHQLocation());
+		MapLocation[] expanded_path = expandPath(path);
+		
+		for (int i=0; i<expanded_path.length; ++i){
+			for (MapLocation loc: extrema){
+				if (loc.distanceSquaredTo(expanded_path[i]) > 250){
+					return expanded_path[--i];
+				}
+			}
+		}
+		return expanded_path[expanded_path.length-2];
 	}
 	
 	public SearchNode bugSearch(MapLocation start, MapLocation target) throws GameActionException{
@@ -80,22 +130,28 @@ public class Navigation {
 		Direction curDir = current.loc.directionTo(t);
 		Direction curDirL = curDir, curDirR = curDir;
 		
-		if (debug) System.out.println("Source: " + s + "; Target: " + t);
+		int[][] history = new int[rc.getMapWidth()][rc.getMapHeight()];
+		int trace_count = 0;
+		
+		if (debug) System.out.println("COMPUTING PATH FROM " + start + " to " + target);
+		
 		while (!(current.loc.x == t.x && current.loc.y == t.y) 
 				&& !(currentL.loc.x == t.x && currentL.loc.y == t.y)
 				&& !(currentR.loc.x == t.x && currentR.loc.y == t.y)) {
 			if (debug) System.out.println("Current: " + current.loc + ";Right " + currentR.loc + ";Left " + currentL.loc);
 			
 			if (!isTracingL || !isTracingR){
-				// we're done tracing
+				// we're not tracing
 				if (isTracingL){
-					// the right bug finished first
+					// we were tracing and the right bug finished first
+					if (debug) System.out.println("MERGING RIGHT SEARCH");
 					isTracingL = false;
 					current = currentR;
 					closest = closestR;
 				}
 				else if (isTracingR){
-					// the left bug finished first
+					// we were tracing and the left bug finished first
+					if (debug) System.out.println("MERGING LEFT SEARCH");
 					isTracingR = false;
 					current = currentL;
 					closest = closestL;
@@ -105,6 +161,9 @@ public class Navigation {
 					current = current.update(curDir);
 				}
 				else {
+					// back to tracing
+					history[current.loc.x][current.loc.y] = ++trace_count;
+					
 					current.isPivot = true;
 					closest = current.loc.distanceSquaredTo(t);
 					closestL = closest; closestR = closest;
@@ -150,13 +209,22 @@ public class Navigation {
 							currentL.isPivot = true;
 							if (debug) System.out.println("LEFT PIVOT");
 						}
-						if (curDirL != directionTo(currentL.prevLoc.loc, currentL.loc)){
+						else if (curDirL != directionTo(currentL.prevLoc.loc, currentL.loc)){
 							currentL.isPivot = true;
 							if (debug) System.out.println("LEFT PIVOT");
 						}
 						currentL = currentL.update(curDirL);
 						if (currentL.loc.distanceSquaredTo(t) < closestL)
 							closestL = currentL.loc.distanceSquaredTo(t);
+						
+						if (history[currentL.loc.x][currentL.loc.y] == trace_count){
+							// retracing - probably because of an unreachable target
+							return null;
+						}
+						else {
+							// mark where we have searched
+							history[currentL.loc.x][currentL.loc.y] = trace_count; 
+						}
 					}
 				}
 				
@@ -183,17 +251,27 @@ public class Navigation {
 							currentR.isPivot = true;
 							if (debug) System.out.println("RIGHT PIVOT");
 						}
-						if (curDirR != directionTo(currentR.prevLoc.loc, currentR.loc)){
+						else if (curDirR != directionTo(currentR.prevLoc.loc, currentR.loc)){
 							currentR.isPivot = true;
 							if (debug) System.out.println("RIGHT PIVOT");
 						}
 						currentR = currentR.update(curDirR);
 						if (currentR.loc.distanceSquaredTo(t) < closestR)
 							closestR = currentR.loc.distanceSquaredTo(t);
+						
+						if (history[currentR.loc.x][currentR.loc.y] == trace_count){
+							// retracing - probably because of an unreachable target
+							return null;
+						}
+						else {
+							// mark where we have searched
+							history[currentR.loc.x][currentR.loc.y] = trace_count; 
+						}
 					}
 				}
 			}
 		}
+		if (debug) System.out.println("DONE");
 
 		current.isPivot = true;
 		currentL.isPivot = true;
@@ -209,6 +287,46 @@ public class Navigation {
 		}
 		throw new GameActionException(null, "Unable to find a path from " + s + " to " + t);
 	}
+	
+	
+	public MapLocation getLoc(LinkedList<MapLocation> path, int index){
+		MapLocation current = path.getFirst();
+		for (; index>0; --index){
+			if (current == path.getFirst()){
+				path.removeFirst();
+			}
+			if (path.isEmpty()){
+				return current;
+			}
+			current = current.add(current.directionTo(path.getFirst()));
+		}
+		return current;
+	}
+	
+	
+	public int pathDist(LinkedList<MapLocation> path){
+		int total = 0;
+		MapLocation prev = null;
+		
+		for (MapLocation loc: path){
+			if (prev != null){
+				total += Util.abs(prev.x - loc.x) + Util.abs(prev.y - loc.y);
+			}
+			prev = loc;
+		}
+		
+		return total;
+	}
+	
+	
+	public boolean canTravel(MapLocation source, MapLocation target) {
+		 while (!(source.x == target.x && source.y == target.y)) {
+			source = source.add(source.directionTo(target));
+			if (!isGood(source)) return false;
+		}
+		return true;
+	}
+	
 	
 	protected Direction directionTo(MapLocation source, MapLocation target) throws GameActionException {
 		Direction dir = source.directionTo(target);
@@ -227,8 +345,13 @@ public class Navigation {
 		}
 	}
 	
+	
 	public boolean isGood(MapLocation loc) {
-		int ans = map[loc.x][loc.y];
+		if (loc.x < 0 || loc.x >= map_width || loc.y < 0 || loc.y >= map_height){
+			return false;
+		}
+		
+		double ans = map[loc.x][loc.y];
 		if (ans < 0) return false;
 		if (ans > 0) return true;
 		

@@ -21,13 +21,14 @@ public class RobotPlayer {
 						}
 					}
 				} catch (Exception e) {
-					System.out.println("HQ Exception");
+					//System.out.println("HQ Exception");
 				}
 			}
 			
 			if (rc.getType() == RobotType.SOLDIER) {
 				try {
 					if (rc.isActive()) {
+						rc.construct(RobotType.PASTR);
 						int action = (rc.getRobot().getID()*rand.nextInt(101) + 50)%101;
 						//Construct a PASTR
 						if (action < 1 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) > 2) {
@@ -54,7 +55,7 @@ public class RobotPlayer {
 						}
 					}
 				} catch (Exception e) {
-					System.out.println("Soldier Exception");
+					//System.out.println("Soldier Exception");
 				}
 			}
 			
