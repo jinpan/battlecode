@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
-	int strategy = 1; 
+	int strategy = 3; 
 
 	double enemyPrevMilk = 0; 
 	double myPrevMilk = 0;
@@ -52,12 +52,6 @@ public class HQPlayer extends BaseRobot {
 
 		set_pastr_loc(find_pastr_loc());
 		findBestPastureLoc2();
-
-		//change one of these to let us play against ourselves
-		if(this.myTeam == Team.A)
-			strategy = 1;
-		else
-			strategy = 3;
 	}
 
 	protected MapLocation find_pastr_loc() throws GameActionException{
