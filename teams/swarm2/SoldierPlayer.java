@@ -54,56 +54,11 @@ public class SoldierPlayer extends BaseRobot {
 	@Override
 	protected void step() throws GameActionException {
 		if(this.myRC.isActive()){
-			//this.myRC.broadcast(ALIVE_OR_DEAD, 0);
-			if (HQMessage.targetID == 2 || noiseTowerOffense) {
-				this.noise_tower_offense();
-				return;
-			}
-
 			switch (HQMessage.state) {
 			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
 			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
 			default: myRC.setIndicatorString(2, "DEFAULT");
 			}
-		}
-	}
-
-
-	protected void noise_tower_offense() throws GameActionException {
-		int noisebuilt = this.myRC.readBroadcast(NOISE_OFFENSE_CHANNEL);
-
-		if (noisebuilt==0 || noiseTowerOffense){			
-			if(!noiseTowerOffense){
-				ActionMessage noiseAction = new ActionMessage(BaseRobot.State.DEFEND, 2, HQMessage.targetLocation);
-				this.myRC.broadcast(NOISE_OFFENSE_CHANNEL, (int)noiseAction.encode());
-				
-				this.noiseTowerOffense = true;
-				dispNoiseLoc = HQMessage.targetLocation;
-				for(Direction d: dirs){
-					int shift = 0;
-					if(d.isDiagonal()){
-						shift = 12;
-					} else {
-						shift = 17;
-					}
-
-					dispNoiseLoc = dispNoiseLoc.add(d, shift);
-					if(isGoodLoc(dispNoiseLoc) && dispNoiseLoc.distanceSquaredTo(ourPastrLoc)>100 && dispNoiseLoc.distanceSquaredTo(this.enemyHQLoc)> 50 )
-						break;
-					else
-						dispNoiseLoc = dispNoiseLoc.add(d, -shift);
-				}
-			}
-
-
-			if (this.myRC.getLocation().equals(dispNoiseLoc)){
-				this.myRC.construct(RobotType.NOISETOWER);
-			} else {
-				move_to_target(dispNoiseLoc, false);
-			}
-
-		} else {
-			this.attack_step();
 		}
 	}
 

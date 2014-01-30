@@ -88,9 +88,6 @@ public class NoisePlayer extends BaseRobot{
 					extrema[i]= tempext;
 				}	
 			}
-
-			
-			extrema[i] = extrema[i].add(dirs[i].opposite());
 		}
 	}
 }

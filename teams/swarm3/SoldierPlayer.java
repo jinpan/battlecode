@@ -1,4 +1,4 @@
-package team007;
+package swarm3;
 
 import java.util.LinkedList;
 
@@ -21,7 +21,6 @@ public class SoldierPlayer extends BaseRobot {
 
 	boolean voteRetreat;
 	boolean straightMovement;
-	int chilledTurns;
 	protected int soldier_order;
 	Robot[] allies, enemies;
 	LinkedList<MapLocation> curPath = new LinkedList<MapLocation>();
@@ -42,7 +41,7 @@ public class SoldierPlayer extends BaseRobot {
 		else {
 			this.reinforcementReq = 9;
 		}
-		this.navigator = new Navigation(this);
+		this.navigator = new Navigation(myRC);
 		
 	}
 
@@ -53,18 +52,61 @@ public class SoldierPlayer extends BaseRobot {
 		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
 		
 		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 35, this.enemyTeam);
-		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
 	}
 
 	@Override
 	protected void step() throws GameActionException {
 		if(this.myRC.isActive()){
 			//this.myRC.broadcast(ALIVE_OR_DEAD, 0);
+			if (HQMessage.targetID == 2 || noiseTowerOffense) {
+				this.noise_tower_offense();
+				return;
+			}
+
 			switch (HQMessage.state) {
 			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
 			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
 			default: myRC.setIndicatorString(2, "DEFAULT");
 			}
+		}
+	}
+
+
+	protected void noise_tower_offense() throws GameActionException {
+		int noisebuilt = this.myRC.readBroadcast(NOISE_OFFENSE_CHANNEL);
+
+		if (noisebuilt==0 || noiseTowerOffense){			
+			if(!noiseTowerOffense){
+				ActionMessage noiseAction = new ActionMessage(BaseRobot.State.DEFEND, 2, HQMessage.targetLocation);
+				this.myRC.broadcast(NOISE_OFFENSE_CHANNEL, (int)noiseAction.encode());
+				
+				this.noiseTowerOffense = true;
+				dispNoiseLoc = HQMessage.targetLocation;
+				for(Direction d: dirs){
+					int shift = 0;
+					if(d.isDiagonal()){
+						shift = 12;
+					} else {
+						shift = 17;
+					}
+
+					dispNoiseLoc = dispNoiseLoc.add(d, shift);
+					if(isGoodLoc(dispNoiseLoc) && dispNoiseLoc.distanceSquaredTo(ourPastrLoc)>100 && dispNoiseLoc.distanceSquaredTo(this.enemyHQLoc)> 50 )
+						break;
+					else
+						dispNoiseLoc = dispNoiseLoc.add(d, -shift);
+				}
+			}
+
+
+			if (this.myRC.getLocation().equals(dispNoiseLoc)){
+				this.myRC.construct(RobotType.NOISETOWER);
+			} else {
+				move_to_target(dispNoiseLoc, false);
+			}
+
+		} else {
+			this.attack_step();
 		}
 	}
 
@@ -105,31 +147,24 @@ public class SoldierPlayer extends BaseRobot {
 					moveDirection = directionTo(target);
 				}
 				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					chilledTurns = 0;
 					if(!sneak)
 						myRC.move(moveDirection);
 					else
 						myRC.sneak(moveDirection);
 				} else if (moveDirection == null){
-					if (chilledTurns >= 3) {
-						chilledTurns = 0;
-						myRC.setIndicatorString(1, target.toString());
-						LinkedList<MapLocation> newCurPath = navigator.pathFind(myRC.getLocation(), target);
-						newCurPath.remove();
-						if (!curPath.equals(newCurPath)) {
-							curPath = newCurPath;
-						} else {
-							straightMovement = true;
-						}
-						myRC.setIndicatorString(1, curPath.toString());
+					LinkedList<MapLocation> newCurPath = navigator.pathFind(myRC.getLocation(), target);
+					newCurPath.remove();
+					if (!curPath.equals(newCurPath)) {
+						curPath = newCurPath;
 					} else {
-						chilledTurns++;
+						straightMovement = true;
 					}
+					myRC.setIndicatorString(1, curPath.toString());
+
 				}
 				this.myRC.yield();
 			}
 		} else {
-			myRC.setIndicatorString(1, "going to: " + target.toString() + " which is " + myRC.senseTerrainTile(target));
 			curPath = navigator.pathFind(myRC.getLocation(), target);
 			myRC.setIndicatorString(1, curPath.toString());
 			targetLoc = target;
@@ -238,6 +273,7 @@ public class SoldierPlayer extends BaseRobot {
 
 
 	protected boolean isSafe() throws GameActionException {
+		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
 		
 		int avgx = 0;
 		int avgy = 0;

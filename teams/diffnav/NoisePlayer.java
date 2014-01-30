@@ -1,11 +1,10 @@
-package team007;
+package diffnav;
 
 import battlecode.common.*;
 
 public class NoisePlayer extends BaseRobot{
 	
 	int cur = 0; //current direction
-	int[] dirPro = {0, 2, 4, 6, 7, 1, 3, 5};
 	MapLocation[] extrema = new MapLocation[8];
 	MapLocation curLoc;
 
@@ -16,27 +15,33 @@ public class NoisePlayer extends BaseRobot{
 	}
 
 	protected void step() throws GameActionException{
-		sense_enemies();
-		
-		if(this.myRC.isActive()){	
+		//sense_enemies();
+
+		if(this.myRC.isActive()){			
 			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
 				cur = (cur+1)%8;
-				curLoc = extrema[dirPro[cur]];
+				curLoc = extrema[cur];
 			} else {
 				curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
 			}
 
 			this.myRC.attackSquare(curLoc);
 		}
-
 	}
 	
 	protected void sense_enemies() throws GameActionException{
-		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*5, this.enemyTeam);
-		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, enemies.length);
+		Robot[] enemies = this.myRC.senseNearbyGameObjects(Robot.class, RobotType.SOLDIER.attackRadiusMaxSquared*2, this.enemyTeam);
+		MapLocation pastrLoc= this.myRC.getLocation().add(this.myRC.getLocation().directionTo(this.enemyHQLoc), -1);
+		ActionMessage msg= new ActionMessage(BaseRobot.State.DEFEND, enemies.length, pastrLoc);
+		this.myRC.broadcast(PASTR_DISTRESS_CHANNEL, (int) msg.encode());
+		
+		if (enemies.length>1){
+			this.myRC.setIndicatorString(2, "Sending distress signal");
+		}
 	}
 
 	protected void get_herding_extrema() throws GameActionException{ //this finds how far the robots can go in any direction
+		double[][] cowGrowth = this.myRC.senseCowGrowth(); //cowGrowth[a][b] is growth at location (a, b)
 		MapLocation base = this.myRC.getLocation();
 
 		for(int i = 0; i < 8; i++){
@@ -77,8 +82,13 @@ public class NoisePlayer extends BaseRobot{
 					}
 				} else {
 					extrema[i]= tempext;
-				}	
+				}
+				
+				
 			}
+
+			
+			extrema[i] = extrema[i].add(dirs[i].opposite());
 		}
 	}
 }
