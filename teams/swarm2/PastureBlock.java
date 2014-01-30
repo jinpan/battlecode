@@ -9,11 +9,11 @@ public class PastureBlock {
 	int width; int height;
 	int buffer;
 	
-	public PastureBlock(MapLocation vert, int x, int y, int buff){
+	public PastureBlock(MapLocation vert, int x, int y){
 		this.vertex= vert; 
 		this.width= x; 
 		this.height=y;
-		this.buffer= buff;
+		this.buffer= 6;
 	}
 	
 	public ArrayList<MapLocation> pastrLocs(ArrayList<MapLocation> pastrs){

@@ -2,6 +2,8 @@ package swarm2;
 
 import java.util.LinkedList;
 
+import com.sun.media.sound.RIFFInvalidDataException;
+
 import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
@@ -48,7 +50,7 @@ public class SoldierPlayer extends BaseRobot {
 		ourPastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
 		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
 		
-		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 35, this.enemyTeam);
+		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 50, this.enemyTeam);
 	}
 
 	@Override
@@ -154,11 +156,12 @@ public class SoldierPlayer extends BaseRobot {
 		if(bestRobotInfo != null){
 			if(this.myRC.canAttackSquare(bestRobotInfo.location)){
 				this.myRC.attackSquare(bestRobotInfo.location);
-			}else if (true){
+			}
+			else if (!defending|| (defending && this.myRC.getLocation().distanceSquaredTo(ourPastrLoc)<=15)){
 				Direction dir = directionTo(bestRobotInfo.location);
 				if(dir != null && canMove(dir))
 					this.myRC.move(dir);
-			}
+			} 
 			return true;
 		}
 
@@ -166,13 +169,16 @@ public class SoldierPlayer extends BaseRobot {
 	}
 
 	protected int getHeuristic(RobotInfo r, MapLocation orig){
+		
 		int health = (int)r.health;
 		int dist = orig.distanceSquaredTo(r.location);
 		RobotType type = r.type;
 
 		int heuristic = 200;
-		if(type == RobotType.PASTR)
-			heuristic -= health * 3 / 10; //remember that pasture health is 200
+		if(type== RobotType.NOISETOWER) 
+			return 0;
+		if (type == RobotType.PASTR)
+			heuristic -= health + 75; //remember that pasture health is 200
 		else
 			heuristic -= health;
 		heuristic -= dist * 4;
@@ -265,7 +271,7 @@ public class SoldierPlayer extends BaseRobot {
 		}
 
 		if (this.myTeam==Team.A)
-		if (myRobotHealth < 0.5*enemyHealth && myRobotCount < 0.5*enemyCount) {
+		if (myRobotHealth < 0.8*enemyHealth && myRobotCount < 0.8*enemyCount) {
 			if (this.myRC.getHealth() < 25){
 				//TODO: evaluate whether returning true here is really better. otherwise consider self-destruct
 
