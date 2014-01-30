@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
-	int strategy = 3; 
+	int strategy = 1; 
 
 	double enemyPrevMilk = 0; 
 	double myPrevMilk = 0;
@@ -52,6 +52,12 @@ public class HQPlayer extends BaseRobot {
 
 		set_pastr_loc(find_pastr_loc());
 		findBestPastureLoc2();
+
+		//change one of these to let us play against ourselves
+		if(this.myTeam == Team.A)
+			strategy = 1;
+		else
+			strategy = 3;
 	}
 
 	protected MapLocation find_pastr_loc() throws GameActionException{
@@ -76,21 +82,26 @@ public class HQPlayer extends BaseRobot {
 	}
 
 	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
-		System.out.println(loc);
 		pastrLoc = loc;
 
-		this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
+		if (pastrLoc==null) {
+			this.defaultSpawnLoc = this.myHQLoc.add(toEnemy);
+		} else {
+			this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
+		}
 
 		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
 		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
 		ActionMessage action2 = null;
-		for (Direction dir: dirs){
-			if (this.myRC.senseTerrainTile(pastrLoc.add(dir)).ordinal() < 2){
-				action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(dir));
-				break;
+		for (int i=0; i<8; ++i){
+			if (this.myRC.senseTerrainTile(pastrLoc.add(dirs[i])).ordinal() < 2){
+				action2 = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc.add(dirs[i]));
+				i=8;
 			}
 		}
-		this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
+		if (action2!= null) {
+			this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
+		}
 	}
 	
 	@Override
