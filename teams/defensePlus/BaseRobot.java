@@ -129,4 +129,10 @@ public abstract class BaseRobot {
     		return a;
     	else return b;
     }
+    
+    public static double max(double a, double b) {
+    	if (a>b)
+    		return a;
+    	else return b;
+    }
 }

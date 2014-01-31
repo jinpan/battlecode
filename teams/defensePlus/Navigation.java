@@ -69,7 +69,8 @@ public class Navigation {
 			 li1.next();
 		}
 		
-		System.out.println(Clock.getRoundNum() - x);
+		if(false)
+			System.out.println(Clock.getRoundNum() - x);
 		return pivots;
 	}
 	

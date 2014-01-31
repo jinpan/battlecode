@@ -438,17 +438,10 @@ public class HQPlayer extends BaseRobot {
 		 return block;
 	 }
 
-	 private MapLocation reflect180(MapLocation loc) throws GameActionException{
-		 return new MapLocation(this.mapWidth-1 - loc.x, this.mapHeight-1 - loc.y);
-	 }
-
-	 private MapLocation reflectY(MapLocation loc) throws GameActionException{
-		 return new MapLocation(loc.x, this.mapHeight -1 - loc.y);
-	 }
-
-	 private MapLocation reflectX(MapLocation loc) throws GameActionException {
-		 return new MapLocation(this.mapWidth -1 - loc.x, loc.y);
-	 }
+	 private MapLocation reflect(MapLocation loc){
+			int midX2 = (this.myHQLoc.x + this.enemyHQLoc.x), midY2 = (this.myHQLoc.y + this.enemyHQLoc.y);
+			return new MapLocation(midX2 - loc.x, midY2 - loc.y);
+		}
 
 	 public void checkPastures() throws GameActionException {
 		 double thresh = this.bestGrowth*this.threshRatio;
@@ -457,15 +450,7 @@ public class HQPlayer extends BaseRobot {
 				 if (spawnRates[i][j]>=thresh) {
 					 MapLocation candidate = new MapLocation(i, j);
 					 if (candidate.distanceSquaredTo(this.myHQLoc)>= candidate.distanceSquaredTo(this.enemyHQLoc)){
-						 candidate = reflect180(candidate);
-						 if (spawnRates[candidate.x][candidate.y]<thresh) {
-							 System.out.println("whoops 180 reflection");
-							 candidate = reflectY(reflect180(candidate));
-							 if (spawnRates[candidate.x][candidate.y]<thresh) {
-								 System.out.println("whoops y-axis reflection");
-								 candidate = reflectX(reflectY(candidate));
-							 }
-						 }
+						 candidate = reflect(candidate);
 					 }
 					 checkedPastures.add(candidate);
 				 }

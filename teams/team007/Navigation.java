@@ -69,7 +69,7 @@ public class Navigation {
 			 li1.next();
 		}
 		
-		System.out.println(Clock.getRoundNum() - x);
+		if (debug) System.out.println(Clock.getRoundNum() - x);
 		return pivots;
 	}
 	
@@ -239,6 +239,7 @@ public class Navigation {
 	
 	public boolean isGood(MapLocation loc) {
 		if (loc.x >= map.length || loc.y >= map[0].length) return false;
+		if (loc.distanceSquaredTo(this.myRobot.enemyHQLoc) <= 25) return false;
 		int ans = map[loc.x][loc.y];
 		if (ans < 0) return false;
 		if (ans > 0) return true;
