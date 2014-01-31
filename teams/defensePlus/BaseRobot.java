@@ -103,7 +103,7 @@ public abstract class BaseRobot {
     	if(this.myTeam == Team.A)
     		return 1;
     	else
-    		return 4;
+    		return 1;
     }
 	
 	//Cheaper/better math functions

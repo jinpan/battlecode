@@ -189,6 +189,7 @@ public class HQPlayer extends BaseRobot {
 		}
 	}
 	
+	/*
 	protected void step() throws GameActionException {
 		if (this.myRC.isActive() && this.myRC.senseRobotCount()< GameConstants.MAX_ROBOTS) {
 			this.spawn();
@@ -198,9 +199,9 @@ public class HQPlayer extends BaseRobot {
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
 		}
 	}
+	*/
 	
-	
-/*
+
 	@Override
 	protected void step() throws GameActionException {
 		 
@@ -252,18 +253,8 @@ public class HQPlayer extends BaseRobot {
 		ActionMessage action = null;
  
 		if(strategy == 1){
-			//the original strategy.
-			//don't leave pastures alone if they're built and have incoming threats
-			//if we don't have a pasture, attack if we have a big enough squad, and if we're losing on milk
 			double enemyMilk = this.myRC.senseTeamMilkQuantity(enemyTeam);
 			double myMilk = this.myRC.senseTeamMilkQuantity(myTeam);
- 
-			
-//			double myMilkChange = myMilk - myPrevMilk;
-//			double myExpectedWin = (GameConstants.WIN_QTY - myMilk)/myMilkChange;
-//			boolean losing = (myExpectedWin > (enemyExpectedWin + 50));
- 
-			//boolean winning = (myMilk > enemyMilk);
  
 			if(state == State.WAIT){
 				boolean gameBegin = (!pastrBuilt && defeatCount == 0);
@@ -300,16 +291,6 @@ public class HQPlayer extends BaseRobot {
 				if(totalAllies < 5 && nearTotAllies < 2)
 					state = State.WAIT;
 			}
-			
-		
-//			if(pastrBuilt){
-//				if(closestTarget != null && nearEnemies == 0 && !winning)
-//					attack = true;
-//			} else {
-//				if(closestTarget != null && totalAllies > 8 && !winning)
-//					attack = true;
-//			}
-			
  
 			if(state == State.ATTACK){
 				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
@@ -364,7 +345,7 @@ public class HQPlayer extends BaseRobot {
 			this.myRC.broadcast(CAUTION_CHANNEL, 0);
 		}
 	}
- */
+ 
 	private boolean spawn() throws GameActionException {
 		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
 				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
@@ -585,7 +566,6 @@ public class HQPlayer extends BaseRobot {
 		int voidCount = 0;
 		for (int i= -2; i<3; ++i) {
 			for (int j= -2; j<3; ++j) {
-				System.out.println(isGoodLoc(loc.x+i, loc.y+j) + " is " + (loc.x+i) + " " + (loc.y+j));
 				if (!isGoodLoc(loc.x+i, loc.y+j) || spawnRates[loc.x+i][loc.y+j]<= (threshRatio-0.1)*bestGrowth) {
 					voidCount++;
 				}
