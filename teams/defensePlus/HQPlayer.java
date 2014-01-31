@@ -207,8 +207,6 @@ public class HQPlayer extends BaseRobot {
 
 		}
 
-
-
 		if (action!= null) {
 			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
 		}

@@ -5,15 +5,21 @@ import java.util.LinkedList;
 import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {
-
 	MapLocation targetLoc;
 	MapLocation ourPastrLoc;
 	MapLocation ourNoiseLoc;
 	ActionMessage HQMessage;
+
+
 	MapLocation myCOM;
 	MapLocation enemyCOM;
+	int myRobotCount = 0;
+	int myRobotHealth = 0;
+	int enemyCount = 0;
+	int enemyHealth = 0;
+
 	int reinforcementReq;
-	
+
 	Navigation navigator;
 
 	boolean noiseTowerOffense = false;
@@ -31,7 +37,7 @@ public class SoldierPlayer extends BaseRobot {
 
 		this.soldier_order = this.myRC.readBroadcast(BaseRobot.SOLDIER_ORDER_CHANNEL);
 		this.myRC.broadcast(BaseRobot.SOLDIER_ORDER_CHANNEL, this.soldier_order + 1);
-		
+
 		int mapSize = this.myRC.getMapWidth() * this.myRC.getMapHeight();
 		if (mapSize > 1600){
 			this.reinforcementReq = 5;
@@ -43,7 +49,7 @@ public class SoldierPlayer extends BaseRobot {
 			this.reinforcementReq = 9;
 		}
 		this.navigator = new Navigation(this);
-		
+
 	}
 
 	@Override
@@ -51,7 +57,7 @@ public class SoldierPlayer extends BaseRobot {
 		HQMessage = ActionMessage.decode(this.myRC.readBroadcast(HQ_BROADCAST_CHANNEL));
 		ourPastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
 		ourNoiseLoc = ActionMessage.decode(this.myRC.readBroadcast(NOISE_LOC_CHANNEL)).targetLocation;
-		
+
 		enemies = this.myRC.senseNearbyGameObjects(Robot.class, 35, this.enemyTeam);
 		allies = this.myRC.senseNearbyGameObjects(Robot.class, 35, myTeam);
 	}
@@ -70,24 +76,25 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected void attack_step() throws GameActionException {
 		if (!isSafe()) { return; }
-		if (respond_to_threat(false)){ return; }
+		if (respond_to_threat(2)){ return; }
 
 		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) && this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null)) {
 			move_to_target(ourPastrLoc, false);
+			return;
 		} else {
-			if (myCOM!= null && HQMessage.state == BaseRobot.State.ATTACK ) {
+			if (myCOM!= null) {
 				if (myCOM.distanceSquaredTo(HQMessage.targetLocation) 
-						<= 25 + this.myRC.getLocation().distanceSquaredTo(HQMessage.targetLocation)) {
-					Direction dir = this.myRC.getLocation().directionTo(myCOM);
+						<= this.myRC.getLocation().distanceSquaredTo(HQMessage.targetLocation)-200) {
+					Direction dir = directionTo(myCOM);
 					if (this.myRC.isActive() && dir!=null && canMove(dir)) {
 						this.myRC.move(dir);
 						System.out.println("moving to com on the way to target");
-						this.myRC.yield();
+						return;
 					}
 				}
 			}
 			move_to_target(HQMessage.targetLocation, false);
-
+			return;
 		}
 	}
 
@@ -126,7 +133,7 @@ public class SoldierPlayer extends BaseRobot {
 						chilledTurns++;
 					}
 				}
-				this.myRC.yield();
+				return;
 			}
 		} else {
 			myRC.setIndicatorString(1, "going to: " + target.toString() + " which is " + myRC.senseTerrainTile(target));
@@ -136,7 +143,7 @@ public class SoldierPlayer extends BaseRobot {
 		}
 	}
 
-	protected boolean respond_to_threat(boolean defending) throws GameActionException{
+	protected boolean respond_to_threat(int aggression) throws GameActionException{
 		if(this.myRC.getActionDelay() > 1)
 			return false;
 
@@ -150,11 +157,11 @@ public class SoldierPlayer extends BaseRobot {
 			myLoc = this.myRC.getLocation();
 
 		int maxHeur = 0;
-		
+
 		RobotInfo bestRobotInfo = null;
 		for(int i = 0; i < enemies.length; i++){
 			RobotInfo info = this.myRC.senseRobotInfo(enemies[i]);
-			int thisHeur = getHeuristic(info, myLoc, defending);
+			int thisHeur = getHeuristic(info, myLoc, aggression);
 			if(thisHeur > maxHeur){
 				maxHeur = thisHeur;
 				bestRobotInfo = info;
@@ -175,26 +182,35 @@ public class SoldierPlayer extends BaseRobot {
 		return false;
 	}
 
-	protected int getHeuristic(RobotInfo r, MapLocation orig, boolean defending){
+	protected int getHeuristic(RobotInfo r, MapLocation orig, int aggression){
+		//value 2: attacking enemy pasture
+		//value 1: defending our pasture
+		//value 0: never go out of way to attack enemy under any circumstances
+
 		int health = (int)r.health;
-		int dist = orig.distanceSquaredTo(r.location);
+		int dist = orig.distanceSquaredTo(r.location); //distance computed with ally CM, to have us agree
+		int dist2 = this.myRC.getLocation().distanceSquaredTo(r.location); //distance computed with us, so we don't move then shoot
 		RobotType type = r.type;
 
 		int heuristic = 200;
-		if(type == RobotType.PASTR)
+		if(type == RobotType.PASTR){
 			heuristic -= health-50; //remember that pasture health is 200
-		else if(type == RobotType.NOISETOWER)
+		} else if(type == RobotType.NOISETOWER)
 			heuristic -= 1000;
 		else if(type == RobotType.SOLDIER)
 			heuristic -= health;
-		
+
 		heuristic -= dist;
-		
-		if(dist > 10 && !defending)
-			heuristic -= 50;
-		if(dist > 10 && defending)
-			heuristic -= 100;
-		
+
+		if(dist2 > 10){
+			if(aggression == 2)
+				heuristic -= 100;
+			if(aggression == 1)
+				heuristic -= 160;
+			if(aggression == 0)
+				heuristic -= 200;
+		}
+
 		return heuristic;
 	}
 
@@ -206,9 +222,9 @@ public class SoldierPlayer extends BaseRobot {
 		}
 		if (!isSafe()) { return; }
 
-		boolean atPastr = false;
+		int atPastr = 2;
 		if(this.myRC.canSenseSquare(ourPastrLoc) && this.myRC.senseObjectAtLocation(ourPastrLoc) != null)
-			atPastr = true;
+			atPastr = 1;
 		if(respond_to_threat(atPastr)){ return; }
 
 		MapLocation target = ourNoiseLoc;
@@ -235,45 +251,114 @@ public class SoldierPlayer extends BaseRobot {
 			}
 		}
 
-		boolean sneak = false;
-		if(this.myRC.getLocation().distanceSquaredTo(target) < 16){
-			sneak = true;
-		}
-		move_to_target(target, sneak);
+		move_to_target(target, false);
 	}    
-	
-	protected void rally_step() throws GameActionException{
-		if (!isSafe()) { return; }
-		if(respond_to_threat(false)){ return; }
-		
-		MapLocation ourLoc = this.myRC.getLocation();
 
-		Direction dir = directionTo(HQMessage.targetLocation).opposite();
-		if(ourLoc.distanceSquaredTo(HQMessage.targetLocation) < 5){
-			if(this.myRC.canMove(dir)){
+	protected void rally_step() throws GameActionException{
+		if(this.HQMessage.targetLocation.equals(this.myHQLoc)){
+			//gather up soldiers near our HQ, moving out of way if squished
+			calculate_COM_stats();
+			if(respond_to_threat(0)){ return; }
+			if(myRobotCount > 6 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 3){
+				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
+				if(this.myRC.canMove(dir)){
+					this.myRC.move(dir);
+					return;
+				}
+			}
+		} else if(this.HQMessage.targetLocation.equals(this.enemyHQLoc)){
+			//surround the enemy HQ
+			calculate_COM_stats();
+			if(respond_to_threat(1)){ return; }
+
+			MapLocation ourLoc = this.myRC.getLocation();
+
+			Direction dir;
+			if(ourLoc.distanceSquaredTo(this.enemyHQLoc) > 81){
+				move_to_target(this.enemyHQLoc.add(this.enemyHQLoc.directionTo(this.myHQLoc), 6), false);
+				return;
+			} else if(ourLoc.distanceSquaredTo(this.enemyHQLoc) < 35){
+				dir = ourLoc.directionTo(this.enemyHQLoc).opposite();
+			} else if(ourLoc.distanceSquaredTo(this.enemyHQLoc) > 50){
+				dir = ourLoc.directionTo(this.enemyHQLoc);
+			} else {
+				Direction dir1, dir2;
+				if(Clock.getRoundNum() % 100 < 50){
+					dir1 = ourLoc.directionTo(this.enemyHQLoc).rotateLeft().rotateLeft();
+					dir2 = dir1.rotateLeft();
+				} else {
+					dir1 = ourLoc.directionTo(this.enemyHQLoc).rotateRight().rotateRight();
+					dir2 = dir1.rotateRight();
+				}
+
+				if(ourLoc.add(dir1).distanceSquaredTo(this.enemyHQLoc) > 30)
+					dir = dir1;
+				else
+					dir = dir2;
+			}
+
+			if(dir != null && this.myRC.canMove(dir)){
 				this.myRC.move(dir);
 				return;
-			}
+			} 
+
+		} else{
+			//line up near enemy PASTR
+
+
+
+
 		}
-		
-		if(ourLoc.distanceSquaredTo(HQMessage.targetLocation) > 100){
-			move_to_target(HQMessage.targetLocation, false);
-			this.myRC.yield();
-			return;
-		}
-		
-		this.myRC.yield();
-		
+
+
+		if (!isSafe()) { return; }
+		if(respond_to_threat(0)){ return; }
+
+
+
+
 	}
 
 
 	protected boolean isSafe() throws GameActionException {
-		
+		calculate_COM_stats();
+
+		//		if (myRobotHealth < 0.5*enemyHealth && myRobotCount < 0.5*enemyCount) {
+		//			if (this.myRC.getHealth() < 25){
+		//				//TODO: evaluate whether returning true here is really better. otherwise consider self-destruct
+		//
+		//				/*if (this.myRC.getLocation().distanceSquaredTo(com)<= 4){
+		//					System.out.println("self destructing");
+		//					this.myRC.selfDestruct(); 
+		//					return false;
+		//				}*/
+		//
+		//				/*Direction moveDirection = directionTo(com);
+		//				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+		//					myRC.move(moveDirection);
+		//				}*/ return true;
+		//			} else {
+		//				Direction moveDirection;
+		//				if (myCOM!= null)
+		//					moveDirection = this.myRC.getLocation().directionTo(myCOM);
+		//				else 
+		//					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(ourPastrLoc), 7));
+		//				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
+		//					myRC.move(moveDirection);
+		//					return false;
+		//				}
+		//			}
+		//		}
+
+		return true;
+	}
+
+	protected void calculate_COM_stats() throws GameActionException{
 		int avgx = 0;
 		int avgy = 0;
-		int enemyCount = 0;
-		int enemyHealth = 0;
 
+		enemyHealth = 0;
+		enemyCount = 0;
 		for (int i = 0; i < enemies.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(enemies[i]);
 			if (ri.type== RobotType.SOLDIER){
@@ -286,53 +371,24 @@ public class SoldierPlayer extends BaseRobot {
 		avgx /= (double) enemyCount;
 		avgy /= (double) enemyCount;
 		enemyCOM = new MapLocation(avgx, avgy);
-		
-		int myRobotCount = 0;
-		int myRobotHealth = 0;
+
 		int myx = 0; int myy = 0;
 		myCOM = null;
 
-
+		myRobotCount = 0;
+		myRobotHealth = 0;
 		for (int i = 0; i < allies.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
-			if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
-				myRobotCount++;
-				myRobotHealth+= ri.health;
-				myx+= ri.location.x; myy+= ri.location.y;
-			}
+			//if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
+			myRobotCount++;
+			myRobotHealth+= ri.health;
+			myx+= ri.location.x; myy+= ri.location.y;
+			//}
 		} if (myRobotCount!=0){
 			myx/= myRobotCount; myy/= myRobotCount;
 			myCOM = new MapLocation(myx, myy);
 		}
 
-		if (myRobotHealth < 0.5*enemyHealth && myRobotCount < 0.5*enemyCount) {
-			if (this.myRC.getHealth() < 25){
-				//TODO: evaluate whether returning true here is really better. otherwise consider self-destruct
-
-				/*if (this.myRC.getLocation().distanceSquaredTo(com)<= 4){
-					System.out.println("self destructing");
-					this.myRC.selfDestruct(); 
-					return false;
-				}*/
-
-				/*Direction moveDirection = directionTo(com);
-				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					myRC.move(moveDirection);
-				}*/ return true;
-			} else {
-				Direction moveDirection;
-				if (myCOM!= null)
-					moveDirection = this.myRC.getLocation().directionTo(myCOM);
-				else 
-					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(ourPastrLoc), 7));
-				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-					myRC.move(moveDirection);
-					return false;
-				}
-			}
-		}
-
-		return true;
 	}
 
 
