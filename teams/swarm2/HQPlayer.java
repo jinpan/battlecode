@@ -39,11 +39,13 @@ public class HQPlayer extends BaseRobot {
 		this.mapHeight = this.myRC.getMapHeight();
 		this.spawnRates = this.myRC.senseCowGrowth();
 		checkCowGrowth();
-		findPastureBlock();
-		MapLocation loc = this.myHQLoc.add(toEnemy, 2);
-		if (pastrLocs.size()>0) {
-			loc = pastrLocs.get(0);
-		}
+		checkPastures();
+		MapLocation loc = find_pastr_loc();
+//		findPastureBlock();
+//		MapLocation loc = this.myHQLoc.add(toEnemy, 2);
+//		if (pastrLocs.size()>0) {
+//			loc = pastrLocs.get(0);
+//		}
 		set_pastr_loc(loc);
 		setStrategy();
 	}
@@ -70,7 +72,7 @@ public class HQPlayer extends BaseRobot {
 				}
 			}
 		}		
-		if (bestGrowth!=0 && (numBest > 0.05 || nextBestGrowth/bestGrowth < 0.5)) {
+		if (bestGrowth!=0 && (numBest > 0.05 || nextBestGrowth/bestGrowth < 0.6)) {
 			this.threshRatio = 1;
 		} else {
 			this.threshRatio = nextBestGrowth/bestGrowth - 0.1;
@@ -102,6 +104,8 @@ public class HQPlayer extends BaseRobot {
 			if (nextHeuristic < minHeuristic) {
 				minHeuristic = nextHeuristic;
 				bestPasture = checkedPastures.get(i);
+			} if (nextHeuristic> 0.8) {
+				checkedPastures.remove(i); i--;
 			}
 		} 
 		System.out.println("best found pasture: " + bestPasture);
@@ -134,7 +138,7 @@ public class HQPlayer extends BaseRobot {
 	}
 	
 	protected void step() throws GameActionException {
-		if (this.myRC.isActive()) {
+		if (this.myRC.isActive() && this.myRC.senseRobotCount()< GameConstants.MAX_ROBOTS) {
 			this.spawn();
 		}
 		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
@@ -290,10 +294,9 @@ public class HQPlayer extends BaseRobot {
 	 public boolean isGoodLoc(int x, int y){
 	    	boolean xokay= x>=0 && x<this.mapWidth;
 	    	boolean yokay= y>=0 && y<this.mapHeight;
-//	    	boolean inEnemySquare= (x-this.enemyHQLoc.x)*(x-this.enemyHQLoc.x) + (y-this.enemyHQLoc.y)*(y-this.enemyHQLoc.y) <= 
-//	    			(x-this.myHQLoc.x)*(x-this.myHQLoc.x) + (y-this.myHQLoc.y)*(y-this.myHQLoc.y);
-//	    	return xokay && yokay && !inEnemySquare;
-	    	return xokay && yokay;
+	    	boolean inEnemySquare= (x-this.enemyHQLoc.x)*(x-this.enemyHQLoc.x) + (y-this.enemyHQLoc.y)*(y-this.enemyHQLoc.y) <= 
+	    			(x-this.myHQLoc.x)*(x-this.myHQLoc.x) + (y-this.myHQLoc.y)*(y-this.myHQLoc.y);
+	    	return xokay && yokay && !inEnemySquare;
 	    }
 	    
 	 public boolean notOverlapping(MapLocation loc){
@@ -383,7 +386,8 @@ public class HQPlayer extends BaseRobot {
 		 } 
 		 
 		 if (block==null) {
-			 threshRatio-=0.3;
+			 threshRatio-=0.2;
+			 System.out.println("new thresh ratio: " + threshRatio);
 			 if (threshRatio>0) {
 				 findPastureBlock();
 			 }
@@ -430,7 +434,7 @@ public class HQPlayer extends BaseRobot {
 		int voidCount = 0;
 		for (int i=-3; i<4; ++i) {
 			for (int j=-3; j<6; ++j) {
-				if (this.myRC.senseTerrainTile(new MapLocation(loc.x+i, loc.y+j)).ordinal() > 1) {
+				if (isGoodLoc(loc.x+i, loc.y+j) && spawnRates[loc.x+i][loc.y+j]< (threshRatio- 0.05)*bestGrowth) {
 					++voidCount;
 				}
 			}
