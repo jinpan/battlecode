@@ -27,7 +27,6 @@ public class HQPlayer extends BaseRobot {
 	Direction noiseDir = null;
 	
 	ArrayList<PastureBlock> pastrBlocks = new ArrayList<PastureBlock>();
-	ArrayList<MapLocation> pastrLocs = new ArrayList<MapLocation>();
 	ArrayList<MapLocation> checkedPastures = new ArrayList<MapLocation>();
 
 	public HQPlayer(RobotController myRC) throws GameActionException {
@@ -39,13 +38,14 @@ public class HQPlayer extends BaseRobot {
 		this.mapHeight = this.myRC.getMapHeight();
 		this.spawnRates = this.myRC.senseCowGrowth();
 		checkCowGrowth();
-		checkPastures();
-		MapLocation loc = find_pastr_loc();
-//		findPastureBlock();
-//		MapLocation loc = this.myHQLoc.add(toEnemy, 2);
-//		if (pastrLocs.size()>0) {
-//			loc = pastrLocs.get(0);
-//		}
+//		checkPastures();
+//		MapLocation loc = find_pastr_loc();
+		PastureBlock block = findPastureBlock();
+		System.out.println(block);
+		MapLocation loc = this.myHQLoc.add(toEnemy, 2);
+		if (block!=null) {
+			loc = block.center();
+		}
 		set_pastr_loc(loc);
 		setStrategy();
 	}
@@ -309,55 +309,99 @@ public class HQPlayer extends BaseRobot {
 	    
 	 public PastureBlock findPastureBlock(){
 		 double spawnThresh = this.threshRatio*this.bestGrowth;
-
+		 boolean rightHalf = this.myHQLoc.x > this.mapWidth/2;
+		 boolean topHalf = this.myHQLoc.y < this.mapHeight/2;
+		 int startX; int startY; int endX; int endY; int dx; int dy;
+		 
+		 //once one of these is false, we won't continue checking more layers outward in that direction
+		 boolean up = true;
+		 boolean down = true;
+		 boolean left = true;
+		 boolean right = true;
+		 
 		 int width=0; int height=0; 
 		 int xadd=0; int yadd=0;
 		 MapLocation vertex=null;
 		 PastureBlock block = null;
 
 		 int i=1; 
-
-		 while (vertex==null && i<(int)this.mapHeight/2){
-			 int y1= this.myHQLoc.y-i; 
-			 int y2= this.myHQLoc.y+i;
-			 int x1= this.myHQLoc.x-i; 
-			 int x2= this.myHQLoc.x+i;
-			 for (int j=0; j<2*i+1; ++j){
-				 if ((width==0&&height==0) && isGoodLoc(x1+j, y1) && spawnRates[x1+j][y1]>=spawnThresh){
+		 while (vertex==null && i<this.mapHeight){
+			 int y1= this.myHQLoc.y-i; //horizontal line i below HQ
+			 int y2= this.myHQLoc.y+i; //horizontal line i above HQ
+			 int x1= this.myHQLoc.x-i; //vertical line i to the left of HQ
+			 int x2= this.myHQLoc.x+i; //vertical line i to the right of HQ
+			 
+			 //if we're on the top half, we want to start looking from the top
+			 //if we're on the right half, we want to start looking from the right
+			 if (rightHalf) {
+				 startX = 2*i+1; endX = 0; dx = -1;
+			 } else {
+				 startX = 0; endX = 2*i+1; dx = 1;
+			 }
+			 if (topHalf) {
+				 startY = 2*i+1; endY = 0; dy = -1;
+			 } else {
+				 startY = 0; endY = 2*i+1; dy = 1;
+			 }
+			 //checks if the direction is off the map
+			 if (down && !isGoodLoc(this.myHQLoc.x, y1))
+				 down=false; 
+			 if (up && !isGoodLoc(this.myHQLoc.x, y2))
+				 up = false;
+			 if (left && !isGoodLoc(x1, this.myHQLoc.y))
+				 left = false;
+			 if (right && !isGoodLoc(x2, this.myHQLoc.y))
+				 right = false;
+			 
+			 for (int j=startX; j!=endX; j+=dx){
+				 //checks on horizontal line i below
+				 if (down && isGoodLoc(x1+j, y1) && spawnRates[x1+j][y1]>=spawnThresh){
 					 MapLocation temp = new MapLocation(x1+j, y1);
 					 if (notOverlapping(temp)){
-						 xadd= 1; yadd= -1; 
+						 xadd= dx; yadd= 1; 
 						 width=1; height=1;
 						 vertex= temp;
+						 spawnThresh = spawnRates[x1+j][y1];
 					 } else {
 						 vertex=null;
 					 }
-				 } else if ((width==0&&height==0) && isGoodLoc(x1+j, y2) && spawnRates[x1+j][y2]>=spawnThresh){
+				 } //checks on horizontal line i above 
+				 else if (up && isGoodLoc(x1+j, y2) && spawnRates[x1+j][y2]>=spawnThresh){
 					 MapLocation temp= new MapLocation(x1+j, y2);
 					 if (notOverlapping(temp)){
-						 xadd= 1; yadd= 1; 
+						 xadd= dx; yadd= -1; 
 						 width=1; height=1;
 						 vertex= temp;
+						 spawnThresh = spawnRates[x1+j][y2];
 					 } else {
 						 vertex=null;
 					 }
-				 } else if ((width==0&&height==0) && isGoodLoc(x1, y1+j) && spawnRates[x1][y1+j]>=spawnThresh){
-					 MapLocation temp = new MapLocation(x1, y1+j);
-					 if (notOverlapping(temp)){
-						 xadd= -1; yadd= 1; 
-						 width=1; height=1;
-						 vertex= temp;
-					 } else {
-						 vertex=null;
-					 }
-				 } else if ((width==0&&height==0) && isGoodLoc(x2, y1+j) && spawnRates[x2][y1+j]>=spawnThresh){
-					 MapLocation temp= new MapLocation(x2, y1+j);
-					 if (notOverlapping(temp)){
-						 xadd= 1; yadd= 1; 
-						 width=1; height=1;
-						 vertex= temp;
-					 } else {
-						 vertex=null;
+				 }
+			 }
+			 if (vertex==null) {
+				 for (int j= startY; j!=endY; j+=dy) {
+					 //checks on vertical line i to the left
+					 if (left && isGoodLoc(x1, y1+j) && spawnRates[x1][y1+j]>=spawnThresh){
+						 MapLocation temp = new MapLocation(x1, y1+j);
+						 if (notOverlapping(temp)){
+							 xadd= -1; yadd= -1*dy; 
+							 width=1; height=1;
+							 vertex= temp;
+							 spawnThresh = spawnRates[x1][y1+j];
+						 } else {
+							 vertex=null;
+						 }
+					 } //checks on vertical line i to the right 
+					 else if (right && isGoodLoc(x2, y1+j) && spawnRates[x2][y1+j]>=spawnThresh){
+						 MapLocation temp= new MapLocation(x2, y1+j);
+						 if (notOverlapping(temp)){
+							 xadd= 1; yadd= -1*dy; 
+							 width=1; height=1;
+							 vertex= temp;
+							 spawnThresh = spawnRates[x2][y1+j];
+						 } else {
+							 vertex=null;
+						 }
 					 }
 				 }
 			 }++i;
@@ -380,16 +424,15 @@ public class HQPlayer extends BaseRobot {
 			 //this.detectedVertices.add(vertex);
 			 //System.out.println(this.detectedVertices.get(this.detectedVertices.size()-1));
 			 vertex= new MapLocation(a, b);
-			 block= new PastureBlock(vertex, width-1, height-1);
+			 block= new PastureBlock(vertex, width-1, height-1, xadd, yadd);
 			 this.pastrBlocks.add(block);
-			 block.pastrLocs(this.pastrLocs);
 		 } 
 		 
 		 if (block==null) {
 			 threshRatio-=0.2;
 			 System.out.println("new thresh ratio: " + threshRatio);
 			 if (threshRatio>0) {
-				 findPastureBlock();
+				 block = findPastureBlock();
 			 }
 		 }
 		 return block;
