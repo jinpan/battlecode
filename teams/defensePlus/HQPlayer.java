@@ -132,19 +132,11 @@ public class HQPlayer extends BaseRobot {
 
 	protected MapLocation find_pastr_loc() throws GameActionException{
 		System.out.println("number of checked pastures: " + checkedPastures.size());
-		if (checkedPastures.size()==0) {
-			System.out.println("something's up with checked pastures");
-			threshRatio-= 0.2;
-			if (threshRatio>0)
-				checkPastures();
-			else 
-				return null;
-		} 
 		int minHeuristic = 26; 
 		MapLocation bestPasture = this.myHQLoc.add(toEnemy, 2);
 		for (int i=0; i<checkedPastures.size(); ++i) {
 			int nextHeuristic = pastureVoids(checkedPastures.get(i));
-			if (nextHeuristic > 13) {
+			if (nextHeuristic > 20) {
 				checkedPastures.remove(i); i--;
 				System.out.println(checkedPastures.size()+" "+nextHeuristic);
 			} else if (nextHeuristic==0) {
@@ -160,6 +152,14 @@ public class HQPlayer extends BaseRobot {
 				spawn();
 			}
 		} 
+		if (bestPasture.equals(this.myHQLoc.add(toEnemy, 2))) {
+			threshRatio-= 0.3;
+			if (threshRatio>0){
+				checkPastures();
+				bestPasture = find_pastr_loc();
+			}
+		} 
+		
 		System.out.println("best found pasture: " + bestPasture);
 		System.out.println(bestPasture.equals(this.myHQLoc.add(toEnemy, 2)));
 		return bestPasture;
