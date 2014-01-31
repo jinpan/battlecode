@@ -63,7 +63,8 @@ public class HQPlayer extends BaseRobot {
 		}
 
 		for(int i = 0; i < 8; i++){
-			if(this.myRC.senseTerrainTile(this.myHQLoc.add(dirs[i])).ordinal() < 2)
+			int res = this.myRC.senseTerrainTile(this.myHQLoc.add(dirs[i])).ordinal();
+			if(res == 0 || res == 2)
 				openDirs++;
 		}
 		
@@ -356,8 +357,7 @@ public class HQPlayer extends BaseRobot {
 			MapLocation candidate;
 			for (Direction dir: BaseRobot.dirs){
 				candidate = this.myHQLoc.add(dir);
-				if (dir != this.toEnemy
-						&& this.myRC.senseObjectAtLocation(candidate) == null
+				if (this.myRC.senseObjectAtLocation(candidate) == null
 						&& this.myRC.senseTerrainTile(candidate).ordinal() < 2){
 					this.myRC.spawn(dir);
 					return true;

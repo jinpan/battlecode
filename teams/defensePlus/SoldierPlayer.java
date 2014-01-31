@@ -284,7 +284,7 @@ public class SoldierPlayer extends BaseRobot {
 				}
 			}
 			
-			if(myRobotCount >= this.myRC.readBroadcast(274)+1 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 3){
+			if(myRobotCount >= this.myRC.readBroadcast(274)+1 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 5){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
 					this.myRC.move(dir);
@@ -292,7 +292,7 @@ public class SoldierPlayer extends BaseRobot {
 				}
 			}
 			
-			if(myRobotCount >= this.myRC.readBroadcast(274)+5 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 6){
+			if(myRobotCount >= this.myRC.readBroadcast(274)+5 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 7){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
 					this.myRC.move(dir);
