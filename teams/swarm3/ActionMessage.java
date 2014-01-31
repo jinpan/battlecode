@@ -57,6 +57,9 @@ public class ActionMessage {
     
     
     public static ActionMessage decode(int message){
+    	if (message == 0){
+    		return null;
+    	}
         int y_pos = (int) (message % 0x100); message >>>= 8;
         int x_pos = (int) (message % 0x100); message >>>= 8;
         int target_id = (int) (message % 0x1000); message >>>= 12;

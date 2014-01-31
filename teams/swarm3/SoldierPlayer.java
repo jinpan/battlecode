@@ -161,7 +161,7 @@ public class SoldierPlayer extends BaseRobot {
 		}
 		if (myRC.getLocation().equals(pastr_locs[1])){
 			if (Clock.getRoundNum() > COWVERT_PASTR_CONSTRUCT_ROUND){
-				myRC.construct(RobotType.PASTR);
+				//myRC.construct(RobotType.PASTR);
 			}
 			else {
 				return;
@@ -191,20 +191,8 @@ public class SoldierPlayer extends BaseRobot {
 				myRC.move(dir);
 			}
 		}
-		else if (myRC.canSenseSquare(pastr_locs[1]) && myRC.senseObjectAtLocation(pastr_locs[1]) == null){
-			dir = directionTo(pastr_locs[1]);
-			if (dir != null){
-				myRC.move(dir);
-			}
-		}
 		else if (myRC.canSenseSquare(noise_locs[0]) && myRC.senseObjectAtLocation(noise_locs[0]) == null){
 			dir = directionTo(noise_locs[0]);
-			if (dir != null){
-				myRC.move(dir);
-			}
-		}
-		else if (myRC.canSenseSquare(noise_locs[1]) && myRC.senseObjectAtLocation(noise_locs[1]) == null){
-			dir = directionTo(noise_locs[1]);
 			if (dir != null){
 				myRC.move(dir);
 			}

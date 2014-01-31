@@ -46,7 +46,8 @@ public abstract class BaseRobot {
     public static final int PASTR_COW_CHANNEL = 20;
     public static final int NOISE_DIBS_CHANNEL = 21;
     public static final int RANDOM_MAP_CHANNEL = 22; // 1 if random, 2 otherwise
-
+    public static final int NOISE_TARGET_CHANNEL = 23;
+    
     public static final Direction[] dirs = {
         Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST,
         Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};

@@ -27,10 +27,10 @@ public class HQPlayer extends BaseRobot {
 	double totalSpawn;
 	double max_spawn = 0;
 	double[][] spawn_rates;
-	double[][] groupSpawnRates;
 
 	Direction toEnemy;
 	int distToEnemy;
+	boolean random_map;
 	MapLocation defaultSpawnLoc;
 	MapLocation rally_location;
 	LinkedList<MapLocation> high_spawn_locs;
@@ -52,14 +52,13 @@ public class HQPlayer extends BaseRobot {
 		navigator = new Navigation(myRC);
 
 		spawn_rates = this.myRC.senseCowGrowth();
-		groupSpawnRates = new double[this.map_width][this.map_height];
 		strategy = chooseStrategy();
+		random_map = classifyRandomFast();
 		System.out.println("STRATEGY: " + strategy);
 		myRC.broadcast(STRATEGY_CHANNEL, strategy.ordinal() + 1);
 		
 		switch (strategy){
 			case COWVERT: {
-				findBestSpawnLoc();
 				setLocsCOWVERT();
 				getRallyLocation();
 				ActionMessage msg = new ActionMessage(State.DEFEND, 0, rally_location);
@@ -154,15 +153,10 @@ public class HQPlayer extends BaseRobot {
 		// TODO: broken for maps where the HQ is boxed in
 		// TODO: VERY BROKEN FOR BOXED IN MAPS
 		MapLocation pastr1 = my_hq_loc.add(Direction.NORTH_EAST);
-		MapLocation pastr2 = my_hq_loc.add(Direction.SOUTH_WEST);
 		MapLocation noise1 = my_hq_loc.add(Direction.NORTH_WEST);
-		MapLocation noise2 = my_hq_loc.add(Direction.SOUTH_EAST);
 		
-		System.out.println(pastr1 + " " + pastr2 + " " + noise1 + " " + noise2);
 		LocationMessage locMsg0 = new LocationMessage(noise1, pastr1);
-		LocationMessage locMsg1 = new LocationMessage(noise2, pastr2);
 		myRC.broadcast(LOC_CHANNELS[0], locMsg0.encode());
-		myRC.broadcast(LOC_CHANNELS[1], locMsg1.encode());
 	}
 	
 	void getRallyLocation() throws GameActionException {
@@ -171,16 +165,7 @@ public class HQPlayer extends BaseRobot {
 		rally_location = my_hq_loc.add(dir, 2);
 	}
 	
-	protected void step() throws GameActionException {
-		if (this.myRC.senseRobotCount()< 1) {
-			this.spawn();
-			++this.numRobots;
-		} else {
-			return;
-		}
-	}
-	
-	/*@Override
+	@Override
 	protected void step() throws GameActionException {
 
 		Robot[] nearbyEnemies = this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.enemy_team);
@@ -298,7 +283,29 @@ public class HQPlayer extends BaseRobot {
 			}
 		}
 	}
-*/
+	
+	boolean classifyRandomFast(){
+		int iterations = 50;
+		MapLocation probe;
+		int score = 0;
+		for (int i=0; i<iterations; ++i){
+			probe = findRandomPastureLoc();
+			int void_count = 0;
+			
+			for (int a=0; a<3; ++a){
+				for (int b=0; b<3; ++b){
+					if (!navigator.isGood(new MapLocation(probe.x+a-1, probe.y+b-1))){
+						++void_count;
+					}
+				}
+			}
+			if (void_count == 1 || void_count == 2){
+				++score;
+			}
+		}
+		return score > iterations / 5;
+	}
+
 	private boolean spawn() throws GameActionException {
 		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
 				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
@@ -439,7 +446,7 @@ public class HQPlayer extends BaseRobot {
 		}
 		else {
 			MapLocation reflection = new MapLocation(map_width - 1 - result.x, map_height - 1 - result.y);
-			if (groupSpawnRates[reflection.x][reflection.y] == max_spawn){
+			if (spawn_rates[reflection.x][reflection.y] == max_spawn){
 				pivots1 = navigator.findPath(my_hq_loc, reflection);
 				pivots2 = navigator.findPath(enemy_hq_loc, reflection);
 				if (navigator.pathDist(pivots1) <= navigator.pathDist(pivots2)){
@@ -448,7 +455,7 @@ public class HQPlayer extends BaseRobot {
 			}
 
 			MapLocation xFlip = new MapLocation(result.x, map_height-result.y);
-			if (groupSpawnRates[xFlip.x][xFlip.y] == max_spawn){
+			if (spawn_rates[xFlip.x][xFlip.y] == max_spawn){
 				pivots1 = navigator.findPath(my_hq_loc, xFlip);
 				pivots2 = navigator.findPath(enemy_hq_loc, xFlip);
 				if (navigator.pathDist(pivots1) <= navigator.pathDist(pivots2)){
@@ -456,7 +463,7 @@ public class HQPlayer extends BaseRobot {
 				}
 			}
 			MapLocation yFlip = new MapLocation(map_width-result.x, result.y);
-			if (groupSpawnRates[yFlip.x][yFlip.y] == max_spawn){
+			if (spawn_rates[yFlip.x][yFlip.y] == max_spawn){
 				pivots1 = navigator.findPath(my_hq_loc, yFlip);
 				pivots2 = navigator.findPath(enemy_hq_loc, yFlip);
 				if (navigator.pathDist(pivots1) <= navigator.pathDist(pivots2)){
