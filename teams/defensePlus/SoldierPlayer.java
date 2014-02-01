@@ -359,32 +359,32 @@ public class SoldierPlayer extends BaseRobot {
 	protected boolean isSafe() throws GameActionException {
 		calculate_COM_stats();
 		
-		if (this.HQMessage.state == State.DEFEND) {
-			return true;
-		}
-
-		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount && nearAllyCount < 2) {
-			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
-			Direction moveDirection = null;
-
-			Direction d1;
-			
-			d1 = directionTo(enemyCOM, myCOM);
-			
-
-			if(d1 != null){
-				moveDirection = directionTo(this.myCOM.add(d1, 8));
-			} else {
-				return true;
-			}
-
-			if (myRC.isActive() && moveDirection != null) {
-				myRC.move(moveDirection);
-				return false;
-			}
-		}
-
-		this.myRC.setIndicatorString(1, "TOTALLY SAFE");
+//		if (this.HQMessage.state == State.DEFEND) {
+//			return true;
+//		}
+//
+//		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount && nearAllyCount < 2) {
+//			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
+//			Direction moveDirection = null;
+//
+//			Direction d1;
+//			
+//			d1 = directionTo(enemyCOM, myCOM);
+//			
+//
+//			if(d1 != null){
+//				moveDirection = directionTo(this.myCOM.add(d1, 8));
+//			} else {
+//				return true;
+//			}
+//
+//			if (myRC.isActive() && moveDirection != null) {
+//				myRC.move(moveDirection);
+//				return false;
+//			}
+//		}
+//
+		this.myRC.setIndicatorString(1, "We <3 you");
 		return true;
 	}
 
@@ -472,6 +472,8 @@ public class SoldierPlayer extends BaseRobot {
 	protected void freak_step() throws GameActionException{
 			if (!isSafe()) { return; }
 			if(respond_to_threat(1)){ return; }
+			
+			this.myRC.setIndicatorString(2, "</3");
 			
 			if(nearAllyCount > 0){
 				Direction dir = directionTo(myCOM, this.myRC.getLocation());

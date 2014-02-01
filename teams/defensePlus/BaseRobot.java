@@ -32,9 +32,9 @@ public abstract class BaseRobot {
     public static final int SQUAD_MESSAGE_CHANNEL = 100;
     public static final int NOISE_OFFENSE_CHANNEL = 1000;
     public static final int PASTR_LOC_CHANNEL = 1;
-    public static final int NOISE_LOC_CHANNEL = 2;
-    public static final int CAUTION_CHANNEL = 3;
-    public static final int SELF_DESTRUCT_CHANNEL = 4;
+    public static final int NOISE_LOC_CHANNEL = 5;
+    public static final int CAUTION_CHANNEL = 10;
+    public static final int SELF_DESTRUCT_CHANNEL = 15;
     
     protected double[][] spawnRates;
     protected double[][] locScores;
@@ -100,6 +100,9 @@ public abstract class BaseRobot {
     }
     
     public int get_strategy(){
+    	if (this.myRC.getMapHeight()*this.myRC.getMapWidth()> 70*70){
+    		return 5;
+    	}
     	if(this.myTeam == Team.A)
     		return 1;
     	else

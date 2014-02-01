@@ -15,10 +15,7 @@ public class HQPlayer extends BaseRobot {
 	double myPrevMilk = 0;
 
 	boolean attack = false; 
-
-	boolean offensive;
-	int attackDist;
-
+	
 	double[][] spawnRates;
 	double[][] groupSpawnRates;
 	int mapWidth; int mapHeight;
@@ -26,6 +23,8 @@ public class HQPlayer extends BaseRobot {
 	double nextBestGrowth = 0; double numBest = 0;
 	MapLocation defaultSpawnLoc; 
 	double threshRatio;
+	int bestHeuristic = 51;
+	int numPastures = 1;
 
 	Direction toEnemy;
 	int distToEnemy;
@@ -39,7 +38,7 @@ public class HQPlayer extends BaseRobot {
 	Direction noiseDir = null;
 
 	ArrayList<MapLocation> checkedPastures = new ArrayList<MapLocation>();
-	ArrayList<MapLocation> usedPastures = new ArrayList<MapLocation>();
+	ArrayList<MapLocation> pastureOptions = new ArrayList<MapLocation>();
 
 	int numRobots;
 
@@ -56,12 +55,6 @@ public class HQPlayer extends BaseRobot {
 		this.distToEnemy = this.myHQLoc.distanceSquaredTo(this.enemyHQLoc);
 		this.numRobots = 1;
 
-		if (distToEnemy> 30*30){
-			offensive = false;
-		} else {
-			offensive = true;
-		}
-
 		for(int i = 0; i < 8; i++){
 			TerrainTile t = this.myRC.senseTerrainTile(this.myHQLoc.add(dirs[i]));
 			if(t == TerrainTile.NORMAL || t == TerrainTile.ROAD)
@@ -71,18 +64,33 @@ public class HQPlayer extends BaseRobot {
 		this.myRC.broadcast(274, openDirs);
 		
 		strategy = get_strategy();
+		if (strategy == 5) {
+			numPastures = 2;
+		}
 
 		checkCowGrowth();
 		checkPastures();
+		//find_pastr_loc();
+		
 		MapLocation loc = find_pastr_loc();
 
-		if (loc== null) {
+		if (loc!= null) {
 			Direction dir = toEnemy;
 			while (!isGood(this.myHQLoc.add(dir))) {
 				dir = dir.rotateRight();
 			} loc = this.myHQLoc.add(dir);
-		}
-		set_pastr_loc(loc);
+			strategy = 1;
+		} 
+		set_pastr_loc(loc, 1);
+		/*
+		if (strategy==5) {
+			MapLocation nextLoc = find_pastr_loc();
+			if (nextLoc==null) {
+				strategy=1;
+			} else {
+				set_pastr_loc(loc, 2);
+			}
+		}*/
 	}
 
 	protected void checkCowGrowth() {
@@ -116,49 +124,81 @@ public class HQPlayer extends BaseRobot {
 	}
 
 	protected MapLocation find_pastr_loc() throws GameActionException{
-		System.out.println("number of checked pastures: " + checkedPastures.size());
-		int minHeuristic = 51; 
 		int pasturePicked = 0;
 		MapLocation bestPasture = this.myHQLoc.add(toEnemy, 2);
-		for (int i=0; i<checkedPastures.size(); ++i) {
-			int nextHeuristic = pastureVoids(checkedPastures.get(i));
-			if (nextHeuristic > 40) {
-				checkedPastures.remove(i); i--;
-				System.out.println(checkedPastures.size()+" "+nextHeuristic);
-			} 
-//			else if (pastrLoc!=null && checkedPastures.get(i).distanceSquaredTo(pastrLoc)<25){
-//				checkedPastures.remove(i); i--;
-//				System.out.println(checkedPastures.size()+" "+nextHeuristic);
-//			} 
-			else if (nextHeuristic<5) {
-				bestPasture = checkedPastures.remove(i); 
-				return bestPasture;
-			} else if (nextHeuristic < minHeuristic) {
-				minHeuristic = nextHeuristic;
-				bestPasture = checkedPastures.get(i);
-				pasturePicked = i;
-			} 
-			if (this.myRC.isActive()) {
-				spawn();
-			}
-		} 
-		if (bestPasture.equals(this.myHQLoc.add(toEnemy, 2))) {
-			threshRatio-= 0.2;
-			if (threshRatio>0){
-				checkPastures();
-				bestPasture = find_pastr_loc();
-			}
-		} else {
-			checkedPastures.remove(pasturePicked);
-		}
 		
-		System.out.println(bestPasture.equals(this.myHQLoc.add(toEnemy, 2)));
-		return bestPasture;
+		if (bestHeuristic==51) {
+			for (int i=0; i<checkedPastures.size(); ++i) {
+				int nextHeuristic = pastureVoids(checkedPastures.get(i));
+				if (nextHeuristic > 40) {
+					checkedPastures.remove(i); i--;
+				} else if (nextHeuristic<5) {
+					bestHeuristic = nextHeuristic;
+					bestPasture = checkedPastures.get(i);
+					pasturePicked = i;
+					break;
+				} else if (nextHeuristic < bestHeuristic) {
+					bestHeuristic = nextHeuristic;
+					bestPasture = checkedPastures.get(i);
+					pasturePicked = i;
+				}
+				if (this.myRC.isActive()) {
+					spawn();
+				}
+			}
+			if (bestPasture.equals(this.myHQLoc.add(toEnemy, 2))) {
+				threshRatio-= 0.2;
+				if (threshRatio>0){
+					checkPastures();
+					bestPasture = find_pastr_loc();
+				}
+			} else {
+				pastureOptions.add(checkedPastures.remove(pasturePicked));
+			} return bestPasture;
+		} else {
+			System.out.println("already looped through before");
+			for (int i=0; i<checkedPastures.size() && numPastures > 0; ++i) {
+				int nextHeuristic = pastureVoids(checkedPastures.get(i));
+				if (nextHeuristic<5 || nextHeuristic <= bestHeuristic) {
+					bestPasture = checkedPastures.remove(i);
+					pasturePicked = i;
+					break;
+				} 
+				if (this.myRC.isActive()) {
+					spawn();
+				}
+			}
+			if (checkedPastures.size()==0 || bestPasture.equals(this.myHQLoc.add(toEnemy, 2))) {
+				bestHeuristic = 51;
+				System.out.println("no more good ones");
+				find_pastr_loc();
+			} else {
+				boolean tooClose = false;
+				if (pastrLoc!=null && bestPasture.distanceSquaredTo(pastrLoc)<25) {
+					tooClose = true;
+				}
+				if (!tooClose && pasturePicked<checkedPastures.size()) {
+					checkedPastures.remove(pasturePicked);
+					return bestPasture;
+				} else {
+					if (pasturePicked<checkedPastures.size()) {
+						checkedPastures.remove(pasturePicked);
+					}
+					else {
+						bestHeuristic = 51;
+						checkPastures();
+						bestPasture = find_pastr_loc();
+					}
+				}
+			} return bestPasture;
+		}
 	}
 
-	protected void set_pastr_loc(MapLocation loc) throws GameActionException{
+	protected void set_pastr_loc(MapLocation loc, int pasture) throws GameActionException{
 		pastrLoc = loc;
 		System.out.println("pasture location: "+pastrLoc);
+		int pastrchannel = PASTR_LOC_CHANNEL + pasture-1;
+		int noisechannel = NOISE_LOC_CHANNEL + pasture -1;
 
 		if (pastrLoc==null) {
 			this.defaultSpawnLoc = this.myHQLoc.add(toEnemy);
@@ -167,7 +207,7 @@ public class HQPlayer extends BaseRobot {
 			this.defaultSpawnLoc = this.myHQLoc.add(this.myHQLoc.directionTo(this.pastrLoc));
 		}
 		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-		this.myRC.broadcast(PASTR_LOC_CHANNEL, (int)action.encode());
+		this.myRC.broadcast(pastrchannel, (int)action.encode());
 		ActionMessage action2 = null;
 		for (int i=0; i<8; ++i){
 			if (this.myRC.senseTerrainTile(pastrLoc.add(dirs[i])).ordinal() < 2){
@@ -176,22 +216,19 @@ public class HQPlayer extends BaseRobot {
 			}
 		}
 		if (action2!= null) {
-			this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
+			this.myRC.broadcast(noisechannel, (int)action2.encode());
 		}
 	}
-/*	
+
 	@Override
 	protected void step() throws GameActionException {
-		if (this.myRC.isActive() && this.myRC.senseRobotCount()< GameConstants.MAX_ROBOTS) {
-			this.spawn();
-		}
-		ActionMessage action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-		if (action!= null) {
-			this.myRC.broadcast(HQ_BROADCAST_CHANNEL, (int) action.encode());
+		if (this.myTeam==Team.A&& Clock.getRoundNum()<200) {
+			System.out.println(pastrLoc);
+			System.out.println(find_pastr_loc());
 		}
 	}
 	
-*/	
+/*
 	@Override
 	protected void step() throws GameActionException {
 		 
@@ -205,6 +242,9 @@ public class HQPlayer extends BaseRobot {
 			++this.numRobots;
 		}
  
+		if (pastureOptions.size()<numPastures && Clock.getRoundNum()<150) {
+			find_pastr_loc();
+		}
 		int dist = maxDist;
 		MapLocation closestTarget = null;
  
@@ -225,7 +265,7 @@ public class HQPlayer extends BaseRobot {
 		if(pastrBuilt && pastrCount == 0){
 			//if we got blown up, might as well make pasture somewhere else
 			defeatCount++;
-			set_pastr_loc(find_pastr_loc());
+			set_pastr_loc(find_pastr_loc(), 1);
 		}
  
 		pastrBuilt = (pastrCount > 0);
@@ -305,29 +345,6 @@ public class HQPlayer extends BaseRobot {
 			}
 		}
  
-		if(strategy == 2){
-			//the extreme defensive strategy; make pasture right next to our HQ
-			//make a noisetower in some random place and have it attack a pasture
-			//when group is big enough, go attack
-			//based on the anim0rphs strategy; abandoned because it wasn't really working
- 
-			MapLocation pastr = this.myHQLoc.add(toEnemy, 2);			
-			set_pastr_loc(pastr);
- 
-			attack = false;			
-			
-			if(totalAllies > 6 && closestTarget != null)
-				attack = true;
-			if(attack && totalAllies < 3)
-				attack = false;
- 
-			if(attack)
-				action = new ActionMessage(BaseRobot.State.ATTACK, 2, closestTarget);
-			else {
-				action = new ActionMessage(BaseRobot.State.DEFEND, 0, pastrLoc);
-			}
-		}
- 
 		if(strategy == 4){
 			if(closestTarget != null){
 				action = new ActionMessage(BaseRobot.State.ATTACK, 0, closestTarget);
@@ -348,8 +365,12 @@ public class HQPlayer extends BaseRobot {
 		if (Clock.getRoundNum() > caution + 2){
 			this.myRC.broadcast(CAUTION_CHANNEL, 0);
 		}
+		
+		if (strategy == 5) {
+			
+		}
 	}
- 
+*/ 
 	private boolean spawn() throws GameActionException {
 		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
 				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
@@ -419,7 +440,7 @@ public class HQPlayer extends BaseRobot {
 					checkedPastures.add(candidate);
 				}
 			}
-		} System.out.println("done checking pastures");
+		} System.out.println("done checking pastures "+ checkedPastures.size());
 
 	}
 
