@@ -356,17 +356,19 @@ public class SoldierPlayer extends BaseRobot {
 
 	protected boolean isSafe() throws GameActionException {
 		calculate_COM_stats();
+		
+		if (this.HQMessage.state == State.DEFEND) {
+			return true;
+		}
 
 		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount) {
 			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
 			Direction moveDirection = null;
 
 			Direction d1;
-			if(HQMessage.state == State.DEFEND){
-				d1 = directionTo(ourPastrLoc);
-			} else {
-				d1 = directionTo(enemyCOM, myCOM);
-			}
+			
+			d1 = directionTo(enemyCOM, myCOM);
+			
 
 			if(d1 != null){
 				moveDirection = directionTo(this.myCOM.add(d1, 8));
