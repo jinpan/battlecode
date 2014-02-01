@@ -32,7 +32,7 @@ if __name__ == '__main__':
     robot_a = argv[1]
     robot_b = argv[2]
 
-    max_maps = 30
+    max_maps = 52
     a_win_maps, b_win_maps = [], []
 
     map_regex = r'%s vs. %s on (\w+)' % (robot_a, robot_b)

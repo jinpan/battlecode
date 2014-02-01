@@ -11,7 +11,7 @@ from templates import bc_template
 from templates import build_template
 
 
-maps = ('backdoor', 'blocky', 'desolation', 'donut', 'flytrap', 'fuzzy', 'magnetism', 'neighbors', 'overcast', 'rushlane', 'smiles', 'stitch', 'temple', 'traffic', 'valve', 'bakedpotato', 'castles', 'divide', 'flagsoftheworld', 'friendly', 'itsatrap', 'meander', 'onramp', 'reticle', 'siege', 'steamedbuns', 'sweetspot', 'terra', 'troll', 'ventilation')
+maps = ('almsman', 'backdoor', 'bakedpotato', 'blocky', 'cadmic', 'castles', 'corners', 'desolation', 'divide', 'donut', 'fenced', 'filling', 'flagsoftheworld', 'flytrap', 'friendly', 'fuzzy', 'gilgamesh', 'highschool', 'highway', 'house', 'hydratropic', 'hyperfine', 'intermeningeal', 'itsatrap', 'librarious', 'magnetism', 'meander', 'moba', 'moo', 'neighbors', 'oasis', 'onramp', 'overcast', 'pipes', 'race', 'reticle', 'rushlane', 's1', 'siege', 'smiles', 'spots', 'spyglass', 'steamedbuns', 'stitch', 'sweetspot', 'temple', 'terra', 'traffic', 'troll', 'unself', 'valve', 'ventilation')
 
 
 if __name__ == '__main__':
