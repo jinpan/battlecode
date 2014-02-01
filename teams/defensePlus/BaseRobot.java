@@ -8,7 +8,7 @@ import battlecode.common.*;
 public abstract class BaseRobot {
     
     public enum State {
-        DEFAULT, ATTACK, DEFEND, WAIT
+        DEFAULT, ATTACK, DEFEND, WAIT, FREAKOUT
     };
 
     protected RobotController myRC;

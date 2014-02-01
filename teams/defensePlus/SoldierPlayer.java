@@ -75,6 +75,7 @@ public class SoldierPlayer extends BaseRobot {
 			case ATTACK: this.attack_step(); myRC.setIndicatorString(2, "ATTACK"); break;
 			case DEFEND: this.defend_step(); myRC.setIndicatorString(2, "DEFEND"); break;
 			case WAIT: this.rally_step(); myRC.setIndicatorString(2, "WAIT"); break;
+			case FREAKOUT: this.freak_step(); myRC.setIndicatorString(2, "FRAKEOUT"); break;
 			default: myRC.setIndicatorString(2, "DEFAULT");
 			}
 		}
@@ -244,7 +245,8 @@ public class SoldierPlayer extends BaseRobot {
 		if (this.myRC.getLocation().equals(ourNoiseLoc)){
 			//wait for sufficient reinforcements before building shit
 			timer--;
-			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > reinforcementReq || timer < 0){
+			if(this.myRC.senseNearbyGameObjects(Robot.class, 10000, this.myTeam).length > reinforcementReq || timer < 0 
+					|| this.myRC.senseTeamMilkQuantity(this.myTeam) > 7500000){
 				if (this.myRC.readBroadcast(CAUTION_CHANNEL) == 0)
 					this.myRC.construct(RobotType.NOISETOWER);
 			}
@@ -361,7 +363,7 @@ public class SoldierPlayer extends BaseRobot {
 			return true;
 		}
 
-		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount) {
+		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount && nearAllyCount < 2) {
 			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
 			Direction moveDirection = null;
 
@@ -423,7 +425,7 @@ public class SoldierPlayer extends BaseRobot {
 			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
 			//if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
 			myRobotCount++;
-			if(ri.location.distanceSquaredTo(ourLoc) <= 2)
+			if(ri.location.distanceSquaredTo(ourLoc) <= 3)
 				nearAllyCount++;
 			if(ri.location.distanceSquaredTo(enemyCOM) <= 14){
 				hittableAllyCount++;
@@ -467,7 +469,19 @@ public class SoldierPlayer extends BaseRobot {
 		return null;        
 	}
 
-
+	protected void freak_step() throws GameActionException{
+			if (!isSafe()) { return; }
+			if(respond_to_threat(1)){ return; }
+			
+			if(nearAllyCount > 0){
+				Direction dir = directionTo(myCOM, this.myRC.getLocation());
+				if(dir != null){
+					this.myRC.sneak(dir);
+				}
+			} else {
+				this.myRC.construct(RobotType.PASTR);
+			}
+	}
 
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);

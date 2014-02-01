@@ -38,8 +38,8 @@ public class HQPlayer extends BaseRobot {
 	MapLocation pastrLoc;
 	Direction noiseDir = null;
 
-	ArrayList<PastureBlock> pastrBlocks = new ArrayList<PastureBlock>();
 	ArrayList<MapLocation> checkedPastures = new ArrayList<MapLocation>();
+	ArrayList<MapLocation> usedPastures = new ArrayList<MapLocation>();
 
 	int numRobots;
 
@@ -125,7 +125,12 @@ public class HQPlayer extends BaseRobot {
 			if (nextHeuristic > 40) {
 				checkedPastures.remove(i); i--;
 				System.out.println(checkedPastures.size()+" "+nextHeuristic);
-			} else if (nextHeuristic<=5) {
+			} 
+//			else if (pastrLoc!=null && checkedPastures.get(i).distanceSquaredTo(pastrLoc)<25){
+//				checkedPastures.remove(i); i--;
+//				System.out.println(checkedPastures.size()+" "+nextHeuristic);
+//			} 
+			else if (nextHeuristic<5) {
 				bestPasture = checkedPastures.remove(i); 
 				return bestPasture;
 			} else if (nextHeuristic < minHeuristic) {
@@ -240,6 +245,14 @@ public class HQPlayer extends BaseRobot {
 		if(strategy == 1){
 			double enemyMilk = this.myRC.senseTeamMilkQuantity(enemyTeam);
 			double myMilk = this.myRC.senseTeamMilkQuantity(myTeam);
+			
+			if(enemyMilk >= 7500000 && myMilk > 7000000){
+				state = State.FREAKOUT;
+			} else if(enemyMilk > 7500000) {
+				state = State.ATTACK; 
+			} else if(myMilk > 7500000){
+				state = State.DEFEND;
+			}
  
 			if(state == State.WAIT){
 				boolean gameBegin = (!pastrBuilt && defeatCount == 0);
@@ -260,11 +273,13 @@ public class HQPlayer extends BaseRobot {
 			}
 			
 			if(state == State.ATTACK){
-				if(closestTarget == null)
+				if(closestTarget == null){
 					state = State.DEFEND;
-				if(pastrBuilt && nearEnemies > 0)
-					state = State.DEFEND;
-				
+				} else if(pastrBuilt && nearEnemies > 0){
+					MapLocation ourCOM = calculate_COM(allies);
+					if(ourCOM.distanceSquaredTo(pastrLoc) < 225)
+						state = State.DEFEND;
+				}
 				if(totalAllies - 2*pastrCount < 3)
 					state = State.WAIT;
 			}
@@ -275,6 +290,10 @@ public class HQPlayer extends BaseRobot {
 				
 				if(totalAllies < 5 && nearTotAllies < 2)
 					state = State.WAIT;
+			}
+			
+			if(state == State.FREAKOUT){
+				action = new ActionMessage(BaseRobot.State.FREAKOUT, 0, this.myHQLoc);
 			}
  
 			if(state == State.ATTACK){
@@ -410,7 +429,7 @@ public class HQPlayer extends BaseRobot {
 			for (int j= -2; j<3; ++j) {
 				if (!isOnMap(loc.x+i, loc.y+j) || spawnRates[loc.x+i][loc.y+j]==0) {
 					voidCount+= 2;
-				} else if (spawnRates[loc.x+i][loc.y+j]<= (threshRatio-0.2)*bestGrowth) {
+				} else if (spawnRates[loc.x+i][loc.y+j]<= (threshRatio-0.1)*bestGrowth) {
 					voidCount++;
 				}
 			}
@@ -438,4 +457,25 @@ public class HQPlayer extends BaseRobot {
 			return false;
 		}
 	}
+	
+	
+	protected MapLocation calculate_COM(Robot[] allies) throws GameActionException{
+		int avgx = 0;
+		int avgy = 0;
+		int myRobotCount = 0;
+
+		for (int i = 0; i < allies.length; i++) {
+			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
+			myRobotCount++;
+			avgx+= ri.location.x; avgy+= ri.location.y;
+		} if (myRobotCount!=0){
+			avgx/= myRobotCount; avgy/= myRobotCount;
+			MapLocation myCOM = new MapLocation(avgx, avgy);
+			return myCOM;
+		}
+
+		return null;
+
+	}
+
 }
