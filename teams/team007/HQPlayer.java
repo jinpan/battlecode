@@ -10,6 +10,7 @@ public class HQPlayer extends BaseRobot {
 	State state = State.WAIT;
 	boolean blewUpAnEnemyPastr = false;
 	int[][] map;
+	int reflection = 0; //1 is symmetric about x, 2 is symmetric about y-axis, 3 is 180 symmetry
 
 	double enemyPrevMilk = 0; 
 	double myPrevMilk = 0;
@@ -48,6 +49,8 @@ public class HQPlayer extends BaseRobot {
 		this.spawn();
 		this.mapWidth = this.myRC.getMapWidth();
 		this.mapHeight = this.myRC.getMapHeight();
+		reflect(this.myHQLoc);
+		System.out.println(reflection);
 		
 		this.spawnRates = this.myRC.senseCowGrowth();
 		this.groupSpawnRates = new double[this.mapWidth][this.mapHeight];
@@ -404,9 +407,38 @@ public class HQPlayer extends BaseRobot {
 		return xokay&& yokay;
 	}
 	
+	private MapLocation reflect180(MapLocation loc) {
+		return new MapLocation(this.mapWidth-1 - loc.x, this.mapHeight -1 - loc.y);
+	}
+	
+	private MapLocation reflectY(MapLocation loc) {
+		return new MapLocation(this.mapWidth -1 - loc.x, loc.y); 
+	}
+	
+	private MapLocation reflectX(MapLocation loc) {
+		return new MapLocation(loc.x, this.mapHeight -1 - loc.y); 
+	}
+	
 	private MapLocation reflect(MapLocation loc){
-		int midX2 = (this.myHQLoc.x + this.enemyHQLoc.x), midY2 = (this.myHQLoc.y + this.enemyHQLoc.y);
-		return new MapLocation(midX2 - loc.x, midY2 - loc.y);
+		if (reflection==0) {
+			if (this.myHQLoc.equals(reflectX(this.enemyHQLoc))) {
+				reflection = 1;
+			} else if (this.myHQLoc.equals(reflectY(this.enemyHQLoc))){
+				reflection = 2;
+			} else if (this.myHQLoc.equals(reflect180(this.enemyHQLoc))) {
+				reflection = 3;
+			} return null;
+		} else {
+			if (reflection == 1) {
+				return reflectX(loc);
+			} else if (reflection==2) {
+				return reflectY(loc);
+			} else if (reflection==3) {
+				return reflect180(loc);
+			} else {
+				return loc;
+			}
+		}
 	}
 
 	public void checkPastures() throws GameActionException {
@@ -418,6 +450,9 @@ public class HQPlayer extends BaseRobot {
 					MapLocation candidate = new MapLocation(i, j);
 					if (candidate.distanceSquaredTo(this.myHQLoc)>= candidate.distanceSquaredTo(this.enemyHQLoc)){
 						candidate = reflect(candidate);
+					}
+					if (candidate==null){
+						continue;
 					}
 					checkedPastures.add(candidate);
 				}
