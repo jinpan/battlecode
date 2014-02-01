@@ -361,13 +361,19 @@ public class SoldierPlayer extends BaseRobot {
 			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
 			Direction moveDirection = null;
 
-			Direction d1 = directionTo(enemyCOM, myCOM);
+			Direction d1;
+			if(HQMessage.state == State.DEFEND){
+				d1 = directionTo(ourPastrLoc);
+			} else {
+				d1 = directionTo(enemyCOM, myCOM);
+			}
+
 			if(d1 != null){
 				moveDirection = directionTo(this.myCOM.add(d1, 8));
 			} else {
 				return true;
 			}
-			
+
 			if (myRC.isActive() && moveDirection != null) {
 				myRC.move(moveDirection);
 				return false;
@@ -410,7 +416,7 @@ public class SoldierPlayer extends BaseRobot {
 
 		myRobotCount = 1;
 		myRobotHealth = (int)this.myRC.getHealth();
-		
+
 		for (int i = 0; i < allies.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
 			//if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
@@ -428,10 +434,10 @@ public class SoldierPlayer extends BaseRobot {
 			myx/= myRobotCount; myy/= myRobotCount;
 			myCOM = new MapLocation(myx, myy);
 		}
-		
+
 
 	}
-	
+
 	protected Direction directionTo(MapLocation loc1, MapLocation loc2) throws GameActionException {
 		Direction dir = loc1.directionTo(loc2);
 
@@ -458,8 +464,8 @@ public class SoldierPlayer extends BaseRobot {
 
 		return null;        
 	}
-	
-	
+
+
 
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);
