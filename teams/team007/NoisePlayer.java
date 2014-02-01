@@ -1,5 +1,7 @@
 package team007;
 
+import java.util.LinkedList;
+
 import battlecode.common.*;
 
 public class NoisePlayer extends BaseRobot{
@@ -9,9 +11,11 @@ public class NoisePlayer extends BaseRobot{
 	MapLocation[] extrema = new MapLocation[8];
 	MapLocation curLoc;
 	MapLocation pastrLoc;
+	Navigation navigator;
 
 	public NoisePlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
+		navigator = new Navigation(this);
 		get_herding_extrema();
 		curLoc = extrema[cur];
 		pastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
@@ -26,22 +30,71 @@ public class NoisePlayer extends BaseRobot{
 				this.myRC.selfDestruct();
 			}
 			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
-				if(!cowsNearby()){
+				MapLocation nearbyCows = cowsNearby();
+				if(nearbyCows == null){
 					cur = (cur+1)%8;
 					curLoc = extrema[dirPro[cur]];					
+				}
+				else {
+					MapLocation[] path = herd(nearbyCows, pastrLoc);
+					for (MapLocation loc: path){
+						if (myRC.canAttackSquare(loc)){
+							if (myRC.isActive()){
+								myRC.attackSquare(loc);
+							}
+							else {
+								sense_enemies();
+							}
+						}
+						else {
+							break;
+						}
+					}
 				}
 			} else {
 				curLoc = curLoc.add(curLoc.directionTo(this.myRC.getLocation()));
 			}
-
-			this.myRC.attackSquare(curLoc);
+			
+			if (myRC.isActive()){
+				this.myRC.attackSquare(curLoc);
+			}
 		}
 
 	}
 	
+	MapLocation[] herd(MapLocation source, MapLocation target) throws GameActionException{
+
+		LinkedList<MapLocation> path = navigator.pathFind(source, target);
+
+		LinkedList<MapLocation> result = new LinkedList<MapLocation>();
+		
+		MapLocation current = source;
+		Direction move_dir;
+		path.removeFirst();
+		while (true){
+			if (current.equals(target)){
+				break;
+			}
+			if (path.getFirst().equals(current)){
+				path.removeFirst();
+			}
+			move_dir = navigator.directionTo(current, path.getFirst());
+			result.add(current.add(move_dir.opposite()));
+			current = current.add(move_dir);
+		}
+		return result.toArray(new MapLocation[0]);
+	}
+	
 	//attempts to reel in cows that we haven't gotten but could easily get
-	protected boolean cowsNearby() throws GameActionException{
-		return false;
+	protected MapLocation cowsNearby() throws GameActionException{
+		for (MapLocation probe: MapLocation.getAllMapLocationsWithinRadiusSq(myRC.getLocation(), 35)){
+			if (probe.distanceSquaredTo(pastrLoc) > 5){
+				if (myRC.senseCowsAtLocation(probe) > 10000){
+					return probe;
+				}
+			}
+		}
+		return null;
 		//will write this later
 		//scan the squares we can see and pull in large clumps cows that are nearby		
 	}

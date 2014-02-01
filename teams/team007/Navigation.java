@@ -12,16 +12,17 @@ import battlecode.common.RobotInfo;
 import battlecode.common.TerrainTile;
 
 public class Navigation {
-	SoldierPlayer myRobot;
+	BaseRobot myRobot;
 	RobotController rc;
 	boolean debug;
 	int[][] map;
 	
 	
-	public Navigation(SoldierPlayer r){
+	public Navigation(BaseRobot r){
 		this.myRobot = r;
 		this.rc = myRobot.myRC;
 		map = new int[rc.getMapWidth()][rc.getMapHeight()];
+		map[rc.senseHQLocation().x][rc.senseHQLocation().y] = -1;
 	}
 
 	public LinkedList<MapLocation> pathFind(MapLocation start, MapLocation target) throws GameActionException {
