@@ -63,8 +63,8 @@ public class HQPlayer extends BaseRobot {
 		}
 
 		for(int i = 0; i < 8; i++){
-			int res = this.myRC.senseTerrainTile(this.myHQLoc.add(dirs[i])).ordinal();
-			if(res == 0 || res == 2)
+			TerrainTile t = this.myRC.senseTerrainTile(this.myHQLoc.add(dirs[i]));
+			if(t == TerrainTile.NORMAL || t == TerrainTile.ROAD)
 				openDirs++;
 		}
 		
@@ -376,12 +376,10 @@ public class HQPlayer extends BaseRobot {
 		return false; //give up    	
 	}
 
-	public boolean isGoodLoc(int x, int y){
+	public boolean isOnMap(int x, int y){
 		boolean xokay= x>=0 && x<this.mapWidth;
 		boolean yokay= y>=0 && y<this.mapHeight;
-		boolean inEnemySquare= (x-this.enemyHQLoc.x)*(x-this.enemyHQLoc.x) + (y-this.enemyHQLoc.y)*(y-this.enemyHQLoc.y) <= 
-				(x-this.myHQLoc.x)*(x-this.myHQLoc.x) + (y-this.myHQLoc.y)*(y-this.myHQLoc.y);
-		return xokay && yokay && !inEnemySquare;
+		return xokay&& yokay;
 	}
 	
 	private MapLocation reflect(MapLocation loc){
@@ -410,7 +408,7 @@ public class HQPlayer extends BaseRobot {
 		int voidCount = 0;
 		for (int i= -2; i<3; ++i) {
 			for (int j= -2; j<3; ++j) {
-				if (!isGoodLoc(loc) || spawnRates[loc.x+i][loc.y+j]==0) {
+				if (!isOnMap(loc.x+i, loc.y+j) || spawnRates[loc.x+i][loc.y+j]==0) {
 					voidCount+= 2;
 				} else if (spawnRates[loc.x+i][loc.y+j]<= (threshRatio-0.2)*bestGrowth) {
 					voidCount++;

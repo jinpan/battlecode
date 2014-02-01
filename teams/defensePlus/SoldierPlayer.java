@@ -279,7 +279,7 @@ public class SoldierPlayer extends BaseRobot {
 			//gather up soldiers near our HQ, moving out of way if squished
 			calculate_COM_stats();
 			if(respond_to_threat(0)){ return; }
-			if(myRobotCount >= this.myRC.readBroadcast(274)-1 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 2){
+			if(myRobotCount >= this.myRC.readBroadcast(274)-1 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 4){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
 					this.myRC.move(dir);
@@ -295,7 +295,7 @@ public class SoldierPlayer extends BaseRobot {
 				}
 			}
 
-			if(myRobotCount >= this.myRC.readBroadcast(274)+5 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 7){
+			if(myRobotCount >= this.myRC.readBroadcast(274)+4 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 9){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
 					this.myRC.move(dir);
