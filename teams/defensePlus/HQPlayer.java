@@ -125,7 +125,7 @@ public class HQPlayer extends BaseRobot {
 			if (nextHeuristic > 40) {
 				checkedPastures.remove(i); i--;
 				System.out.println(checkedPastures.size()+" "+nextHeuristic);
-			} else if (nextHeuristic<=8) {
+			} else if (nextHeuristic<=5) {
 				bestPasture = checkedPastures.remove(i); 
 				return bestPasture;
 			} else if (nextHeuristic < minHeuristic) {
@@ -174,7 +174,7 @@ public class HQPlayer extends BaseRobot {
 			this.myRC.broadcast(NOISE_LOC_CHANNEL, (int)action2.encode());
 		}
 	}
-	
+/*	
 	@Override
 	protected void step() throws GameActionException {
 		if (this.myRC.isActive() && this.myRC.senseRobotCount()< GameConstants.MAX_ROBOTS) {
@@ -186,8 +186,7 @@ public class HQPlayer extends BaseRobot {
 		}
 	}
 	
-	
-/*
+*/	
 	@Override
 	protected void step() throws GameActionException {
 		 
@@ -331,7 +330,7 @@ public class HQPlayer extends BaseRobot {
 			this.myRC.broadcast(CAUTION_CHANNEL, 0);
 		}
 	}
- */
+ 
 	private boolean spawn() throws GameActionException {
 		if (this.defaultSpawnLoc != null && this.myRC.senseObjectAtLocation(this.defaultSpawnLoc) == null
 				&& this.myRC.senseTerrainTile(this.defaultSpawnLoc).ordinal() < 2){
