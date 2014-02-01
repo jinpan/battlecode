@@ -1,7 +1,8 @@
 package team007;
 
 import java.util.LinkedList;
-import team007.SearchNode;
+
+import team007oldoldold.SearchNode;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;

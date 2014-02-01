@@ -1,4 +1,4 @@
-package defensePlus;
+package team007oldoldold;
 
 import battlecode.common.*;
 
@@ -8,23 +8,17 @@ public class NoisePlayer extends BaseRobot{
 	int[] dirPro = {0, 2, 4, 6, 7, 1, 3, 5};
 	MapLocation[] extrema = new MapLocation[8];
 	MapLocation curLoc;
-	MapLocation pastrLoc;
 
 	public NoisePlayer(RobotController myRC) throws GameActionException {
 		super(myRC);
 		get_herding_extrema();
 		curLoc = extrema[cur];
-		pastrLoc = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
 	}
 
 	protected void step() throws GameActionException{
 		sense_enemies();
 		
-		if(this.myRC.isActive()){
-			MapLocation checkPasture = ActionMessage.decode(this.myRC.readBroadcast(PASTR_LOC_CHANNEL)).targetLocation;
-			if (!this.pastrLoc.equals(checkPasture)) {
-				this.myRC.selfDestruct();
-			}
+		if(this.myRC.isActive()){	
 			if(curLoc.distanceSquaredTo(this.myRC.getLocation())<=9){
 				if(!cowsNearby()){
 					cur = (cur+1)%8;

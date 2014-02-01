@@ -1,4 +1,4 @@
-package defensePlus;
+package team007oldoldold;
 
 import battlecode.common.MapLocation;
 
@@ -47,7 +47,6 @@ public class ActionMessage {
         	case ATTACK: state = 0x1; break;
         	case DEFEND: state = 0x2; break;
         	case WAIT: state = 0x5; break;
-        	case FREAKOUT: state = 0x6; break;
         	default: state = 0x0;
         }
         result += state; result <<= 12;
@@ -73,7 +72,6 @@ public class ActionMessage {
         	case 0x1: myState = BaseRobot.State.ATTACK; break;
         	case 0x2: myState = BaseRobot.State.DEFEND; break;
         	case 0x5: myState = BaseRobot.State.WAIT; break;
-        	case 0x6: myState = BaseRobot.State.FREAKOUT; break;
         	default: myState = BaseRobot.State.DEFAULT; break;
         }
         

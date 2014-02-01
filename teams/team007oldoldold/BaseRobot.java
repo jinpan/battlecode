@@ -1,4 +1,4 @@
-package defensePlus;
+package team007oldoldold;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -8,7 +8,7 @@ import battlecode.common.*;
 public abstract class BaseRobot {
     
     public enum State {
-        DEFAULT, ATTACK, DEFEND, WAIT, FREAKOUT
+        DEFAULT, ATTACK, DEFEND, WAIT
     };
 
     protected RobotController myRC;

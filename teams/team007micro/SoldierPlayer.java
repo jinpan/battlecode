@@ -2,7 +2,7 @@ package team007micro;
 
 import java.util.LinkedList;
 
-import team007.*;
+import team007oldoldold.*;
 import battlecode.common.*;
 
 public class SoldierPlayer extends BaseRobot {

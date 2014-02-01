@@ -2,9 +2,9 @@ package team007;
 
 import java.util.ArrayList;
 
-import team007.ActionMessage;
-import team007.BaseRobot;
-import team007.PastureBlock;
+import team007oldoldold.ActionMessage;
+import team007oldoldold.BaseRobot;
+import team007oldoldold.PastureBlock;
 import battlecode.common.*;
 
 public class HQPlayer extends BaseRobot {
