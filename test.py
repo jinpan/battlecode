@@ -38,7 +38,7 @@ if __name__ == '__main__':
     map_regex = r'%s vs. %s on (\w+)' % (robot_a, robot_b)
     result_regex = r'\((A|B)\) wins'
 
-    p = Popen('seq 0 29 | parallel -j 8 ./test_helper.py %s %s' % (robot_a, robot_b), shell=True, stdout=PIPE)
+    p = Popen('seq 0 51 | parallel -j 8 ./test_helper.py %s %s' % (robot_a, robot_b), shell=True, stdout=PIPE)
     q = Queue()
     t = Thread(target=enqueue_output, args=(p.stdout, q))
     t.daemon = True
