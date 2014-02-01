@@ -10,15 +10,18 @@ public class SoldierPlayer extends BaseRobot {
 	MapLocation ourNoiseLoc;
 	ActionMessage HQMessage;
 
-
 	MapLocation myCOM;
 	MapLocation enemyCOM;
 	int myRobotCount = 0;
 	int myRobotHealth = 0;
 	int nearAllyCount = 0;
+
 	int enemyCount = 0;
 	int enemyHealth = 0;
 	int nearEnemyCount = 0;
+
+	int hittableEnemyCount = 0;
+	int hittableAllyCount = 0;
 
 	int reinforcementReq;
 	int timer = 250;
@@ -80,11 +83,6 @@ public class SoldierPlayer extends BaseRobot {
 	protected void attack_step() throws GameActionException {
 		if (!isSafe()) { return; }
 		if (respond_to_threat(2)){ return; }
-		
-		if(nearEnemyCount - nearAllyCount >= 2){
-			System.out.println("BOOM!");
-			this.myRC.selfDestruct();
-		}
 
 		if ((this.myRC.canSenseSquare(HQMessage.targetLocation) && this.myRC.senseObjectAtLocation(HQMessage.targetLocation) == null)) {
 			move_to_target(ourPastrLoc, false);
@@ -158,6 +156,11 @@ public class SoldierPlayer extends BaseRobot {
 		if(enemies.length == 0)
 			return false;
 
+		if(nearEnemyCount - nearAllyCount >= 2){
+			System.out.println("BOOM!");
+			this.myRC.selfDestruct();
+		}
+
 		MapLocation myLoc;
 		if (myCOM!= null) {
 			myLoc = myCOM;
@@ -165,12 +168,12 @@ public class SoldierPlayer extends BaseRobot {
 			myLoc = this.myRC.getLocation();
 
 		int maxHeur = 0;
-		
+
 		RobotInfo bestRobotInfo = null;
 		for(int i = 0; i < enemies.length; i++){
 			RobotInfo info = this.myRC.senseRobotInfo(enemies[i]);
-			
-			
+
+
 			int thisHeur = getHeuristic(info, myLoc, aggression);
 			if(thisHeur > maxHeur){
 				maxHeur = thisHeur;
@@ -271,8 +274,8 @@ public class SoldierPlayer extends BaseRobot {
 				defend_step();
 				return;
 			}
-			
-			
+
+
 			//gather up soldiers near our HQ, moving out of way if squished
 			calculate_COM_stats();
 			if(respond_to_threat(0)){ return; }
@@ -283,7 +286,7 @@ public class SoldierPlayer extends BaseRobot {
 					return;
 				}
 			}
-			
+
 			if(myRobotCount >= this.myRC.readBroadcast(274)+1 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 5){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
@@ -291,7 +294,7 @@ public class SoldierPlayer extends BaseRobot {
 					return;
 				}
 			}
-			
+
 			if(myRobotCount >= this.myRC.readBroadcast(274)+5 && this.myRC.getLocation().distanceSquaredTo(this.myHQLoc) < 7){
 				Direction dir = this.myRC.getLocation().directionTo(this.myHQLoc).opposite();
 				if(this.myRC.canMove(dir)){
@@ -299,7 +302,7 @@ public class SoldierPlayer extends BaseRobot {
 					return;
 				}
 			}
-			
+
 		} else if(this.HQMessage.targetLocation.equals(this.enemyHQLoc)){
 			//surround the enemy HQ
 			calculate_COM_stats();
@@ -354,33 +357,24 @@ public class SoldierPlayer extends BaseRobot {
 	protected boolean isSafe() throws GameActionException {
 		calculate_COM_stats();
 
-		//		if (myRobotHealth < 0.5*enemyHealth && myRobotCount < 0.5*enemyCount) {
-		//			if (this.myRC.getHealth() < 25){
-		//				//TODO: evaluate whether returning true here is really better. otherwise consider self-destruct
-		//
-		//				/*if (this.myRC.getLocation().distanceSquaredTo(com)<= 4){
-		//					System.out.println("self destructing");
-		//					this.myRC.selfDestruct(); 
-		//					return false;
-		//				}*/
-		//
-		//				/*Direction moveDirection = directionTo(com);
-		//				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-		//					myRC.move(moveDirection);
-		//				}*/ return true;
-		//			} else {
-		//				Direction moveDirection;
-		//				if (myCOM!= null)
-		//					moveDirection = this.myRC.getLocation().directionTo(myCOM);
-		//				else 
-		//					moveDirection = this.myRC.getLocation().directionTo(enemyCOM.add(enemyCOM.directionTo(ourPastrLoc), 7));
-		//				if (myRC.isActive() && moveDirection != null && canMove(moveDirection)) {
-		//					myRC.move(moveDirection);
-		//					return false;
-		//				}
-		//			}
-		//		}
+		if (myRobotHealth < enemyHealth && hittableAllyCount < enemyCount) {
+			this.myRC.setIndicatorString(1, "WHOOPS NOT SAFE");
+			Direction moveDirection = null;
 
+			Direction d1 = directionTo(enemyCOM, myCOM);
+			if(d1 != null){
+				moveDirection = directionTo(this.myCOM.add(d1, 8));
+			} else {
+				return true;
+			}
+			
+			if (myRC.isActive() && moveDirection != null) {
+				myRC.move(moveDirection);
+				return false;
+			}
+		}
+
+		this.myRC.setIndicatorString(1, "TOTALLY SAFE");
 		return true;
 	}
 
@@ -393,6 +387,9 @@ public class SoldierPlayer extends BaseRobot {
 		nearAllyCount = 0;
 		enemyHealth = 0;
 		enemyCount = 0;
+		hittableAllyCount = 0;
+
+
 		for (int i = 0; i < enemies.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(enemies[i]);
 			if (ri.type== RobotType.SOLDIER){
@@ -408,27 +405,61 @@ public class SoldierPlayer extends BaseRobot {
 		avgy /= (double) enemyCount;
 		enemyCOM = new MapLocation(avgx, avgy);
 
-		int myx = 0; int myy = 0;
+		int myx = this.myRC.getLocation().x; int myy = this.myRC.getLocation().y	;
 		myCOM = null;
 
-		myRobotCount = 0;
-		myRobotHealth = 0;
+		myRobotCount = 1;
+		myRobotHealth = (int)this.myRC.getHealth();
+		
 		for (int i = 0; i < allies.length; i++) {
 			RobotInfo ri = this.myRC.senseRobotInfo(allies[i]);
 			//if (ri.location.distanceSquaredTo(enemyCOM) <= 35) {
 			myRobotCount++;
 			if(ri.location.distanceSquaredTo(ourLoc) <= 2)
 				nearAllyCount++;
-			myRobotHealth+= ri.health;
+			if(ri.location.distanceSquaredTo(enemyCOM) <= 14){
+				hittableAllyCount++;
+				myRobotHealth+= ri.health;
+			}
+
 			myx+= ri.location.x; myy+= ri.location.y;
 			//}
 		} if (myRobotCount!=0){
 			myx/= myRobotCount; myy/= myRobotCount;
 			myCOM = new MapLocation(myx, myy);
 		}
+		
 
 	}
+	
+	protected Direction directionTo(MapLocation loc1, MapLocation loc2) throws GameActionException {
+		Direction dir = loc1.directionTo(loc2);
 
+		if (this.myRC.canMove(dir)){
+			return dir;
+		}
+
+		Direction dirA, dirB;
+		if (this.random() < 0.5){
+			dirA = dir.rotateLeft();
+			dirB = dir.rotateRight();
+		}
+		else {
+			dirA = dir.rotateRight();
+			dirB = dir.rotateLeft();
+		}
+
+		if (this.myRC.canMove(dirA)){
+			return dirA;
+		}
+		else if (this.myRC.canMove(dirB)){
+			return dirB;
+		}
+
+		return null;        
+	}
+	
+	
 
 	protected Direction directionTo(MapLocation loc) throws GameActionException {
 		Direction dir = this.myRC.getLocation().directionTo(loc);

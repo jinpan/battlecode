@@ -251,7 +251,7 @@ public class HQPlayer extends BaseRobot {
 				} else {
 					if(pastrBuilt && (totalAllies > 5 || nearTotAllies > 2)){
 						state = State.DEFEND;
-					} else if(closestTarget != null && totalAllies > 4){
+					} else if(closestTarget != null && totalAllies > 7){
 						state = State.ATTACK;
 					} else if(!pastrBuilt && (totalAllies > 10 || nearTotAllies > 4)){
 						state = State.DEFEND;
@@ -265,7 +265,7 @@ public class HQPlayer extends BaseRobot {
 				if(pastrBuilt && nearEnemies > 0)
 					state = State.DEFEND;
 				
-				if(totalAllies < 3)
+				if(totalAllies - 2*pastrCount < 3)
 					state = State.WAIT;
 			}
 			
